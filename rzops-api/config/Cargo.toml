@@ -1,0 +1,8 @@
+[package]
+name = "rzops-config"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+rzops-common = { workspace = true }
+serde = { workspace = true, features = ["derive"] }

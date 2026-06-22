@@ -1,0 +1,47 @@
+use std::sync::Arc;
+use axum::{extract::{Path, Query, State}, http::StatusCode, response::IntoResponse, Json};
+use chrono::Utc;
+use uuid::Uuid;
+use rzops_domain::enums::{DatabaseStatus, DatabaseType, Importance};
+use rzops_domain::models::database_instance::DatabaseInstance;
+use rzops_domain::ports::database_instance_repository::{DatabaseInstanceFilter, DatabaseInstanceRepository};
+use crate::auth_extractor::AuthUser;
+use crate::dto::provider_dto::ErrorResponse;
+use crate::dto::database_instance_dto::*;
+
+fn parse_db_status(s: &str) -> DatabaseStatus { match s { "active" => DatabaseStatus::Active, "retired" => DatabaseStatus::Retired, _ => DatabaseStatus::Active } }
+fn db_status_to_string(s: &DatabaseStatus) -> String { match s { DatabaseStatus::Active => "active", DatabaseStatus::Retired => "retired" }.to_string() }
+fn parse_db_type(s: &str) -> DatabaseType { match s { "mysql" => DatabaseType::Mysql, "postgresql" => DatabaseType::Postgresql, "sqlserver" => DatabaseType::Sqlserver, "oracle" => DatabaseType::Oracle, "redis" => DatabaseType::Redis, "mongodb" => DatabaseType::Mongodb, _ => DatabaseType::Other } }
+fn db_type_to_string(t: &DatabaseType) -> String { match t { DatabaseType::Mysql => "mysql", DatabaseType::Postgresql => "postgresql", DatabaseType::Sqlserver => "sqlserver", DatabaseType::Oracle => "oracle", DatabaseType::Redis => "redis", DatabaseType::Mongodb => "mongodb", DatabaseType::Other => "other" }.to_string() }
+fn parse_importance(s: &str) -> Importance { match s { "critical" => Importance::Critical, "high" => Importance::High, "medium" => Importance::Medium, "low" => Importance::Low, _ => Importance::Medium } }
+fn importance_to_string(i: &Importance) -> String { match i { Importance::Critical => "critical", Importance::High => "high", Importance::Medium => "medium", Importance::Low => "low" }.to_string() }
+fn to_response(d: &DatabaseInstance) -> DatabaseInstanceResponse {
+    DatabaseInstanceResponse { id: d.id, server_id: d.server_id, name: d.name.clone(), db_type: db_type_to_string(&d.db_type), description: d.description.clone(), status: db_status_to_string(&d.status), offline_time: d.offline_time, is_self_installed: d.is_self_installed, importance: d.importance.as_ref().map(importance_to_string), is_ops_managed: d.is_ops_managed, management_credential_id: d.management_credential_id, backup_plan_id: d.backup_plan_id, monitor_target_id: d.monitor_target_id, port: d.port, instance_name: d.instance_name.clone(), created_at: d.created_at, updated_at: d.updated_at }
+}
+
+#[utoipa::path(get, path = "/api/v1/database-instances/{id}", params(("id" = uuid::Uuid, Path)), responses((status = 200, body = DatabaseInstanceResponse), (status = 404, body = ErrorResponse)), tag = "DatabaseInstance", security(("bearer_auth" = [])))]
+pub async fn get_database_instance(_auth: AuthUser, State(repo): State<Arc<dyn DatabaseInstanceRepository>>, Path(id): Path<Uuid>) -> impl IntoResponse {
+    match repo.find_by_id(id).await { Ok(Some(d)) => (StatusCode::OK, Json(to_response(&d))).into_response(), Ok(None) => (StatusCode::NOT_FOUND, Json(ErrorResponse { error: "database instance not found".to_string() })).into_response(), Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: format!("database error: {}", e) })).into_response() }
+}
+#[utoipa::path(get, path = "/api/v1/database-instances", params(ListDatabaseInstancesQuery), responses((status = 200, body = DatabaseInstanceListResponse)), tag = "DatabaseInstance", security(("bearer_auth" = [])))]
+pub async fn list_database_instances(_auth: AuthUser, State(repo): State<Arc<dyn DatabaseInstanceRepository>>, Query(q): Query<ListDatabaseInstancesQuery>) -> impl IntoResponse {
+    let page = q.page.unwrap_or(1).max(1); let per_page = q.per_page.unwrap_or(20).min(100);
+    let filter = DatabaseInstanceFilter { status: q.status, db_type: q.db_type, server_id: q.server_id, q: q.q, limit: Some(per_page), offset: Some((page - 1) * per_page) };
+    match repo.find_all(filter.clone()).await { Ok(ds) => { let count = repo.count(filter).await.unwrap_or(0); (StatusCode::OK, Json(DatabaseInstanceListResponse { data: ds.iter().map(to_response).collect(), count })).into_response() }, Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: format!("database error: {}", e) })).into_response() }
+}
+#[utoipa::path(post, path = "/api/v1/database-instances", request_body = CreateDatabaseInstanceRequest, responses((status = 201, body = DatabaseInstanceResponse), (status = 400, body = ErrorResponse)), tag = "DatabaseInstance", security(("bearer_auth" = [])))]
+pub async fn create_database_instance(_auth: AuthUser, State(repo): State<Arc<dyn DatabaseInstanceRepository>>, Json(body): Json<CreateDatabaseInstanceRequest>) -> impl IntoResponse {
+    let now = Utc::now();
+    let d = DatabaseInstance { id: Uuid::new_v4(), server_id: body.server_id, name: body.name, db_type: parse_db_type(&body.db_type), description: body.description, status: body.status.as_deref().map(parse_db_status).unwrap_or(DatabaseStatus::Active), offline_time: body.offline_time, is_self_installed: body.is_self_installed.unwrap_or(true), importance: body.importance.as_deref().map(parse_importance), is_ops_managed: body.is_ops_managed.unwrap_or(true), management_credential_id: body.management_credential_id, backup_plan_id: body.backup_plan_id, monitor_target_id: body.monitor_target_id, port: body.port, instance_name: body.instance_name, created_at: now, updated_at: now };
+    match repo.create(&d).await { Ok(created) => (StatusCode::CREATED, Json(to_response(&created))).into_response(), Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: format!("failed to create database instance: {}", e) })).into_response() }
+}
+#[utoipa::path(put, path = "/api/v1/database-instances/{id}", params(("id" = uuid::Uuid, Path)), request_body = UpdateDatabaseInstanceRequest, responses((status = 200, body = DatabaseInstanceResponse), (status = 404, body = ErrorResponse)), tag = "DatabaseInstance", security(("bearer_auth" = [])))]
+pub async fn update_database_instance(_auth: AuthUser, State(repo): State<Arc<dyn DatabaseInstanceRepository>>, Path(id): Path<Uuid>, Json(body): Json<UpdateDatabaseInstanceRequest>) -> impl IntoResponse {
+    let existing = match repo.find_by_id(id).await { Ok(Some(d)) => d, Ok(None) => return (StatusCode::NOT_FOUND, Json(ErrorResponse { error: "database instance not found".to_string() })).into_response(), Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: format!("database error: {}", e) })).into_response() };
+    let d = DatabaseInstance { id: existing.id, server_id: body.server_id.or(existing.server_id), name: body.name.unwrap_or(existing.name), db_type: body.db_type.as_deref().map(parse_db_type).unwrap_or(existing.db_type), description: body.description.or(existing.description), status: body.status.as_deref().map(parse_db_status).unwrap_or(existing.status), offline_time: body.offline_time.or(existing.offline_time), is_self_installed: body.is_self_installed.unwrap_or(existing.is_self_installed), importance: body.importance.as_deref().map(parse_importance).or(existing.importance), is_ops_managed: body.is_ops_managed.unwrap_or(existing.is_ops_managed), management_credential_id: body.management_credential_id.or(existing.management_credential_id), backup_plan_id: body.backup_plan_id.or(existing.backup_plan_id), monitor_target_id: body.monitor_target_id.or(existing.monitor_target_id), port: body.port.or(existing.port), instance_name: body.instance_name.or(existing.instance_name), created_at: existing.created_at, updated_at: Utc::now() };
+    match repo.update(id, &d).await { Ok(Some(updated)) => (StatusCode::OK, Json(to_response(&updated))).into_response(), Ok(None) => (StatusCode::NOT_FOUND, Json(ErrorResponse { error: "database instance not found".to_string() })).into_response(), Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: format!("failed to update database instance: {}", e) })).into_response() }
+}
+#[utoipa::path(delete, path = "/api/v1/database-instances/{id}", params(("id" = uuid::Uuid, Path)), responses((status = 200), (status = 404, body = ErrorResponse)), tag = "DatabaseInstance", security(("bearer_auth" = [])))]
+pub async fn delete_database_instance(_auth: AuthUser, State(repo): State<Arc<dyn DatabaseInstanceRepository>>, Path(id): Path<Uuid>) -> impl IntoResponse {
+    match repo.delete(id).await { Ok(true) => StatusCode::NO_CONTENT.into_response(), Ok(false) => (StatusCode::NOT_FOUND, Json(ErrorResponse { error: "database instance not found".to_string() })).into_response(), Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: format!("failed to delete database instance: {}", e) })).into_response() }
+}

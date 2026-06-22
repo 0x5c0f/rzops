@@ -1,0 +1,82 @@
+<script lang="ts">
+  import { page } from '$app/stores';
+  import { goto } from '$app/navigation';
+  import { auditLogsApi } from '$lib/api/audit-logs';
+  import type { AuditLogResponse } from '$lib/types/audit_log';
+  import { Button } from '$lib/ui/button';
+  import { Label } from '$lib/ui/label';
+  import * as Card from '$lib/ui/card';
+  import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
+  import { formatDate } from '$lib/utils/format';
+  import { onMount } from 'svelte';
+
+  let auditLog = $state<AuditLogResponse | null>(null);
+  let loading = $state(true);
+
+  onMount(async () => {
+    try {
+      auditLog = await auditLogsApi.getById($page.params.id ?? "");
+    } catch (err) {
+      console.error('Failed to load audit log:', err);
+      goto('/audit-logs');
+    } finally {
+      loading = false;
+    }
+  });
+</script>
+
+<div class="space-y-4">
+  <Breadcrumb items={[
+    { label: '审计日志', href: '/audit-logs' },
+    { label: auditLog?.action || '详情' }
+  ]} />
+
+  {#if loading}
+    <div class="text-muted-foreground">加载中...</div>
+  {:else if auditLog}
+    <div class="flex items-center justify-between">
+      <h1 class="text-2xl font-semibold">{auditLog.action}</h1>
+      <Button variant="outline" onclick={() => goto('/audit-logs')}>返回列表</Button>
+    </div>
+
+    <Card.Root>
+      <Card.Header>
+        <Card.Title>详细信息</Card.Title>
+      </Card.Header>
+      <Card.Content class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div class="space-y-2">
+          <Label>操作</Label>
+          <div class="text-sm">{auditLog.action}</div>
+        </div>
+        <div class="space-y-2">
+          <Label>资源类型</Label>
+          <div class="text-sm">{auditLog.resource_type ?? '-'}</div>
+        </div>
+        <div class="space-y-2">
+          <Label>资源ID</Label>
+          <div class="text-sm">{auditLog.resource_id ?? '-'}</div>
+        </div>
+        <div class="space-y-2">
+          <Label>操作者ID</Label>
+          <div class="text-sm">{auditLog.actor_id ?? '-'}</div>
+        </div>
+        <div class="space-y-2">
+          <Label>IP地址</Label>
+          <div class="text-sm">{auditLog.ip_address ?? '-'}</div>
+        </div>
+        <div class="space-y-2">
+          <Label>用户代理</Label>
+          <div class="text-sm">{auditLog.user_agent ?? '-'}</div>
+        </div>
+        <div class="space-y-2">
+          <Label>创建时间</Label>
+          <div class="text-sm">{formatDate(auditLog.created_at)}</div>
+        </div>
+        <div class="space-y-2 md:col-span-2 lg:col-span-3">
+          <Label>附加数据</Label>
+          <pre class="text-sm bg-muted p-2 rounded overflow-auto">{auditLog.extra_data ? JSON.stringify(auditLog.extra_data, null, 2) : '-'}</pre>
+        </div>
+      </Card.Content>
+    </Card.Root>
+  {/if}
+</div>

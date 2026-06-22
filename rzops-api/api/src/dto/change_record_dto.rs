@@ -1,0 +1,30 @@
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
+
+#[derive(Debug, Deserialize, utoipa::ToSchema, utoipa::IntoParams)]
+pub struct ListChangeRecordsQuery {
+    pub actor_id: Option<Uuid>,
+    pub resource_type: Option<String>,
+    pub page: Option<i64>,
+    pub per_page: Option<i64>,
+}
+
+#[derive(Debug, Serialize, utoipa::ToSchema)]
+pub struct ChangeRecordResponse {
+    pub id: Uuid,
+    pub actor_id: Option<Uuid>,
+    pub change_type: String,
+    pub resource_type: String,
+    pub resource_id: Option<Uuid>,
+    pub before_data: serde_json::Value,
+    pub after_data: serde_json::Value,
+    pub remarks: Option<String>,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Serialize, utoipa::ToSchema)]
+pub struct ChangeRecordListResponse {
+    pub data: Vec<ChangeRecordResponse>,
+    pub count: i64,
+}

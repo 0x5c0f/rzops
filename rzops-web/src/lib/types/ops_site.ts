@@ -1,0 +1,69 @@
+export interface OpsSiteResponse {
+  id: string;
+  name: string;
+  url: string | null;
+  business_unit_id: string | null;
+  department_id: string | null;
+  service_target: string | null;
+  importance: string | null;
+  online_time: string | null;
+  code_repo_type: string | null;
+  code_repo_url: string | null;
+  purpose: string | null;
+  is_internal_system: boolean | null;
+  language_runtime: string | null;
+  web_framework: string | null;
+  uses_cdn: boolean | null;
+  is_test_site: boolean | null;
+  backup_plan_id: string | null;
+  last_backup_time: string | null;
+  monitor_target_id: string | null;
+  status: string;
+  offline_time: string | null;
+  offline_reason: string | null;
+  function_summary: string | null;
+  remarks: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OpsSiteListResponse {
+  data: OpsSiteResponse[];
+  count: number;
+}
+
+export interface CreateOpsSiteRequest {
+  name: string;
+  url?: string;
+  business_unit_id?: string;
+  department_id?: string;
+  service_target?: string;
+  importance?: string;
+  online_time?: string;
+  code_repo_type?: string;
+  code_repo_url?: string;
+  purpose?: string;
+  is_internal_system?: boolean;
+  language_runtime?: string;
+  web_framework?: string;
+  uses_cdn?: boolean;
+  is_test_site?: boolean;
+  backup_plan_id?: string;
+  last_backup_time?: string;
+  monitor_target_id?: string;
+  status?: string;
+  offline_time?: string;
+  offline_reason?: string;
+  function_summary?: string;
+  remarks?: string;
+}
+
+export interface UpdateOpsSiteRequest extends Partial<CreateOpsSiteRequest> {}
+
+export interface ListOpsSitesQuery {
+  q?: string;
+  status?: string;
+  importance?: string;
+  limit?: number;
+  offset?: number;
+}

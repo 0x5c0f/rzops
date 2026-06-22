@@ -1,0 +1,18 @@
+[package]
+name = "rzops-app"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+rzops-server = { workspace = true }
+rzops-config = { workspace = true }
+rzops-common = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+anyhow = { workspace = true }
+sqlx = { workspace = true }
+dotenvy = { workspace = true }
+bcrypt = { workspace = true }
+uuid = { workspace = true }
+chrono = { workspace = true }

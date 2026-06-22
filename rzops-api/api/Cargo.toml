@@ -1,0 +1,19 @@
+[package]
+name = "rzops-api"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+rzops-domain = { workspace = true }
+rzops-common = { workspace = true }
+axum = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+uuid = { workspace = true }
+chrono = { workspace = true }
+rust_decimal = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+async-trait = { workspace = true }
+bcrypt = { workspace = true }
+utoipa = { workspace = true }

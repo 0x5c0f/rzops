@@ -1,0 +1,21 @@
+[package]
+name = "rzops-server"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+rzops-api = { workspace = true }
+rzops-domain = { workspace = true }
+rzops-infra = { workspace = true }
+rzops-config = { workspace = true }
+rzops-common = { workspace = true }
+axum = { workspace = true }
+tokio = { workspace = true }
+tower = { workspace = true }
+tower-http = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+anyhow = { workspace = true }
+sqlx = { workspace = true }
+utoipa = { workspace = true }
+utoipa-swagger-ui = { workspace = true }
