@@ -32,6 +32,6 @@ export interface ListCredentialsQuery {
   q?: string;
   status?: string;
   credential_type?: string;
-  limit?: number;
-  offset?: number;
+  page?: number;
+  per_page?: number;
 }

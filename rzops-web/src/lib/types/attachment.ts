@@ -35,6 +35,6 @@ export interface ListAttachmentsQuery {
   status?: string;
   target_type?: string;
   target_id?: string;
-  limit?: number;
-  offset?: number;
+  page?: number;
+  per_page?: number;
 }

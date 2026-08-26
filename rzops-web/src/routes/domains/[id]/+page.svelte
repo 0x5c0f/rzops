@@ -1,4 +1,5 @@
 <script lang="ts">
+  import AttachmentSection from '$lib/components/shared/AttachmentSection.svelte';
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import { domainsApi } from '$lib/api/domains';
@@ -163,5 +164,6 @@
         </dl>
       </Card.Content>
     </Card.Root>
+    <AttachmentSection targetType="domain" targetId={domain.id} />
   {/if}
 </div>

@@ -22,12 +22,14 @@
     loading = false,
     onEdit,
     onDelete,
+    editLabel = '编辑',
   }: {
     columns: Column[];
     data: T[];
     loading?: boolean;
     onEdit?: (item: T) => void;
     onDelete?: (item: T) => void;
+    editLabel?: string;
   } = $props();
 
   let hasActions = $derived(onEdit || onDelete);
@@ -116,7 +118,7 @@
                 <div class="flex gap-1">
                   {#if onEdit}
                     <Button variant="ghost" size="sm" onclick={() => onEdit(item)}>
-                      编辑
+                      {editLabel}
                     </Button>
                   {/if}
                   {#if onDelete}

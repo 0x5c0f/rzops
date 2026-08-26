@@ -15,15 +15,15 @@
   let data = $state<DataCenterResponse[]>([]);
   let total = $state(0);
   let loading = $state(true);
-  let query = $state<ListDataCentersQuery>({ limit: 20, offset: 0 });
-  let offset = $derived(query.offset ?? 0);
-  let limit = $derived(query.limit ?? 20);
+  let query = $state<ListDataCentersQuery>({ page: 1, per_page: 20 });
+  let page = $derived(query.page ?? 1);
+  let perPage = $derived(query.per_page ?? 20);
   let providerMap = $state<Record<string, string>>({});
 
   let commonStatusMap = $derived(Object.fromEntries($commonStatusOptions.map(o => [o.value, o.label])));
 
   const columns = $derived([
-    { key: 'name', label: '名称' },
+    { key: 'name', label: '名称' , link: (item: DataCenterResponse) => `/datacenters/${item.id}` },
     { key: 'city', label: '城市' },
     { key: 'status', label: '状态', valueMap: commonStatusMap },
     { key: 'provider_id', label: '供应商', valueMap: providerMap },
@@ -51,12 +51,12 @@
 
   function handleSearch(e: Event) {
     const input = e.target as HTMLInputElement;
-    query = { ...query, q: input.value, offset: 0 };
+    query = { ...query, q: input.value, page: 1 };
     loadData();
   }
 
-  function handlePageChange(newOffset: number) {
-    query = { ...query, offset: newOffset };
+  function handlePageChange(newPage: number) {
+    query = { ...query, page: newPage };
     loadData();
   }
 
@@ -100,21 +100,21 @@
   />
 
   <div class="flex items-center justify-between text-sm text-muted-foreground">
-    <span>显示 {Math.min(offset + 1, total)}-{Math.min(offset + limit, total)} / 共 {total} 条</span>
+    <span>显示 {Math.min((page - 1) * perPage + 1, total)}-{Math.min(page * perPage, total)} / 共 {total} 条</span>
     <div class="flex gap-2">
       <Button
         variant="outline"
         size="sm"
-        disabled={offset === 0}
-        onclick={() => handlePageChange(Math.max(0, offset - limit))}
+        disabled={page <= 1}
+        onclick={() => handlePageChange(page - 1)}
       >
         上一页
       </Button>
       <Button
         variant="outline"
         size="sm"
-        disabled={offset + limit >= total}
-        onclick={() => handlePageChange(offset + limit)}
+        disabled={page * perPage >= total}
+        onclick={() => handlePageChange(page + 1)}
       >
         下一页
       </Button>

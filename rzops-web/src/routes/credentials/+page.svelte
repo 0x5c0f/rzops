@@ -13,15 +13,15 @@
   let data = $state<CredentialResponse[]>([]);
   let total = $state(0);
   let loading = $state(true);
-  let query = $state<ListCredentialsQuery>({ limit: 20, offset: 0 });
-  let offset = $derived(query.offset ?? 0);
-  let limit = $derived(query.limit ?? 20);
+  let query = $state<ListCredentialsQuery>({ page: 1, per_page: 20 });
+  let page = $derived(query.page ?? 1);
+  let perPage = $derived(query.per_page ?? 20);
 
   let statusMap = $derived(Object.fromEntries($commonStatusOptions.map(o => [o.value, o.label])));
   let credentialTypeMap = $derived(Object.fromEntries($credentialTypeOptions.map(o => [o.value, o.label])));
 
   const columns = [
-    { key: 'name', label: '名称' },
+    { key: 'name', label: '名称' , link: (item: CredentialResponse) => `/credentials/${item.id}` },
     { key: 'credential_type', label: '类型', valueMap: credentialTypeMap },
     { key: 'username', label: '用户名' },
     { key: 'status', label: '状态', valueMap: statusMap },
@@ -45,17 +45,17 @@
 
   function handleSearch(e: Event) {
     const input = e.target as HTMLInputElement;
-    query = { ...query, q: input.value, offset: 0 };
+    query = { ...query, q: input.value, page: 1 };
     loadData();
   }
 
-  function handlePageChange(newOffset: number) {
-    query = { ...query, offset: newOffset };
+  function handlePageChange(newPage: number) {
+    query = { ...query, page: newPage };
     loadData();
   }
 
   function handleEdit(item: CredentialResponse) {
-    goto(`/credentials/${item.id}`);
+    goto(`/credentials/${item.id}/edit`);
   }
 
   async function handleDelete(item: CredentialResponse) {
@@ -94,21 +94,21 @@
   />
 
   <div class="flex items-center justify-between text-sm text-muted-foreground">
-    <span>显示 {Math.min(offset + 1, total)}-{Math.min(offset + limit, total)} / 共 {total} 条</span>
+    <span>显示 {Math.min((page - 1) * perPage + 1, total)}-{Math.min(page * perPage, total)} / 共 {total} 条</span>
     <div class="flex gap-2">
       <Button
         variant="outline"
         size="sm"
-        disabled={offset === 0}
-        onclick={() => handlePageChange(Math.max(0, offset - limit))}
+        disabled={page <= 1}
+        onclick={() => handlePageChange(page - 1)}
       >
         上一页
       </Button>
       <Button
         variant="outline"
         size="sm"
-        disabled={offset + limit >= total}
-        onclick={() => handlePageChange(offset + limit)}
+        disabled={page * perPage >= total}
+        onclick={() => handlePageChange(page + 1)}
       >
         下一页
       </Button>

@@ -7,6 +7,7 @@ use uuid::Uuid;
 pub struct MonitorTarget {
     pub id: Uuid,
     pub name: String,
+    pub site_id: Option<Uuid>,
     pub target_type: Option<String>,
     pub target_id: Option<Uuid>,
     pub monitor_type: Option<String>,

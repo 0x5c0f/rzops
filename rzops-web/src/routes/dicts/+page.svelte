@@ -16,6 +16,10 @@
   let q = $state('');
   let dictType = $state('');
   let types = $state<string[]>([]);
+  let typeSearch = $state('');
+  let page = $state(1);
+  const perPage = 20;
+  let offset = $derived((page - 1) * perPage);
 
   // 新建 / 编辑对话框状态
   let dialogOpen = $state(false);
@@ -39,7 +43,7 @@
   async function loadData() {
     loading = true;
     try {
-      const res = await dictsApi.list({ dict_type: dictType || undefined, q: q || undefined });
+      const res = await dictsApi.list({ dict_type: dictType || undefined, q: q || undefined, page, per_page: perPage });
       data = res.data;
       total = res.count;
     } catch (err) {
@@ -136,13 +140,20 @@
   </div>
 
   <div class="flex gap-2">
-    <Select.Root type="single" bind:value={dictType} onValueChange={() => loadData()}>
+    <Select.Root type="single" bind:value={dictType} onValueChange={() => { page = 1; loadData(); }}>
       <Select.Trigger class="w-48">
         {dictType || '全部类型'}
       </Select.Trigger>
       <Select.Content>
+        <div class="px-2 pt-2" onclick={(e) => e.stopPropagation()}>
+          <Input
+            placeholder="搜索类型..."
+            value={typeSearch}
+            oninput={(e) => (typeSearch = (e.target as HTMLInputElement).value)}
+          />
+        </div>
         <Select.Item value="">全部类型</Select.Item>
-        {#each types as t}
+        {#each types.filter((t) => !typeSearch || t.toLowerCase().includes(typeSearch.toLowerCase())) as t}
           <Select.Item value={t}>{t}</Select.Item>
         {/each}
       </Select.Content>
@@ -151,7 +162,7 @@
       placeholder="搜索编码 / 名称 / 类型..."
       class="max-w-sm"
       value={q}
-      oninput={(e) => { q = (e.target as HTMLInputElement).value; loadData(); }}
+      oninput={(e) => { q = (e.target as HTMLInputElement).value; page = 1; loadData(); }}
     />
   </div>
 
@@ -163,8 +174,26 @@
     onDelete={handleDelete}
   />
 
-  <div class="text-sm text-muted-foreground">
-    共 {total} 条字典项（停用的项不再出现在业务表单下拉中，历史数据名称不受影响）
+  <div class="flex items-center justify-between text-sm text-muted-foreground">
+    <span>显示 {total === 0 ? 0 : offset + 1}-{Math.min(offset + perPage, total)} / 共 {total} 条（停用的项不再出现在业务表单下拉中，历史数据名称不受影响）</span>
+    <div class="flex gap-2">
+      <Button
+        variant="outline"
+        size="sm"
+        disabled={page <= 1}
+        onclick={() => { page -= 1; loadData(); }}
+      >
+        上一页
+      </Button>
+      <Button
+        variant="outline"
+        size="sm"
+        disabled={offset + perPage >= total}
+        onclick={() => { page += 1; loadData(); }}
+      >
+        下一页
+      </Button>
+    </div>
   </div>
 
   <!-- 新建 / 编辑对话框 -->

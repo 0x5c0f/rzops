@@ -8,6 +8,7 @@ import { datacentersApi } from '$lib/api/datacenters';
 import { serversApi } from '$lib/api/servers';
 import { databaseInstancesApi } from '$lib/api/database-instances';
 import { domainsApi } from '$lib/api/domains';
+import { certificatesApi } from '$lib/api/certificates';
 import { credentialsApi } from '$lib/api/credentials';
 import { opsSitesApi } from '$lib/api/ops-sites';
 import { backupPlansApi } from '$lib/api/backup-plans';
@@ -23,7 +24,7 @@ export interface SelectOption {
  */
 export async function getProviderOptions(): Promise<SelectOption[]> {
   try {
-    const res = await providersApi.list({ limit: 200 });
+    const res = await providersApi.list({ per_page: 200 });
     return res.data.map(item => ({
       label: item.name,
       value: item.id,
@@ -39,7 +40,7 @@ export async function getProviderOptions(): Promise<SelectOption[]> {
  */
 export async function getDataCenterOptions(): Promise<SelectOption[]> {
   try {
-    const res = await datacentersApi.list({ limit: 200 });
+    const res = await datacentersApi.list({ per_page: 200 });
     return res.data.map(item => ({
       label: item.name,
       value: item.id,
@@ -55,7 +56,7 @@ export async function getDataCenterOptions(): Promise<SelectOption[]> {
  */
 export async function getServerOptions(): Promise<SelectOption[]> {
   try {
-    const res = await serversApi.list({ limit: 200 });
+    const res = await serversApi.list({ per_page: 200 });
     return res.data.map(item => ({
       label: `${item.name}${item.primary_ip ? ` (${item.primary_ip})` : ''}`,
       value: item.id,
@@ -71,7 +72,7 @@ export async function getServerOptions(): Promise<SelectOption[]> {
  */
 export async function getDatabaseInstanceOptions(): Promise<SelectOption[]> {
   try {
-    const res = await databaseInstancesApi.list({ limit: 200 });
+    const res = await databaseInstancesApi.list({ per_page: 200 });
     return res.data.map(item => ({
       label: `${item.name} (${item.db_type})`,
       value: item.id,
@@ -83,11 +84,27 @@ export async function getDatabaseInstanceOptions(): Promise<SelectOption[]> {
 }
 
 /**
+ * 获取证书选项
+ */
+export async function getCertificateOptions(): Promise<SelectOption[]> {
+  try {
+    const res = await certificatesApi.list({ per_page: 100 });
+    return res.data.map(item => ({
+      label: item.name,
+      value: item.id,
+    }));
+  } catch (err) {
+    console.error('Failed to load certificates:', err);
+    return [];
+  }
+}
+
+/**
  * 获取域名选项
  */
 export async function getDomainOptions(): Promise<SelectOption[]> {
   try {
-    const res = await domainsApi.list({ limit: 200 });
+    const res = await domainsApi.list({ per_page: 200 });
     return res.data.map(item => ({
       label: item.domain_name,
       value: item.id,
@@ -103,7 +120,7 @@ export async function getDomainOptions(): Promise<SelectOption[]> {
  */
 export async function getCredentialOptions(): Promise<SelectOption[]> {
   try {
-    const res = await credentialsApi.list({ limit: 200 });
+    const res = await credentialsApi.list({ per_page: 200 });
     return res.data.map(item => ({
       label: item.name,
       value: item.id,
@@ -119,7 +136,7 @@ export async function getCredentialOptions(): Promise<SelectOption[]> {
  */
 export async function getOpsSiteOptions(): Promise<SelectOption[]> {
   try {
-    const res = await opsSitesApi.list({ limit: 200 });
+    const res = await opsSitesApi.list({ per_page: 100 });
     return res.data.map(item => ({
       label: item.name,
       value: item.id,
@@ -135,7 +152,7 @@ export async function getOpsSiteOptions(): Promise<SelectOption[]> {
  */
 export async function getBackupPlanOptions(): Promise<SelectOption[]> {
   try {
-    const res = await backupPlansApi.list({ limit: 200 });
+    const res = await backupPlansApi.list({ per_page: 200 });
     return res.data.map(item => ({
       label: item.name,
       value: item.id,
@@ -151,7 +168,7 @@ export async function getBackupPlanOptions(): Promise<SelectOption[]> {
  */
 export async function getMonitorTargetOptions(): Promise<SelectOption[]> {
   try {
-    const res = await monitorTargetsApi.list({ limit: 200 });
+    const res = await monitorTargetsApi.list({ per_page: 200 });
     return res.data.map(item => ({
       label: item.name,
       value: item.id,

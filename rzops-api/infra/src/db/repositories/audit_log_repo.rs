@@ -23,27 +23,37 @@ impl AuditLogRepository for PgAuditLogRepository {
         let mut sql = format!("SELECT {} FROM cmdb_audit_log WHERE 1=1", COLS);
         let mut string_binds: Vec<String> = Vec::new();
         let mut uuid_binds: Vec<Uuid> = Vec::new();
+        let mut dt_binds: Vec<DateTime<Utc>> = Vec::new();
         let mut idx = 1;
         if let Some(aid) = f.actor_id { sql.push_str(&format!(" AND actor_id = ${}", idx)); uuid_binds.push(aid); idx += 1; }
-        if let Some(ref rt) = f.resource_type { sql.push_str(&format!(" AND resource_type = ${}", idx)); string_binds.push(rt.clone()); }
+        if let Some(ref rt) = f.resource_type { sql.push_str(&format!(" AND resource_type = ${}", idx)); string_binds.push(rt.clone()); idx += 1; }
+        if let Some(ref ac) = f.action { sql.push_str(&format!(" AND action = ${}", idx)); string_binds.push(ac.clone()); idx += 1; }
+        if let Some(ref dt) = f.created_from { sql.push_str(&format!(" AND created_at >= ${}", idx)); dt_binds.push(dt.clone()); idx += 1; }
+        if let Some(ref dt) = f.created_to { sql.push_str(&format!(" AND created_at <= ${}", idx)); dt_binds.push(dt.clone()); idx += 1; }
         sql.push_str(" ORDER BY created_at DESC");
         if let Some(l) = f.limit { sql.push_str(&format!(" LIMIT {}", l)); }
         if let Some(o) = f.offset { sql.push_str(&format!(" OFFSET {}", o)); }
         let mut query = sqlx::query(&sql);
         for u in &uuid_binds { query = query.bind(u); }
         for s in &string_binds { query = query.bind(s); }
+        for d in &dt_binds { query = query.bind(d); }
         Ok(query.fetch_all(&self.pool).await?.iter().map(|r| row_to_entity(r)).collect())
     }
     async fn count(&self, f: AuditLogFilter) -> Result<i64, sqlx::Error> {
         let mut sql = "SELECT COUNT(*) as count FROM cmdb_audit_log WHERE 1=1".to_string();
         let mut string_binds: Vec<String> = Vec::new();
         let mut uuid_binds: Vec<Uuid> = Vec::new();
+        let mut dt_binds: Vec<DateTime<Utc>> = Vec::new();
         let mut idx = 1;
         if let Some(aid) = f.actor_id { sql.push_str(&format!(" AND actor_id = ${}", idx)); uuid_binds.push(aid); idx += 1; }
-        if let Some(ref rt) = f.resource_type { sql.push_str(&format!(" AND resource_type = ${}", idx)); string_binds.push(rt.clone()); }
+        if let Some(ref rt) = f.resource_type { sql.push_str(&format!(" AND resource_type = ${}", idx)); string_binds.push(rt.clone()); idx += 1; }
+        if let Some(ref ac) = f.action { sql.push_str(&format!(" AND action = ${}", idx)); string_binds.push(ac.clone()); idx += 1; }
+        if let Some(ref dt) = f.created_from { sql.push_str(&format!(" AND created_at >= ${}", idx)); dt_binds.push(dt.clone()); idx += 1; }
+        if let Some(ref dt) = f.created_to { sql.push_str(&format!(" AND created_at <= ${}", idx)); dt_binds.push(dt.clone()); idx += 1; }
         let mut query = sqlx::query(&sql);
         for u in &uuid_binds { query = query.bind(u); }
         for s in &string_binds { query = query.bind(s); }
+        for d in &dt_binds { query = query.bind(d); }
         Ok(query.fetch_one(&self.pool).await?.get::<i64, _>("count"))
     }
     async fn create(&self, e: &AuditLog) -> Result<AuditLog, sqlx::Error> {

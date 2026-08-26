@@ -17,9 +17,11 @@ export interface AuditLogListResponse {
 }
 
 export interface ListAuditLogsQuery {
-  q?: string;
-  actor_id?: string;
+  action?: string;
   resource_type?: string;
-  limit?: number;
-  offset?: number;
+  actor_id?: string;
+  created_from?: string;
+  created_to?: string;
+  page?: number;
+  per_page?: number;
 }

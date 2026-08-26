@@ -13,9 +13,9 @@
   let data = $state<ServerPortResponse[]>([]);
   let total = $state(0);
   let loading = $state(true);
-  let query = $state<ListServerPortsQuery>({ limit: 20, offset: 0 });
-  let offset = $derived(query.offset ?? 0);
-  let limit = $derived(query.limit ?? 20);
+  let query = $state<ListServerPortsQuery>({ page: 1, per_page: 20 });
+  let page = $derived(query.page ?? 1);
+  let perPage = $derived(query.per_page ?? 20);
   let serverMap = $state<Record<string, string>>({});
   let protocolMap = $derived(Object.fromEntries($protocolOptions.map(o => [o.value, o.label])));
 
@@ -23,7 +23,7 @@
     { key: 'server_id', label: '服务器', valueMap: serverMap },
     { key: 'protocol', label: '协议', valueMap: protocolMap },
     { key: 'port', label: '端口' },
-    { key: 'service_name', label: '服务名称' },
+    { key: 'service_name', label: '服务名称' , link: (item: ServerPortResponse) => `/server-ports/${item.id}` },
     { key: 'is_enabled', label: '启用', render: (v: unknown) => v ? '是' : '否' },
   ]);
 
@@ -48,17 +48,17 @@
 
   function handleSearch(e: Event) {
     const input = e.target as HTMLInputElement;
-    query = { ...query, q: input.value, offset: 0 };
+    query = { ...query, q: input.value, page: 1 };
     loadData();
   }
 
-  function handlePageChange(newOffset: number) {
-    query = { ...query, offset: newOffset };
+  function handlePageChange(newPage: number) {
+    query = { ...query, page: newPage };
     loadData();
   }
 
   function handleEdit(item: ServerPortResponse) {
-    goto(`/server-ports/${item.id}`);
+    goto(`/server-ports/${item.id}/edit`);
   }
 
   async function handleDelete(item: ServerPortResponse) {
@@ -97,21 +97,21 @@
   />
 
   <div class="flex items-center justify-between text-sm text-muted-foreground">
-    <span>显示 {Math.min(offset + 1, total)}-{Math.min(offset + limit, total)} / 共 {total} 条</span>
+    <span>显示 {Math.min((page - 1) * perPage + 1, total)}-{Math.min(page * perPage, total)} / 共 {total} 条</span>
     <div class="flex gap-2">
       <Button
         variant="outline"
         size="sm"
-        disabled={offset === 0}
-        onclick={() => handlePageChange(Math.max(0, offset - limit))}
+        disabled={page <= 1}
+        onclick={() => handlePageChange(page - 1)}
       >
         上一页
       </Button>
       <Button
         variant="outline"
         size="sm"
-        disabled={offset + limit >= total}
-        onclick={() => handlePageChange(offset + limit)}
+        disabled={page * perPage >= total}
+        onclick={() => handlePageChange(page + 1)}
       >
         下一页
       </Button>

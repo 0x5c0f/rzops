@@ -1,4 +1,5 @@
 <script lang="ts">
+  import AttachmentSection from '$lib/components/shared/AttachmentSection.svelte';
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import { datacentersApi } from '$lib/api/datacenters';
@@ -27,7 +28,7 @@
     try {
       const [dcData, serverData, provOptions] = await Promise.all([
         datacentersApi.getById(id),
-        serversApi.list({ data_center_id: id, limit: 100 }),
+        serversApi.list({ data_center_id: id, per_page: 100 }),
         getProviderOptions(),
       ]);
       datacenter = dcData;
@@ -206,5 +207,6 @@
         {/if}
       </Card.Content>
     </Card.Root>
+    <AttachmentSection targetType="data_center" targetId={datacenter.id} />
   {/if}
 </div>

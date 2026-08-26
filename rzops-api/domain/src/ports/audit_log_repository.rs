@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use chrono::{DateTime, Utc};
 use uuid::Uuid;
 use crate::models::audit_log::AuditLog;
 
@@ -6,6 +7,9 @@ use crate::models::audit_log::AuditLog;
 pub struct AuditLogFilter {
     pub actor_id: Option<Uuid>,
     pub resource_type: Option<String>,
+    pub action: Option<String>,
+    pub created_from: Option<DateTime<Utc>>,
+    pub created_to: Option<DateTime<Utc>>,
     pub limit: Option<i64>,
     pub offset: Option<i64>,
 }

@@ -14,6 +14,21 @@
 
   let attachment = $state<AttachmentResponse | null>(null);
   let loading = $state(true);
+  let error = $state('');
+
+  const targetTypeZh: Record<string, string> = {
+    server: '服务器',
+    database: '数据库',
+    site: '站点',
+    domain: '域名',
+    certificate: '证书',
+    provider: '供应商',
+    data_center: '数据中心',
+    credential: '凭据',
+    backup_plan: '备份计划',
+    monitor_target: '监控目标',
+    other: '其他',
+  };
 
   onMount(async () => {
     try {
@@ -25,6 +40,16 @@
       loading = false;
     }
   });
+
+  async function handleDownload() {
+    if (!attachment) return;
+    error = '';
+    try {
+      await attachmentsApi.download(attachment.id, attachment.filename);
+    } catch (err) {
+      error = err instanceof Error ? err.message : '下载失败';
+    }
+  }
 
   async function handleDelete() {
     if (!attachment) return;
@@ -53,9 +78,14 @@
         <StatusBadge status={attachment.status} />
       </div>
       <div class="flex gap-2">
+        <Button variant="outline" onclick={handleDownload}>下载</Button>
         <Button variant="destructive" onclick={handleDelete}>删除</Button>
       </div>
     </div>
+
+    {#if error}
+      <p class="text-sm text-red-600">{error}</p>
+    {/if}
 
     <Card.Root>
       <Card.Header>
@@ -68,7 +98,7 @@
         </div>
         <div class="space-y-2">
           <Label>目标类型</Label>
-          <div class="text-sm">{attachment.target_type ?? '-'}</div>
+          <div class="text-sm">{targetTypeZh[attachment.target_type ?? ''] || attachment.target_type || '-'}</div>
         </div>
         <div class="space-y-2">
           <Label>目标ID</Label>

@@ -33,6 +33,6 @@ export interface UpdateCertificateRequest extends Partial<CreateCertificateReque
 export interface ListCertificatesQuery {
   q?: string;
   status?: string;
-  limit?: number;
-  offset?: number;
+  page?: number;
+  per_page?: number;
 }

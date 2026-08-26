@@ -39,6 +39,6 @@ export interface UpdateProviderRequest extends Partial<CreateProviderRequest> {}
 export interface ListProvidersQuery {
   q?: string;
   status?: string;
-  limit?: number;
-  offset?: number;
+  page?: number;
+  per_page?: number;
 }

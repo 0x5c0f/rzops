@@ -13,6 +13,7 @@
   import { Badge } from '$lib/ui/badge';
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import StatusBadge from '$lib/components/shared/StatusBadge.svelte';
+  import AttachmentSection from '$lib/components/shared/AttachmentSection.svelte';
   import {
     serverTypeOptions, hostingTypeOptions, serverRoleOptions,
     serverStatusOptions, architectureOptions, raidLevelOptions,
@@ -36,8 +37,8 @@
     try {
       const [serverData, ipData, portData, dcOptions, provOptions] = await Promise.all([
         serversApi.getById(id),
-        serverIpsApi.list({ server_id: id, limit: 100 }),
-        serverPortsApi.list({ server_id: id, limit: 100 }),
+        serverIpsApi.list({ server_id: id, per_page: 100 }),
+        serverPortsApi.list({ server_id: id, per_page: 100 }),
         getDataCenterOptions(),
         getProviderOptions(),
       ]);
@@ -344,5 +345,7 @@
         {/if}
       </Card.Content>
     </Card.Root>
+
+    <AttachmentSection targetType="server" targetId={server.id} />
   {/if}
 </div>

@@ -34,7 +34,7 @@ export interface UpdateDictRequest {
 }
 
 export const dictsApi = {
-  list: (params?: { dict_type?: string; enabled_only?: boolean; q?: string }) =>
+  list: (params?: { dict_type?: string; enabled_only?: boolean; q?: string; page?: number; per_page?: number }) =>
     api.get<DictListResponse>('/api/v1/dicts', params),
 
   getById: (id: string) => api.get<DictItem>(`/api/v1/dicts/${id}`),

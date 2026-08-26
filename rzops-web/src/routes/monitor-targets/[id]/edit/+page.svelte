@@ -27,6 +27,7 @@
   function toForm(t: MonitorTargetResponse): CreateMonitorTargetRequest {
     return {
       name: t.name,
+      site_id: t.site_id ?? '',
       target_type: t.target_type ?? '',
       target_id: t.target_id ?? '',
       monitor_type: t.monitor_type ?? '',

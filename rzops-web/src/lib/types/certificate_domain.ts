@@ -29,6 +29,6 @@ export interface ListCertificateDomainsQuery {
   certificate_id?: string;
   domain_id?: string;
   q?: string;
-  limit?: number;
-  offset?: number;
+  page?: number;
+  per_page?: number;
 }

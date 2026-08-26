@@ -39,6 +39,6 @@ export interface ListServerIpsQuery {
   server_id?: string;
   status?: string;
   q?: string;
-  limit?: number;
-  offset?: number;
+  page?: number;
+  per_page?: number;
 }

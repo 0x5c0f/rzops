@@ -7,7 +7,6 @@
   import { providersApi } from '$lib/api/providers';
   import { opsSitesApi } from '$lib/api/ops-sites';
   import { databaseInstancesApi } from '$lib/api/database-instances';
-  import { auditLogsApi } from '$lib/api/audit-logs';
   import { onMount } from 'svelte';
 
   let stats = $state({
@@ -18,22 +17,20 @@
     providers: 0,
     sites: 0,
     databases: 0,
-    auditLogs: 0,
   });
 
   let loading = $state(true);
 
   onMount(async () => {
     try {
-      const [servers, datacenters, domains, certificates, providers, sites, databases, auditLogs] = await Promise.all([
-        serversApi.list({ limit: 1 }).catch(() => ({ count: 0 })),
-        datacentersApi.list({ limit: 1 }).catch(() => ({ count: 0 })),
-        domainsApi.list({ limit: 1 }).catch(() => ({ count: 0 })),
-        certificatesApi.list({ limit: 1 }).catch(() => ({ count: 0 })),
-        providersApi.list({ limit: 1 }).catch(() => ({ count: 0 })),
-        opsSitesApi.list({ limit: 1 }).catch(() => ({ count: 0 })),
-        databaseInstancesApi.list({ limit: 1 }).catch(() => ({ count: 0 })),
-        auditLogsApi.list({ limit: 1 }).catch(() => ({ count: 0 })),
+      const [servers, datacenters, domains, certificates, providers, sites, databases] = await Promise.all([
+        serversApi.list({ per_page: 1 }).catch(() => ({ count: 0 })),
+        datacentersApi.list({ per_page: 1 }).catch(() => ({ count: 0 })),
+        domainsApi.list({ per_page: 1 }).catch(() => ({ count: 0 })),
+        certificatesApi.list({ per_page: 1 }).catch(() => ({ count: 0 })),
+        providersApi.list({ per_page: 1 }).catch(() => ({ count: 0 })),
+        opsSitesApi.list({ per_page: 1 }).catch(() => ({ count: 0 })),
+        databaseInstancesApi.list({ per_page: 1 }).catch(() => ({ count: 0 })),
       ]);
 
       stats = {
@@ -44,7 +41,6 @@
         providers: providers.count ?? 0,
         sites: sites.count ?? 0,
         databases: databases.count ?? 0,
-        auditLogs: auditLogs.count ?? 0,
       };
     } catch (err) {
       console.error('Failed to load stats:', err);
@@ -129,16 +125,6 @@
       <CardContent>
         <div class="text-2xl font-bold">{loading ? '...' : stats.databases}</div>
         <p class="text-xs text-muted-foreground">数据库实例数量</p>
-      </CardContent>
-    </Card>
-
-    <Card>
-      <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle class="text-sm font-medium">审计日志</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div class="text-2xl font-bold">{loading ? '...' : stats.auditLogs}</div>
-        <p class="text-xs text-muted-foreground">操作记录总数</p>
       </CardContent>
     </Card>
   </div>

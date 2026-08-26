@@ -37,11 +37,13 @@ pub struct AppState {
     pub site_domain_relation_repo: Arc<dyn site_relation_repository::SiteDomainRelationRepository>,
     pub dict_repo: Arc<dyn dict_repository::DictRepository>,
     pub token_service: Arc<dyn token_service::TokenService>,
+    pub upload_dir: String,
 }
 
 impl AppState {
     pub fn new(pool: Pool<Postgres>, jwt_secret: &[u8], jwt_expiration: u64) -> Self {
         let site_rel = Arc::new(PgSiteRelationRepository::new(pool.clone()));
+        let upload_dir = std::env::var("UPLOAD_DIR").unwrap_or_else(|_| "uploads".to_string());
         Self {
             user_repo: Arc::new(PgUserRepository::new(pool.clone())),
             provider_repo: Arc::new(PgProviderRepository::new(pool.clone())),
@@ -66,6 +68,7 @@ impl AppState {
             site_domain_relation_repo: site_rel,
             dict_repo: Arc::new(PgDictRepository::new(pool.clone())),
             token_service: Arc::new(JwtService::new(jwt_secret, jwt_expiration)),
+            upload_dir,
         }
     }
 }
@@ -111,7 +114,7 @@ pub fn create_router(state: AppState) -> Router {
         .nest("/api/v1/backup-plans", rzops_api::backup_plan_routes(state.backup_plan_repo.clone()))
         .nest("/api/v1/monitor-targets", rzops_api::monitor_target_routes(state.monitor_target_repo.clone()))
         .nest("/api/v1/contracts", rzops_api::contract_routes(state.contract_repo.clone()))
-        .nest("/api/v1/attachments", rzops_api::attachment_routes(state.attachment_repo.clone()))
+        .nest("/api/v1/attachments", rzops_api::attachment_routes(state.attachment_repo.clone(), state.upload_dir.clone()))
         .nest("/api/v1/audit-logs", rzops_api::audit_log_routes(state.audit_log_repo.clone()))
         .nest("/api/v1/change-records", rzops_api::change_record_routes(state.change_record_repo.clone()))
         .nest("/api/v1/dicts", rzops_api::dict_routes(state.dict_repo.clone()))

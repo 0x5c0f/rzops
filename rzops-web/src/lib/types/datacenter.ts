@@ -38,6 +38,6 @@ export interface ListDataCentersQuery {
   q?: string;
   status?: string;
   country?: string;
-  limit?: number;
-  offset?: number;
+  page?: number;
+  per_page?: number;
 }

@@ -28,6 +28,8 @@ pub struct ListDictsQuery {
     pub dict_type: Option<String>,
     pub enabled_only: Option<bool>,
     pub q: Option<String>,
+    pub page: Option<i64>,
+    pub per_page: Option<i64>,
 }
 
 /// Response body for a dict item.

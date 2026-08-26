@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use chrono::{DateTime, Utc};
 use uuid::Uuid;
 use crate::models::change_record::ChangeRecord;
 
@@ -6,6 +7,9 @@ use crate::models::change_record::ChangeRecord;
 pub struct ChangeRecordFilter {
     pub actor_id: Option<Uuid>,
     pub resource_type: Option<String>,
+    pub change_type: Option<String>,
+    pub created_from: Option<DateTime<Utc>>,
+    pub created_to: Option<DateTime<Utc>>,
     pub limit: Option<i64>,
     pub offset: Option<i64>,
 }

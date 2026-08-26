@@ -1,4 +1,5 @@
 <script lang="ts">
+  import AttachmentSection from '$lib/components/shared/AttachmentSection.svelte';
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import { certificatesApi } from '$lib/api/certificates';
@@ -31,7 +32,7 @@
         getProviderOptions(),
         getCredentialOptions(),
         getDomainOptions(),
-        certificateDomainsApi.list({ certificate_id: id, limit: 100 }),
+        certificateDomainsApi.list({ certificate_id: id, per_page: 100 }),
       ]);
       certificate = cert;
       providerMap = Object.fromEntries(providers.map(o => [o.value, o.label]));
@@ -179,5 +180,6 @@
         {/if}
       </Card.Content>
     </Card.Root>
+    <AttachmentSection targetType="certificate" targetId={certificate.id} />
   {/if}
 </div>

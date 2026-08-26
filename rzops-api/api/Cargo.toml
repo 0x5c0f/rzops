@@ -7,6 +7,7 @@ edition.workspace = true
 rzops-domain = { workspace = true }
 rzops-common = { workspace = true }
 axum = { workspace = true }
+tokio = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 uuid = { workspace = true }

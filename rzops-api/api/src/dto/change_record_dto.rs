@@ -6,6 +6,9 @@ use uuid::Uuid;
 pub struct ListChangeRecordsQuery {
     pub actor_id: Option<Uuid>,
     pub resource_type: Option<String>,
+    pub change_type: Option<String>,
+    pub created_from: Option<DateTime<Utc>>,
+    pub created_to: Option<DateTime<Utc>>,
     pub page: Option<i64>,
     pub per_page: Option<i64>,
 }

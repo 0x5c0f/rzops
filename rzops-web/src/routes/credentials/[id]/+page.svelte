@@ -1,4 +1,5 @@
 <script lang="ts">
+  import AttachmentSection from '$lib/components/shared/AttachmentSection.svelte';
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import { credentialsApi } from '$lib/api/credentials';
@@ -95,5 +96,6 @@
         </Card.Content>
       </Card.Root>
     </div>
+    <AttachmentSection targetType="credential" targetId={credential.id} />
   {/if}
 </div>

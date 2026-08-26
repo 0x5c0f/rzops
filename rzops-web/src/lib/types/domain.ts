@@ -43,6 +43,6 @@ export interface UpdateDomainRequest extends Partial<CreateDomainRequest> {}
 export interface ListDomainsQuery {
   q?: string;
   is_enabled?: boolean;
-  limit?: number;
-  offset?: number;
+  page?: number;
+  per_page?: number;
 }

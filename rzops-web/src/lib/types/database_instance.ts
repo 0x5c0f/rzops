@@ -47,6 +47,6 @@ export interface ListDatabaseInstancesQuery {
   status?: string;
   db_type?: string;
   server_id?: string;
-  limit?: number;
-  offset?: number;
+  page?: number;
+  per_page?: number;
 }

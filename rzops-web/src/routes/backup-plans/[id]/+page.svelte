@@ -1,4 +1,5 @@
 <script lang="ts">
+  import AttachmentSection from '$lib/components/shared/AttachmentSection.svelte';
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import { backupPlansApi } from '$lib/api/backup-plans';
@@ -94,5 +95,6 @@
         </Card.Content>
       </Card.Root>
     </div>
+    <AttachmentSection targetType="backup_plan" targetId={plan.id} />
   {/if}
 </div>

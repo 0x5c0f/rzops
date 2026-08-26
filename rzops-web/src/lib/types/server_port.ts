@@ -32,6 +32,6 @@ export interface ListServerPortsQuery {
   server_id?: string;
   protocol?: string;
   q?: string;
-  limit?: number;
-  offset?: number;
+  page?: number;
+  per_page?: number;
 }

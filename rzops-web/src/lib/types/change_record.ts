@@ -17,9 +17,11 @@ export interface ChangeRecordListResponse {
 }
 
 export interface ListChangeRecordsQuery {
-  q?: string;
-  actor_id?: string;
+  change_type?: string;
   resource_type?: string;
-  limit?: number;
-  offset?: number;
+  actor_id?: string;
+  created_from?: string;
+  created_to?: string;
+  page?: number;
+  per_page?: number;
 }

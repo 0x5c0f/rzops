@@ -64,6 +64,6 @@ export interface ListOpsSitesQuery {
   q?: string;
   status?: string;
   importance?: string;
-  limit?: number;
-  offset?: number;
+  page?: number;
+  per_page?: number;
 }

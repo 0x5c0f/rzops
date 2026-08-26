@@ -23,8 +23,8 @@
     try {
       const [serverData, ipData, portData] = await Promise.all([
         serversApi.getById(id),
-        serverIpsApi.list({ server_id: id, limit: 100 }),
-        serverPortsApi.list({ server_id: id, limit: 100 }),
+        serverIpsApi.list({ server_id: id, per_page: 100 }),
+        serverPortsApi.list({ server_id: id, per_page: 100 }),
       ]);
       server = serverData;
       ips = ipData.data;

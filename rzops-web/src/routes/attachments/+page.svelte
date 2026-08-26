@@ -1,31 +1,41 @@
 <script lang="ts">
-  import { goto } from '$app/navigation';
   import { attachmentsApi } from '$lib/api/attachments';
   import type { AttachmentResponse, ListAttachmentsQuery } from '$lib/types/attachment';
   import { Button } from '$lib/ui/button';
   import { Input } from '$lib/ui/input';
   import DataTable from '$lib/components/shared/DataTable.svelte';
-  import StatusBadge from '$lib/components/shared/StatusBadge.svelte';
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import { formatDate, formatBytes } from '$lib/utils/format';
   import { onMount } from 'svelte';
-  import { commonStatusOptions } from '$lib/utils/enum-options';
 
   let data = $state<AttachmentResponse[]>([]);
   let total = $state(0);
   let loading = $state(true);
-  let query = $state<ListAttachmentsQuery>({ limit: 20, offset: 0 });
-  let offset = $derived(query.offset ?? 0);
-  let limit = $derived(query.limit ?? 20);
+  let error = $state('');
+  let query = $state<ListAttachmentsQuery>({ page: 1, per_page: 20 });
+  let page = $derived(query.page ?? 1);
+  let perPage = $derived(query.per_page ?? 20);
 
-  let statusMap = $derived(Object.fromEntries($commonStatusOptions.map(o => [o.value, o.label])));
+  const targetTypeZh: Record<string, string> = {
+    server: '服务器',
+    database: '数据库',
+    site: '站点',
+    domain: '域名',
+    certificate: '证书',
+    provider: '供应商',
+    data_center: '数据中心',
+    credential: '凭据',
+    backup_plan: '备份计划',
+    monitor_target: '监控目标',
+    other: '其他',
+  };
 
   const columns = [
-    { key: 'filename', label: '文件名' },
-    { key: 'target_type', label: '目标类型' },
+    { key: 'filename', label: '文件名' , link: (item: AttachmentResponse) => `/attachments/${item.id}` },
+    { key: 'target_type', label: '目标类型', render: (v: unknown) => targetTypeZh[v as string] || (v as string) || '-' },
     { key: 'content_type', label: '内容类型' },
-    { key: 'size_bytes', label: '文件大小', render: (v: unknown) => v ? `${(v as number / 1024).toFixed(1)} KB` : '-' },
-    { key: 'status', label: '状态', valueMap: statusMap },
+    { key: 'size_bytes', label: '文件大小', render: (v: unknown) => formatBytes(v as number) },
+    { key: 'created_at', label: '上传时间', render: (v: unknown) => formatDate(v as string) },
   ];
 
   async function loadData() {
@@ -45,17 +55,22 @@
 
   function handleSearch(e: Event) {
     const input = e.target as HTMLInputElement;
-    query = { ...query, q: input.value, offset: 0 };
+    query = { ...query, q: input.value, page: 1 };
     loadData();
   }
 
-  function handlePageChange(newOffset: number) {
-    query = { ...query, offset: newOffset };
+  function handlePageChange(newPage: number) {
+    query = { ...query, page: newPage };
     loadData();
   }
 
-  function handleEdit(item: AttachmentResponse) {
-    goto(`/attachments/${item.id}`);
+  async function handleDownload(item: AttachmentResponse) {
+    error = '';
+    try {
+      await attachmentsApi.download(item.id, item.filename);
+    } catch (err) {
+      error = err instanceof Error ? err.message : '下载失败';
+    }
   }
 
   async function handleDelete(item: AttachmentResponse) {
@@ -74,12 +89,16 @@
 
   <div class="flex items-center justify-between">
     <h1 class="text-2xl font-semibold">附件管理</h1>
-    <Button onclick={() => goto('/attachments/new')}>新建附件</Button>
+    <span class="text-sm text-muted-foreground">附件在各资源详情页中上传，此处可全局查看与下载</span>
   </div>
+
+  {#if error}
+    <p class="text-sm text-red-600">{error}</p>
+  {/if}
 
   <div class="flex gap-2">
     <Input
-      placeholder="搜索附件..."
+      placeholder="搜索文件名..."
       class="max-w-sm"
       oninput={handleSearch}
     />
@@ -89,26 +108,27 @@
     {columns}
     {data}
     {loading}
-    onEdit={handleEdit}
+    editLabel="下载"
+    onEdit={handleDownload}
     onDelete={handleDelete}
   />
 
   <div class="flex items-center justify-between text-sm text-muted-foreground">
-    <span>显示 {Math.min(offset + 1, total)}-{Math.min(offset + limit, total)} / 共 {total} 条</span>
+    <span>显示 {Math.min((page - 1) * perPage + 1, total)}-{Math.min(page * perPage, total)} / 共 {total} 条</span>
     <div class="flex gap-2">
       <Button
         variant="outline"
         size="sm"
-        disabled={offset === 0}
-        onclick={() => handlePageChange(Math.max(0, offset - limit))}
+        disabled={page <= 1}
+        onclick={() => handlePageChange(page - 1)}
       >
         上一页
       </Button>
       <Button
         variant="outline"
         size="sm"
-        disabled={offset + limit >= total}
-        onclick={() => handlePageChange(offset + limit)}
+        disabled={page * perPage >= total}
+        onclick={() => handlePageChange(page + 1)}
       >
         下一页
       </Button>

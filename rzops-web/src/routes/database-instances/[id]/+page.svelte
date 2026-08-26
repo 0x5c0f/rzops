@@ -1,4 +1,5 @@
 <script lang="ts">
+  import AttachmentSection from '$lib/components/shared/AttachmentSection.svelte';
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import { databaseInstancesApi } from '$lib/api/database-instances';
@@ -188,5 +189,6 @@
         </Card.Content>
       </Card.Root>
     </div>
+    <AttachmentSection targetType="database" targetId={instance.id} />
   {/if}
 </div>

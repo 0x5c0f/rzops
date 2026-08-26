@@ -76,7 +76,7 @@ pub async fn list_change_records(
     if let Err(resp) = auth.require_superuser() { return resp }
     let p = q.page.unwrap_or(1).max(1);
     let pp = q.per_page.unwrap_or(20).min(100);
-    let f = ChangeRecordFilter { actor_id: q.actor_id, resource_type: q.resource_type, limit: Some(pp), offset: Some((p - 1) * pp) };
+    let f = ChangeRecordFilter { actor_id: q.actor_id, resource_type: q.resource_type, change_type: q.change_type, created_from: q.created_from, created_to: q.created_to, limit: Some(pp), offset: Some((p - 1) * pp) };
     match r.find_all(f.clone()).await {
         Ok(v) => {
             let c = r.count(f).await.unwrap_or(0);

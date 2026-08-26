@@ -5,6 +5,7 @@ use crate::models::monitor_target::MonitorTarget;
 #[derive(Debug, Clone, Default)]
 pub struct MonitorTargetFilter {
     pub status: Option<String>,
+    pub site_id: Option<Uuid>,
     pub q: Option<String>,
     pub limit: Option<i64>,
     pub offset: Option<i64>,

@@ -39,6 +39,6 @@ export interface UpdateContractRequest extends Partial<CreateContractRequest> {}
 export interface ListContractsQuery {
   q?: string;
   status?: string;
-  limit?: number;
-  offset?: number;
+  page?: number;
+  per_page?: number;
 }

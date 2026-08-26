@@ -11,10 +11,10 @@ impl PgMonitorTargetRepository { pub fn new(pool: Pool<Postgres>) -> Self { Self
 
 fn row_to_entity(row: &sqlx::postgres::PgRow) -> MonitorTarget {
     let mt_str: Option<String> = row.get("monitor_type");
-    MonitorTarget { id: row.get("id"), name: row.get("name"), target_type: row.get("target_type"), target_id: row.get("target_id"), monitor_type: mt_str, endpoint: row.get("endpoint"), interval_seconds: row.get("interval_seconds"), status: row.get::<String, _>("status"), remarks: row.get("remarks"), created_at: row.get::<DateTime<Utc>, _>("created_at"), updated_at: row.get::<DateTime<Utc>, _>("updated_at") }
+    MonitorTarget { id: row.get("id"), name: row.get("name"), site_id: row.get("site_id"), target_type: row.get("target_type"), target_id: row.get("target_id"), monitor_type: mt_str, endpoint: row.get("endpoint"), interval_seconds: row.get("interval_seconds"), status: row.get::<String, _>("status"), remarks: row.get("remarks"), created_at: row.get::<DateTime<Utc>, _>("created_at"), updated_at: row.get::<DateTime<Utc>, _>("updated_at") }
 }
 
-const COLS: &str = "id, name, target_type, target_id, monitor_type::text, endpoint, interval_seconds, status::text, remarks, created_at, updated_at";
+const COLS: &str = "id, name, site_id, target_type, target_id, monitor_type::text, endpoint, interval_seconds, status::text, remarks, created_at, updated_at";
 
 #[async_trait]
 impl MonitorTargetRepository for PgMonitorTargetRepository {
@@ -27,12 +27,14 @@ impl MonitorTargetRepository for PgMonitorTargetRepository {
         let s_status = f.status.as_ref();
         let s_q = f.q.as_ref();
         if s_status.is_some() { sql.push_str(&format!(" AND status::text = ${}", idx)); idx += 1; }
+        if f.site_id.is_some() { sql.push_str(&format!(" AND site_id = ${}", idx)); idx += 1; }
         if s_q.is_some() { sql.push_str(&format!(" AND name ILIKE ${}", idx)); }
         sql.push_str(" ORDER BY created_at DESC");
         if let Some(l) = f.limit { sql.push_str(&format!(" LIMIT {}", l)); }
         if let Some(o) = f.offset { sql.push_str(&format!(" OFFSET {}", o)); }
         let mut query = sqlx::query(&sql);
         if let Some(s) = s_status { query = query.bind(s); }
+        if let Some(sid) = f.site_id { query = query.bind(sid); }
         if let Some(q) = s_q { query = query.bind(format!("%{}%", q)); }
         Ok(query.fetch_all(&self.pool).await?.iter().map(|r| row_to_entity(r)).collect())
     }
@@ -42,20 +44,22 @@ impl MonitorTargetRepository for PgMonitorTargetRepository {
         let s_status = f.status.as_ref();
         let s_q = f.q.as_ref();
         if s_status.is_some() { sql.push_str(&format!(" AND status::text = ${}", idx)); idx += 1; }
+        if f.site_id.is_some() { sql.push_str(&format!(" AND site_id = ${}", idx)); idx += 1; }
         if s_q.is_some() { sql.push_str(&format!(" AND name ILIKE ${}", idx)); }
         let mut query = sqlx::query(&sql);
         if let Some(s) = s_status { query = query.bind(s); }
+        if let Some(sid) = f.site_id { query = query.bind(sid); }
         if let Some(q) = s_q { query = query.bind(format!("%{}%", q)); }
         Ok(query.fetch_one(&self.pool).await?.get::<i64, _>("count"))
     }
     async fn create(&self, e: &MonitorTarget) -> Result<MonitorTarget, sqlx::Error> {
-        Ok(row_to_entity(&sqlx::query(&format!("INSERT INTO cmdb_monitor_target (id,name,target_type,target_id,monitor_type,endpoint,interval_seconds,status,remarks,created_at,updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING {}", COLS))
-            .bind(e.id).bind(&e.name).bind(&e.target_type).bind(e.target_id).bind(e.monitor_type.clone()).bind(&e.endpoint).bind(e.interval_seconds).bind(e.status.clone()).bind(&e.remarks).bind(e.created_at).bind(e.updated_at)
+        Ok(row_to_entity(&sqlx::query(&format!("INSERT INTO cmdb_monitor_target (id,name,site_id,target_type,target_id,monitor_type,endpoint,interval_seconds,status,remarks,created_at,updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING {}", COLS))
+            .bind(e.id).bind(&e.name).bind(e.site_id).bind(&e.target_type).bind(e.target_id).bind(e.monitor_type.clone()).bind(&e.endpoint).bind(e.interval_seconds).bind(e.status.clone()).bind(&e.remarks).bind(e.created_at).bind(e.updated_at)
             .fetch_one(&self.pool).await?))
     }
     async fn update(&self, id: Uuid, e: &MonitorTarget) -> Result<Option<MonitorTarget>, sqlx::Error> {
-        Ok(sqlx::query(&format!("UPDATE cmdb_monitor_target SET name=$2,target_type=$3,target_id=$4,monitor_type=$5,endpoint=$6,interval_seconds=$7,status=$8,remarks=$9,updated_at=$10 WHERE id=$1 RETURNING {}", COLS))
-            .bind(id).bind(&e.name).bind(&e.target_type).bind(e.target_id).bind(e.monitor_type.clone()).bind(&e.endpoint).bind(e.interval_seconds).bind(e.status.clone()).bind(&e.remarks).bind(e.updated_at)
+        Ok(sqlx::query(&format!("UPDATE cmdb_monitor_target SET name=$2,site_id=$3,target_type=$4,target_id=$5,monitor_type=$6,endpoint=$7,interval_seconds=$8,status=$9,remarks=$10,updated_at=$11 WHERE id=$1 RETURNING {}", COLS))
+            .bind(id).bind(&e.name).bind(e.site_id).bind(&e.target_type).bind(e.target_id).bind(e.monitor_type.clone()).bind(&e.endpoint).bind(e.interval_seconds).bind(e.status.clone()).bind(&e.remarks).bind(e.updated_at)
             .fetch_optional(&self.pool).await?.map(|r| row_to_entity(&r)))
     }
     async fn delete(&self, id: Uuid) -> Result<bool, sqlx::Error> {

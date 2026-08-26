@@ -31,6 +31,6 @@ export interface UpdateBackupPlanRequest extends Partial<CreateBackupPlanRequest
 export interface ListBackupPlansQuery {
   q?: string;
   status?: string;
-  limit?: number;
-  offset?: number;
+  page?: number;
+  per_page?: number;
 }

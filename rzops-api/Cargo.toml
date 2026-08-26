@@ -20,7 +20,7 @@ license = "MIT"
 tokio = { version = "1", features = ["full"] }
 
 # Web framework
-axum = "0.8"
+axum = { version = "0.8", features = ["multipart"] }
 
 # Serialization
 serde = { version = "1", features = ["derive"] }

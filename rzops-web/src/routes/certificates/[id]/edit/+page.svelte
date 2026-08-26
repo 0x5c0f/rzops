@@ -20,7 +20,7 @@
     try {
       const [certData, domainData] = await Promise.all([
         certificatesApi.getById(id),
-        certificateDomainsApi.list({ certificate_id: id, limit: 100 }),
+        certificateDomainsApi.list({ certificate_id: id, per_page: 100 }),
       ]);
       cert = certData;
       domains = domainData.data;
