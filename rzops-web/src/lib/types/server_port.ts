@@ -3,9 +3,9 @@ export interface ServerPortResponse {
   server_id: string;
   protocol: string;
   port: number;
-  service_name: string | null;
+  service_name: string;
   access_scope: string | null;
-  is_enabled: boolean | null;
+  is_enabled: boolean;
   description: string | null;
   created_at: string;
   updated_at: string;
@@ -20,7 +20,7 @@ export interface CreateServerPortRequest {
   server_id: string;
   protocol: string;
   port: number;
-  service_name?: string;
+  service_name: string;
   access_scope?: string;
   is_enabled?: boolean;
   description?: string;

@@ -17,6 +17,7 @@ pub struct ChangeRecordResponse {
     pub change_type: String,
     pub resource_type: String,
     pub resource_id: Option<Uuid>,
+    pub actor_email: Option<String>,
     pub before_data: serde_json::Value,
     pub after_data: serde_json::Value,
     pub remarks: Option<String>,

@@ -3,7 +3,7 @@ export interface ServerIpResponse {
   server_id: string;
   ip_address: string;
   ip_type: string | null;
-  is_primary: boolean | null;
+  is_primary: boolean;
   isp_provider_id: string | null;
   description: string | null;
   status: string;
@@ -26,7 +26,14 @@ export interface CreateServerIpRequest {
   status?: string;
 }
 
-export interface UpdateServerIpRequest extends Partial<CreateServerIpRequest> {}
+export interface UpdateServerIpRequest {
+  ip_address?: string;
+  ip_type?: string;
+  is_primary?: boolean;
+  isp_provider_id?: string;
+  description?: string;
+  status?: string;
+}
 
 export interface ListServerIpsQuery {
   server_id?: string;

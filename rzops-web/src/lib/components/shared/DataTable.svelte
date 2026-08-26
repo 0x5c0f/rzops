@@ -10,6 +10,10 @@
     valueMap?: Record<string, string>;
     /** Optional render function for custom display */
     render?: (value: unknown, item: T) => string;
+    /** Optional custom display text (takes precedence) */
+    display?: (item: T) => string;
+    /** Optional link href; when present the cell renders as a link (null = plain text) */
+    link?: (item: T) => string | null;
   }
 
   let {
@@ -89,7 +93,22 @@
           <Table.Row>
             {#each columns as col}
               <Table.Cell class={col.class}>
-                {displayValue(item, col)}
+                {#if col.link}
+                  {@const href = col.link(item)}
+                  {#if href}
+                    <a
+                      href={href}
+                      class="text-primary hover:underline"
+                      onclick={(e) => e.stopPropagation()}
+                    >
+                      {col.display ? col.display(item) : displayValue(item, col)}
+                    </a>
+                  {:else}
+                    {col.display ? col.display(item) : displayValue(item, col)}
+                  {/if}
+                {:else}
+                  {col.display ? col.display(item) : displayValue(item, col)}
+                {/if}
               </Table.Cell>
             {/each}
             {#if hasActions}

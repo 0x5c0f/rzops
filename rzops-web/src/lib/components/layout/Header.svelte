@@ -6,8 +6,8 @@
   let { children }: { children?: import('svelte').Snippet } = $props();
 </script>
 
-<header class="flex h-14 items-center justify-between border-b px-6">
-  <div>
+<header class="flex h-14 items-center justify-between border-b border-border bg-card/70 px-6 backdrop-blur">
+  <div class="text-sm font-medium text-muted-foreground">
     {#if children}
       {@render children()}
     {/if}

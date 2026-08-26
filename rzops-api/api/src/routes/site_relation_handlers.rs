@@ -1,4 +1,4 @@
-use axum::{extract::{Path, State}, http::StatusCode, response::IntoResponse, Json};
+use axum::{extract::{Extension, Path, State}, http::StatusCode, response::IntoResponse, Json};
 use chrono::Utc;
 use uuid::Uuid;
 use rzops_domain::enums::{SiteDatabaseUsage, SiteServerRole};
@@ -7,6 +7,7 @@ use crate::dto::provider_dto::ErrorResponse;
 use crate::dto::site_relation_dto::*;
 use crate::routes::SiteRelationState;
 use crate::auth_extractor::AuthUser;
+use crate::change_log::{record_change, ChangeLogState};
 
 fn parse_role(s:&str)->SiteServerRole{match s{"web"=>SiteServerRole::Web,"api"=>SiteServerRole::Api,"worker"=>SiteServerRole::Worker,"static"=>SiteServerRole::Static,_=>SiteServerRole::Other}}
 fn role_to_string(r:&SiteServerRole)->String{match r{SiteServerRole::Web=>"web",SiteServerRole::Api=>"api",SiteServerRole::Worker=>"worker",SiteServerRole::Static=>"static",SiteServerRole::Other=>"other"}.to_string()}
@@ -17,22 +18,67 @@ fn usage_to_string(u:&SiteDatabaseUsage)->String{match u{SiteDatabaseUsage::Prim
 #[utoipa::path(get, path = "/api/v1/site-relations/site-servers/{site_id}", params(("site_id" = uuid::Uuid, Path)), responses((status = 200, body = [SiteServerRelationResponse]), (status = 500, body = ErrorResponse)), tag = "SiteRelation", security(("bearer_auth" = [])))]
 pub async fn list_site_servers(_auth:AuthUser,State(st):State<SiteRelationState>,Path(site_id):Path<Uuid>)->impl IntoResponse{match st.site_server.find_by_site(site_id).await{Ok(v)=>(StatusCode::OK,Json(v.iter().map(|e|SiteServerRelationResponse{id:e.id,site_id:e.site_id,server_id:e.server_id,deploy_role:e.deploy_role.as_ref().map(role_to_string),is_primary:e.is_primary,created_at:e.created_at}).collect::<Vec<_>>())).into_response(),Err(e)=>(StatusCode::INTERNAL_SERVER_ERROR,Json(ErrorResponse{error:e.to_string()})).into_response()}}
 #[utoipa::path(post, path = "/api/v1/site-relations/site-servers", request_body = CreateSiteServerRelationRequest, responses((status = 201, body = SiteServerRelationResponse), (status = 500, body = ErrorResponse)), tag = "SiteRelation", security(("bearer_auth" = [])))]
-pub async fn create_site_server(_auth:AuthUser,State(st):State<SiteRelationState>,Json(b):Json<CreateSiteServerRelationRequest>)->impl IntoResponse{let e=OpsSiteServer{id:Uuid::new_v4(),site_id:b.site_id,server_id:b.server_id,deploy_role:b.deploy_role.as_deref().map(parse_role),is_primary:b.is_primary.unwrap_or(false),created_at:Utc::now()};match st.site_server.create(&e).await{Ok(c)=>(StatusCode::CREATED,Json(SiteServerRelationResponse{id:c.id,site_id:c.site_id,server_id:c.server_id,deploy_role:c.deploy_role.as_ref().map(role_to_string),is_primary:c.is_primary,created_at:c.created_at})).into_response(),Err(e)=>(StatusCode::INTERNAL_SERVER_ERROR,Json(ErrorResponse{error:e.to_string()})).into_response()}}
+pub async fn create_site_server(auth:AuthUser,State(st):State<SiteRelationState>,Extension(change_log):Extension<ChangeLogState>,Json(b):Json<CreateSiteServerRelationRequest>)->impl IntoResponse{
+    let e=OpsSiteServer{id:Uuid::new_v4(),site_id:b.site_id,server_id:b.server_id,deploy_role:b.deploy_role.as_deref().map(parse_role),is_primary:b.is_primary.unwrap_or(false),created_at:Utc::now()};
+    match st.site_server.create(&e).await{
+        Ok(c)=>{
+            record_change(&change_log,&auth,rzops_domain::enums::ChangeType::Bind,"site_server",Some(c.id),serde_json::json!(null),serde_json::json!({"site_id":c.site_id,"server_id":c.server_id}),None).await;
+            (StatusCode::CREATED,Json(SiteServerRelationResponse{id:c.id,site_id:c.site_id,server_id:c.server_id,deploy_role:c.deploy_role.as_ref().map(role_to_string),is_primary:c.is_primary,created_at:c.created_at})).into_response()
+        }
+        Err(e)=>(StatusCode::INTERNAL_SERVER_ERROR,Json(ErrorResponse{error:e.to_string()})).into_response()}
+}
 #[utoipa::path(delete, path = "/api/v1/site-relations/site-servers/by-id/{id}", params(("id" = uuid::Uuid, Path)), responses((status = 204), (status = 404, body = ErrorResponse)), tag = "SiteRelation", security(("bearer_auth" = [])))]
-pub async fn delete_site_server(_auth:AuthUser,State(st):State<SiteRelationState>,Path(id):Path<Uuid>)->impl IntoResponse{match st.site_server.delete(id).await{Ok(true)=>StatusCode::NO_CONTENT.into_response(),Ok(false)=>(StatusCode::NOT_FOUND,Json(ErrorResponse{error:"not found".into()})).into_response(),Err(e)=>(StatusCode::INTERNAL_SERVER_ERROR,Json(ErrorResponse{error:e.to_string()})).into_response()}}
+pub async fn delete_site_server(auth:AuthUser,State(st):State<SiteRelationState>,Extension(change_log):Extension<ChangeLogState>,Path(id):Path<Uuid>)->impl IntoResponse{
+    match st.site_server.delete(id).await{
+        Ok(true)=>{
+            record_change(&change_log,&auth,rzops_domain::enums::ChangeType::Unbind,"site_server",Some(id),serde_json::json!({}),serde_json::json!(null),None).await;
+            StatusCode::NO_CONTENT.into_response()
+        }
+        Ok(false)=>(StatusCode::NOT_FOUND,Json(ErrorResponse{error:"not found".into()})).into_response(),Err(e)=>(StatusCode::INTERNAL_SERVER_ERROR,Json(ErrorResponse{error:e.to_string()})).into_response()}
+}
 
 // Site-Database
 #[utoipa::path(get, path = "/api/v1/site-relations/site-databases/{site_id}", params(("site_id" = uuid::Uuid, Path)), responses((status = 200, body = [SiteDatabaseRelationResponse]), (status = 500, body = ErrorResponse)), tag = "SiteRelation", security(("bearer_auth" = [])))]
 pub async fn list_site_databases(_auth:AuthUser,State(st):State<SiteRelationState>,Path(site_id):Path<Uuid>)->impl IntoResponse{match st.site_database.find_by_site(site_id).await{Ok(v)=>(StatusCode::OK,Json(v.iter().map(|e|SiteDatabaseRelationResponse{id:e.id,site_id:e.site_id,database_instance_id:e.database_instance_id,usage_type:e.usage_type.as_ref().map(usage_to_string),is_primary:e.is_primary,created_at:e.created_at}).collect::<Vec<_>>())).into_response(),Err(e)=>(StatusCode::INTERNAL_SERVER_ERROR,Json(ErrorResponse{error:e.to_string()})).into_response()}}
 #[utoipa::path(post, path = "/api/v1/site-relations/site-databases", request_body = CreateSiteDatabaseRelationRequest, responses((status = 201, body = SiteDatabaseRelationResponse), (status = 500, body = ErrorResponse)), tag = "SiteRelation", security(("bearer_auth" = [])))]
-pub async fn create_site_database(_auth:AuthUser,State(st):State<SiteRelationState>,Json(b):Json<CreateSiteDatabaseRelationRequest>)->impl IntoResponse{let e=OpsSiteDatabase{id:Uuid::new_v4(),site_id:b.site_id,database_instance_id:b.database_instance_id,usage_type:b.usage_type.as_deref().map(parse_usage),is_primary:b.is_primary.unwrap_or(false),created_at:Utc::now()};match st.site_database.create(&e).await{Ok(c)=>(StatusCode::CREATED,Json(SiteDatabaseRelationResponse{id:c.id,site_id:c.site_id,database_instance_id:c.database_instance_id,usage_type:c.usage_type.as_ref().map(usage_to_string),is_primary:c.is_primary,created_at:c.created_at})).into_response(),Err(e)=>(StatusCode::INTERNAL_SERVER_ERROR,Json(ErrorResponse{error:e.to_string()})).into_response()}}
+pub async fn create_site_database(auth:AuthUser,State(st):State<SiteRelationState>,Extension(change_log):Extension<ChangeLogState>,Json(b):Json<CreateSiteDatabaseRelationRequest>)->impl IntoResponse{
+    let e=OpsSiteDatabase{id:Uuid::new_v4(),site_id:b.site_id,database_instance_id:b.database_instance_id,usage_type:b.usage_type.as_deref().map(parse_usage),is_primary:b.is_primary.unwrap_or(false),created_at:Utc::now()};
+    match st.site_database.create(&e).await{
+        Ok(c)=>{
+            record_change(&change_log,&auth,rzops_domain::enums::ChangeType::Bind,"site_database",Some(c.id),serde_json::json!(null),serde_json::json!({"site_id":c.site_id,"database_instance_id":c.database_instance_id}),None).await;
+            (StatusCode::CREATED,Json(SiteDatabaseRelationResponse{id:c.id,site_id:c.site_id,database_instance_id:c.database_instance_id,usage_type:c.usage_type.as_ref().map(usage_to_string),is_primary:c.is_primary,created_at:c.created_at})).into_response()
+        }
+        Err(e)=>(StatusCode::INTERNAL_SERVER_ERROR,Json(ErrorResponse{error:e.to_string()})).into_response()}
+}
 #[utoipa::path(delete, path = "/api/v1/site-relations/site-databases/by-id/{id}", params(("id" = uuid::Uuid, Path)), responses((status = 204), (status = 404, body = ErrorResponse)), tag = "SiteRelation", security(("bearer_auth" = [])))]
-pub async fn delete_site_database(_auth:AuthUser,State(st):State<SiteRelationState>,Path(id):Path<Uuid>)->impl IntoResponse{match st.site_database.delete(id).await{Ok(true)=>StatusCode::NO_CONTENT.into_response(),Ok(false)=>(StatusCode::NOT_FOUND,Json(ErrorResponse{error:"not found".into()})).into_response(),Err(e)=>(StatusCode::INTERNAL_SERVER_ERROR,Json(ErrorResponse{error:e.to_string()})).into_response()}}
+pub async fn delete_site_database(auth:AuthUser,State(st):State<SiteRelationState>,Extension(change_log):Extension<ChangeLogState>,Path(id):Path<Uuid>)->impl IntoResponse{
+    match st.site_database.delete(id).await{
+        Ok(true)=>{
+            record_change(&change_log,&auth,rzops_domain::enums::ChangeType::Unbind,"site_database",Some(id),serde_json::json!({}),serde_json::json!(null),None).await;
+            StatusCode::NO_CONTENT.into_response()
+        }
+        Ok(false)=>(StatusCode::NOT_FOUND,Json(ErrorResponse{error:"not found".into()})).into_response(),Err(e)=>(StatusCode::INTERNAL_SERVER_ERROR,Json(ErrorResponse{error:e.to_string()})).into_response()}
+}
 
 // Site-Domain
 #[utoipa::path(get, path = "/api/v1/site-relations/site-domains/{site_id}", params(("site_id" = uuid::Uuid, Path)), responses((status = 200, body = [SiteDomainRelationResponse]), (status = 500, body = ErrorResponse)), tag = "SiteRelation", security(("bearer_auth" = [])))]
 pub async fn list_site_domains(_auth:AuthUser,State(st):State<SiteRelationState>,Path(site_id):Path<Uuid>)->impl IntoResponse{match st.site_domain.find_by_site(site_id).await{Ok(v)=>(StatusCode::OK,Json(v.iter().map(|e|SiteDomainRelationResponse{id:e.id,site_id:e.site_id,domain_id:e.domain_id,is_primary:e.is_primary,created_at:e.created_at}).collect::<Vec<_>>())).into_response(),Err(e)=>(StatusCode::INTERNAL_SERVER_ERROR,Json(ErrorResponse{error:e.to_string()})).into_response()}}
 #[utoipa::path(post, path = "/api/v1/site-relations/site-domains", request_body = CreateSiteDomainRelationRequest, responses((status = 201, body = SiteDomainRelationResponse), (status = 500, body = ErrorResponse)), tag = "SiteRelation", security(("bearer_auth" = [])))]
-pub async fn create_site_domain(_auth:AuthUser,State(st):State<SiteRelationState>,Json(b):Json<CreateSiteDomainRelationRequest>)->impl IntoResponse{let e=OpsSiteDomain{id:Uuid::new_v4(),site_id:b.site_id,domain_id:b.domain_id,is_primary:b.is_primary.unwrap_or(false),created_at:Utc::now()};match st.site_domain.create(&e).await{Ok(c)=>(StatusCode::CREATED,Json(SiteDomainRelationResponse{id:c.id,site_id:c.site_id,domain_id:c.domain_id,is_primary:c.is_primary,created_at:c.created_at})).into_response(),Err(e)=>(StatusCode::INTERNAL_SERVER_ERROR,Json(ErrorResponse{error:e.to_string()})).into_response()}}
+pub async fn create_site_domain(auth:AuthUser,State(st):State<SiteRelationState>,Extension(change_log):Extension<ChangeLogState>,Json(b):Json<CreateSiteDomainRelationRequest>)->impl IntoResponse{
+    let e=OpsSiteDomain{id:Uuid::new_v4(),site_id:b.site_id,domain_id:b.domain_id,is_primary:b.is_primary.unwrap_or(false),created_at:Utc::now()};
+    match st.site_domain.create(&e).await{
+        Ok(c)=>{
+            record_change(&change_log,&auth,rzops_domain::enums::ChangeType::Bind,"site_domain",Some(c.id),serde_json::json!(null),serde_json::json!({"site_id":c.site_id,"domain_id":c.domain_id}),None).await;
+            (StatusCode::CREATED,Json(SiteDomainRelationResponse{id:c.id,site_id:c.site_id,domain_id:c.domain_id,is_primary:c.is_primary,created_at:c.created_at})).into_response()
+        }
+        Err(e)=>(StatusCode::INTERNAL_SERVER_ERROR,Json(ErrorResponse{error:e.to_string()})).into_response()}
+}
 #[utoipa::path(delete, path = "/api/v1/site-relations/site-domains/by-id/{id}", params(("id" = uuid::Uuid, Path)), responses((status = 204), (status = 404, body = ErrorResponse)), tag = "SiteRelation", security(("bearer_auth" = [])))]
-pub async fn delete_site_domain(_auth:AuthUser,State(st):State<SiteRelationState>,Path(id):Path<Uuid>)->impl IntoResponse{match st.site_domain.delete(id).await{Ok(true)=>StatusCode::NO_CONTENT.into_response(),Ok(false)=>(StatusCode::NOT_FOUND,Json(ErrorResponse{error:"not found".into()})).into_response(),Err(e)=>(StatusCode::INTERNAL_SERVER_ERROR,Json(ErrorResponse{error:e.to_string()})).into_response()}}
+pub async fn delete_site_domain(auth:AuthUser,State(st):State<SiteRelationState>,Extension(change_log):Extension<ChangeLogState>,Path(id):Path<Uuid>)->impl IntoResponse{
+    match st.site_domain.delete(id).await{
+        Ok(true)=>{
+            record_change(&change_log,&auth,rzops_domain::enums::ChangeType::Unbind,"site_domain",Some(id),serde_json::json!({}),serde_json::json!(null),None).await;
+            StatusCode::NO_CONTENT.into_response()
+        }
+        Ok(false)=>(StatusCode::NOT_FOUND,Json(ErrorResponse{error:"not found".into()})).into_response(),Err(e)=>(StatusCode::INTERNAL_SERVER_ERROR,Json(ErrorResponse{error:e.to_string()})).into_response()}
+}

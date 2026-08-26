@@ -7,10 +7,6 @@ export interface CertificateResponse {
   certificate_type: string | null;
   status: string;
   private_key_credential_id: string | null;
-  domain_id: string | null;
-  domain_pattern: string | null;
-  certificate_id: string | null;
-  is_primary: boolean | null;
   remarks: string | null;
   created_at: string;
   updated_at: string;
@@ -29,10 +25,6 @@ export interface CreateCertificateRequest {
   certificate_type?: string;
   status?: string;
   private_key_credential_id?: string;
-  domain_id?: string;
-  domain_pattern?: string;
-  certificate_id?: string;
-  is_primary?: boolean;
   remarks?: string;
 }
 

@@ -6,6 +6,7 @@
   import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/ui/card';
   import { Input } from '$lib/ui/input';
   import { Label } from '$lib/ui/label';
+  import LayoutGrid from '@lucide/svelte/icons/layout-grid';
 
   let email = $state('');
   let password = $state('');
@@ -29,10 +30,20 @@
   }
 </script>
 
-<div class="flex min-h-screen items-center justify-center bg-muted/50">
-  <Card class="w-full max-w-md">
+<div class="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-50 p-4">
+  <!-- 背景装饰 -->
+  <div class="pointer-events-none absolute inset-0">
+    <div class="absolute -left-24 -top-24 h-72 w-72 rounded-full bg-sky-200/50 blur-3xl"></div>
+    <div class="absolute -bottom-32 -right-24 h-80 w-80 rounded-full bg-blue-300/40 blur-3xl"></div>
+    <div class="absolute left-1/2 top-1/3 h-56 w-56 -translate-x-1/2 rounded-full bg-indigo-200/30 blur-3xl"></div>
+  </div>
+
+  <Card class="relative w-full max-w-md border-slate-200/80 shadow-2xl shadow-slate-300/40">
     <CardHeader class="text-center">
-      <CardTitle class="text-2xl font-bold">RzOps</CardTitle>
+      <div class="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-500 to-blue-700 shadow-lg shadow-blue-500/30">
+        <LayoutGrid class="h-7 w-7 text-white" />
+      </div>
+      <CardTitle class="text-2xl font-bold tracking-tight">RzOps</CardTitle>
       <CardDescription>CMDB 运维资产管理平台</CardDescription>
     </CardHeader>
     <CardContent>

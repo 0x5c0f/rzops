@@ -85,6 +85,7 @@ export interface ListServersQuery {
   status?: string;
   server_type?: string;
   data_center_id?: string;
+  isp_provider_id?: string;
   limit?: number;
   offset?: number;
 }

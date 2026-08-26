@@ -33,7 +33,7 @@
 
     // Try to get user info
     try {
-      const { user } = await authApi.me();
+      const user = await authApi.me();
       auth.setUser(user);
       loading = false;
       initialized = true;

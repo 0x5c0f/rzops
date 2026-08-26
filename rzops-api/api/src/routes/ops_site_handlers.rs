@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use axum::{extract::{Path, Query, State}, http::StatusCode, response::IntoResponse, Json};
+use axum::{extract::{Extension, Path, Query, State}, http::StatusCode, response::IntoResponse, Json};
 use chrono::Utc;
 use uuid::Uuid;
 use rzops_domain::enums::{CodeRepoType, Importance, ServiceTarget, SiteStatus, WebFramework};
@@ -8,6 +8,7 @@ use rzops_domain::ports::ops_site_repository::{OpsSiteFilter, OpsSiteRepository}
 use crate::dto::provider_dto::ErrorResponse;
 use crate::dto::ops_site_dto::*;
 use crate::auth_extractor::AuthUser;
+use crate::change_log::{record_change, ChangeLogState};
 
 fn parse_site_status(s: &str) -> SiteStatus { match s { "active" => SiteStatus::Active, "temporary_offline" => SiteStatus::TemporaryOffline, "permanent_offline" => SiteStatus::PermanentOffline, _ => SiteStatus::Active } }
 fn site_status_to_string(s: &SiteStatus) -> String { match s { SiteStatus::Active => "active", SiteStatus::TemporaryOffline => "temporary_offline", SiteStatus::PermanentOffline => "permanent_offline" }.to_string() }
@@ -35,18 +36,34 @@ pub async fn list_ops_sites(_auth: AuthUser, State(repo): State<Arc<dyn OpsSiteR
     match repo.find_all(filter.clone()).await { Ok(ss) => { let count = repo.count(filter).await.unwrap_or(0); (StatusCode::OK, Json(OpsSiteListResponse { data: ss.iter().map(to_response).collect(), count })).into_response() }, Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: format!("database error: {}", e) })).into_response() }
 }
 #[utoipa::path(post, path = "/api/v1/ops-sites", request_body = CreateOpsSiteRequest, responses((status = 201, body = OpsSiteResponse), (status = 400, body = ErrorResponse)), tag = "OpsSite", security(("bearer_auth" = [])))]
-pub async fn create_ops_site(_auth: AuthUser, State(repo): State<Arc<dyn OpsSiteRepository>>, Json(body): Json<CreateOpsSiteRequest>) -> impl IntoResponse {
+pub async fn create_ops_site(auth: AuthUser, State(repo): State<Arc<dyn OpsSiteRepository>>, Extension(change_log): Extension<ChangeLogState>, Json(body): Json<CreateOpsSiteRequest>) -> impl IntoResponse {
     let now = Utc::now();
     let s = OpsSite { id: Uuid::new_v4(), name: body.name, url: body.url, business_unit_id: body.business_unit_id, department_id: body.department_id, service_target: body.service_target.as_deref().map(parse_service_target), importance: body.importance.as_deref().map(parse_importance), online_time: body.online_time, code_repo_type: body.code_repo_type.as_deref().map(parse_code_repo_type), code_repo_url: body.code_repo_url, purpose: body.purpose, is_internal_system: body.is_internal_system.unwrap_or(false), language_runtime: body.language_runtime, web_framework: body.web_framework.as_deref().map(parse_web_framework), uses_cdn: body.uses_cdn, is_test_site: body.is_test_site.unwrap_or(false), backup_plan_id: body.backup_plan_id, last_backup_time: body.last_backup_time, monitor_target_id: body.monitor_target_id, status: body.status.as_deref().map(parse_site_status).unwrap_or(SiteStatus::Active), offline_time: body.offline_time, offline_reason: body.offline_reason, function_summary: body.function_summary, remarks: body.remarks, created_at: now, updated_at: now };
-    match repo.create(&s).await { Ok(created) => (StatusCode::CREATED, Json(to_response(&created))).into_response(), Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: format!("failed to create ops site: {}", e) })).into_response() }
+    match repo.create(&s).await {
+        Ok(created) => {
+            record_change(&change_log, &auth, rzops_domain::enums::ChangeType::Create, "ops_site", Some(created.id), serde_json::json!(null), serde_json::to_value(to_response(&created)).unwrap_or(serde_json::json!({})), None).await;
+            (StatusCode::CREATED, Json(to_response(&created))).into_response()
+        }
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: format!("failed to create ops site: {}", e) })).into_response() }
 }
 #[utoipa::path(put, path = "/api/v1/ops-sites/{id}", params(("id" = uuid::Uuid, Path)), request_body = UpdateOpsSiteRequest, responses((status = 200, body = OpsSiteResponse), (status = 404, body = ErrorResponse)), tag = "OpsSite", security(("bearer_auth" = [])))]
-pub async fn update_ops_site(_auth: AuthUser, State(repo): State<Arc<dyn OpsSiteRepository>>, Path(id): Path<Uuid>, Json(body): Json<UpdateOpsSiteRequest>) -> impl IntoResponse {
+pub async fn update_ops_site(auth: AuthUser, State(repo): State<Arc<dyn OpsSiteRepository>>, Extension(change_log): Extension<ChangeLogState>, Path(id): Path<Uuid>, Json(body): Json<UpdateOpsSiteRequest>) -> impl IntoResponse {
     let existing = match repo.find_by_id(id).await { Ok(Some(s)) => s, Ok(None) => return (StatusCode::NOT_FOUND, Json(ErrorResponse { error: "ops site not found".to_string() })).into_response(), Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: format!("database error: {}", e) })).into_response() };
+    let before_value = serde_json::to_value(to_response(&existing)).unwrap_or(serde_json::json!({}));
     let s = OpsSite { id: existing.id, name: body.name.unwrap_or(existing.name), url: body.url.or(existing.url), business_unit_id: body.business_unit_id.or(existing.business_unit_id), department_id: body.department_id.or(existing.department_id), service_target: body.service_target.as_deref().map(parse_service_target).or(existing.service_target), importance: body.importance.as_deref().map(parse_importance).or(existing.importance), online_time: body.online_time.or(existing.online_time), code_repo_type: body.code_repo_type.as_deref().map(parse_code_repo_type).or(existing.code_repo_type), code_repo_url: body.code_repo_url.or(existing.code_repo_url), purpose: body.purpose.or(existing.purpose), is_internal_system: body.is_internal_system.unwrap_or(existing.is_internal_system), language_runtime: body.language_runtime.or(existing.language_runtime), web_framework: body.web_framework.as_deref().map(parse_web_framework).or(existing.web_framework), uses_cdn: body.uses_cdn.or(existing.uses_cdn), is_test_site: body.is_test_site.unwrap_or(existing.is_test_site), backup_plan_id: body.backup_plan_id.or(existing.backup_plan_id), last_backup_time: body.last_backup_time.or(existing.last_backup_time), monitor_target_id: body.monitor_target_id.or(existing.monitor_target_id), status: body.status.as_deref().map(parse_site_status).unwrap_or(existing.status), offline_time: body.offline_time.or(existing.offline_time), offline_reason: body.offline_reason.or(existing.offline_reason), function_summary: body.function_summary.or(existing.function_summary), remarks: body.remarks.or(existing.remarks), created_at: existing.created_at, updated_at: Utc::now() };
-    match repo.update(id, &s).await { Ok(Some(updated)) => (StatusCode::OK, Json(to_response(&updated))).into_response(), Ok(None) => (StatusCode::NOT_FOUND, Json(ErrorResponse { error: "ops site not found".to_string() })).into_response(), Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: format!("failed to update ops site: {}", e) })).into_response() }
+    match repo.update(id, &s).await {
+        Ok(Some(updated)) => {
+            record_change(&change_log, &auth, rzops_domain::enums::ChangeType::Update, "ops_site", Some(updated.id), before_value, serde_json::to_value(to_response(&updated)).unwrap_or(serde_json::json!({})), None).await;
+            (StatusCode::OK, Json(to_response(&updated))).into_response()
+        }
+        Ok(None) => (StatusCode::NOT_FOUND, Json(ErrorResponse { error: "ops site not found".to_string() })).into_response(), Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: format!("failed to update ops site: {}", e) })).into_response() }
 }
 #[utoipa::path(delete, path = "/api/v1/ops-sites/{id}", params(("id" = uuid::Uuid, Path)), responses((status = 200), (status = 404, body = ErrorResponse)), tag = "OpsSite", security(("bearer_auth" = [])))]
-pub async fn delete_ops_site(_auth: AuthUser, State(repo): State<Arc<dyn OpsSiteRepository>>, Path(id): Path<Uuid>) -> impl IntoResponse {
-    match repo.delete(id).await { Ok(true) => StatusCode::NO_CONTENT.into_response(), Ok(false) => (StatusCode::NOT_FOUND, Json(ErrorResponse { error: "ops site not found".to_string() })).into_response(), Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: format!("failed to delete ops site: {}", e) })).into_response() }
+pub async fn delete_ops_site(auth: AuthUser, State(repo): State<Arc<dyn OpsSiteRepository>>, Extension(change_log): Extension<ChangeLogState>, Path(id): Path<Uuid>) -> impl IntoResponse {
+    match repo.delete(id).await {
+        Ok(true) => {
+            record_change(&change_log, &auth, rzops_domain::enums::ChangeType::Delete, "ops_site", Some(id), serde_json::json!({}), serde_json::json!(null), None).await;
+            StatusCode::NO_CONTENT.into_response()
+        }
+        Ok(false) => (StatusCode::NOT_FOUND, Json(ErrorResponse { error: "ops site not found".to_string() })).into_response(), Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: format!("failed to delete ops site: {}", e) })).into_response() }
 }

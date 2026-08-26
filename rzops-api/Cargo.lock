@@ -1762,11 +1762,13 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "axum",
+ "chrono",
  "rzops-api",
  "rzops-common",
  "rzops-config",
  "rzops-domain",
  "rzops-infra",
+ "serde_json",
  "sqlx",
  "tokio",
  "tower",
@@ -1775,6 +1777,7 @@ dependencies = [
  "tracing-subscriber",
  "utoipa",
  "utoipa-swagger-ui",
+ "uuid",
 ]
 
 [[package]]

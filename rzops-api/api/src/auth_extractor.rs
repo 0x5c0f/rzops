@@ -20,6 +20,23 @@ pub struct AuthUser {
     pub is_superuser: bool,
 }
 
+impl AuthUser {
+    /// Reject the request unless the authenticated user is a superuser.
+    pub fn require_superuser(&self) -> Result<(), Response> {
+        if self.is_superuser {
+            Ok(())
+        } else {
+            Err((
+                StatusCode::FORBIDDEN,
+                Json(ErrorResponse {
+                    error: "forbidden: administrator privileges required".to_string(),
+                }),
+            )
+                .into_response())
+        }
+    }
+}
+
 /// State needed by the auth extractor.
 #[derive(Clone)]
 pub struct AuthExtractorState {

@@ -19,8 +19,8 @@
 
   const columns = [
     { key: 'domain_name', label: '域名' },
-    { key: 'registrar', label: '注册商' },
-    { key: 'expiration_date', label: '到期日期', render: (v: unknown) => formatDate(v as string) },
+    { key: 'provider_id', label: '注册商' },
+    { key: 'expiry_date', label: '到期日期', render: (v: unknown) => formatDate(v as string) },
     { key: 'is_enabled', label: '启用状态' },
     { key: 'created_at', label: '创建时间', render: (v: unknown) => formatDate(v as string) },
   ];
@@ -52,7 +52,7 @@
   }
 
   function handleEdit(item: DomainResponse) {
-    goto(`/domains/${item.id}`);
+    goto(`/domains/${item.id}/edit`);
   }
 
   async function handleDelete(item: DomainResponse) {

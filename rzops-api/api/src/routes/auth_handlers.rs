@@ -75,9 +75,13 @@ pub async fn login(
     tag = "Auth"
 )]
 pub async fn register(
+    auth: crate::auth_extractor::AuthUser,
     State(state): State<AuthState>,
     Json(body): Json<RegisterRequest>,
 ) -> impl IntoResponse {
+    if let Err(resp) = auth.require_superuser() {
+        return resp;
+    }
     match state.user_repo.find_by_email(&body.email).await {
         Ok(Some(_)) => {
             return (StatusCode::CONFLICT, Json(ErrorResponse { error: "email already registered".to_string() })).into_response()

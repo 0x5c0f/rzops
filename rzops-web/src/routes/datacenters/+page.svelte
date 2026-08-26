@@ -24,8 +24,7 @@
 
   const columns = $derived([
     { key: 'name', label: '名称' },
-    { key: 'code', label: '编码' },
-    { key: 'location', label: '位置' },
+    { key: 'city', label: '城市' },
     { key: 'status', label: '状态', valueMap: commonStatusMap },
     { key: 'provider_id', label: '供应商', valueMap: providerMap },
     { key: 'created_at', label: '创建时间', render: (v: unknown) => formatDate(v as string) },
@@ -62,7 +61,7 @@
   }
 
   function handleEdit(item: DataCenterResponse) {
-    goto(`/datacenters/${item.id}`);
+    goto(`/datacenters/${item.id}/edit`);
   }
 
   async function handleDelete(item: DataCenterResponse) {

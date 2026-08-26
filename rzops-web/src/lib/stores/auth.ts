@@ -18,19 +18,29 @@ function createAuthStore() {
     subscribe,
     login: (token: string, user: UserInfo) => {
       localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
       set({ token, user, isAuthenticated: true });
     },
     logout: () => {
       localStorage.removeItem('token');
+      localStorage.removeItem('user');
       set({ token: null, user: null, isAuthenticated: false });
     },
     init: () => {
       const token = localStorage.getItem('token');
       if (token) {
-        set({ token, user: null, isAuthenticated: true });
+        let user: UserInfo | null = null;
+        try {
+          const raw = localStorage.getItem('user');
+          user = raw ? (JSON.parse(raw) as UserInfo) : null;
+        } catch {
+          user = null;
+        }
+        set({ token, user, isAuthenticated: true });
       }
     },
     setUser: (user: UserInfo) => {
+      localStorage.setItem('user', JSON.stringify(user));
       update((state) => ({ ...state, user }));
     },
   };

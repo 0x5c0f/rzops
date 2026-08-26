@@ -2,50 +2,37 @@
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import { datacentersApi } from '$lib/api/datacenters';
-  import type { DataCenterResponse, UpdateDataCenterRequest } from '$lib/types/datacenter';
+  import { serversApi } from '$lib/api/servers';
+  import type { DataCenterResponse } from '$lib/types/datacenter';
+  import type { ServerResponse } from '$lib/types/server';
   import { Button } from '$lib/ui/button';
-  import { Input } from '$lib/ui/input';
-  import { Label } from '$lib/ui/label';
   import * as Card from '$lib/ui/card';
+  import * as Table from '$lib/ui/table';
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import StatusBadge from '$lib/components/shared/StatusBadge.svelte';
-  import FormSelect from '$lib/components/shared/FormSelect.svelte';
-  import { commonStatusOptions } from '$lib/utils/enum-options';
-  import { getProviderOptions, ensureOption } from '$lib/utils/entity-options';
+  import { getOptionLabel, commonStatusOptions } from '$lib/utils/enum-options';
+  import { getProviderOptions } from '$lib/utils/entity-options';
+  import { formatDate } from '$lib/utils/format';
   import { onMount } from 'svelte';
 
   let datacenter = $state<DataCenterResponse | null>(null);
+  let servers = $state<ServerResponse[]>([]);
   let loading = $state(true);
-  let saving = $state(false);
-  let form = $state<UpdateDataCenterRequest>({});
-  let providerOptions = $state<{ label: string; value: string }[]>([]);
+  let providerMap = $state<Record<string, string>>({});
 
   onMount(async () => {
-    providerOptions = await getProviderOptions();
+    const id = $page.params.id;
+    if (!id) { goto('/datacenters'); return; }
+
     try {
-      datacenter = await datacentersApi.getById($page.params.id ?? "");
-      form = {
-        name: datacenter.name,
-        code: datacenter.code ?? undefined,
-        location: datacenter.location ?? undefined,
-        address: datacenter.address ?? undefined,
-        provider_id: datacenter.provider_id ?? undefined,
-        tier_level: datacenter.tier_level ?? undefined,
-        total_racks: datacenter.total_racks ?? undefined,
-        used_racks: datacenter.used_racks ?? undefined,
-        power_capacity_kw: datacenter.power_capacity_kw ?? undefined,
-        contact_name: datacenter.contact_name ?? undefined,
-        contact_phone: datacenter.contact_phone ?? undefined,
-        phone: datacenter.phone ?? undefined,
-        country: datacenter.country ?? undefined,
-        province: datacenter.province ?? undefined,
-        city: datacenter.city ?? undefined,
-        line_type: datacenter.line_type ?? undefined,
-        description: datacenter.description ?? undefined,
-        status: datacenter.status,
-        remarks: datacenter.remarks ?? undefined,
-      };
-      providerOptions = ensureOption(providerOptions, datacenter.provider_id ?? undefined, datacenter.provider_id ?? undefined);
+      const [dcData, serverData, provOptions] = await Promise.all([
+        datacentersApi.getById(id),
+        serversApi.list({ data_center_id: id, limit: 100 }),
+        getProviderOptions(),
+      ]);
+      datacenter = dcData;
+      servers = serverData.data;
+      providerMap = Object.fromEntries(provOptions.map(o => [o.value, o.label]));
     } catch (err) {
       console.error('Failed to load datacenter:', err);
       goto('/datacenters');
@@ -53,19 +40,6 @@
       loading = false;
     }
   });
-
-  async function handleSave() {
-    if (!datacenter) return;
-    saving = true;
-    try {
-      await datacentersApi.update(datacenter.id, form);
-      goto('/datacenters');
-    } catch (err) {
-      console.error('Failed to save datacenter:', err);
-    } finally {
-      saving = false;
-    }
-  }
 
   async function handleDelete() {
     if (!datacenter) return;
@@ -79,112 +53,157 @@
   }
 </script>
 
-<div class="space-y-4">
+<div class="space-y-6">
   <Breadcrumb items={[
     { label: '数据中心', href: '/datacenters' },
     { label: datacenter?.name || '详情' }
   ]} />
 
   {#if loading}
-    <div class="text-muted-foreground">加载中...</div>
+    <div class="flex items-center justify-center py-12">
+      <div class="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+    </div>
   {:else if datacenter}
+    <!-- 页面标题 -->
     <div class="flex items-center justify-between">
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-3">
         <h1 class="text-2xl font-semibold">{datacenter.name}</h1>
         <StatusBadge status={datacenter.status} />
       </div>
       <div class="flex gap-2">
+        <Button variant="outline" onclick={() => goto('/datacenters')}>返回列表</Button>
+        <Button onclick={() => goto(`/datacenters/${datacenter?.id}/edit`)}>编辑</Button>
         <Button variant="destructive" onclick={handleDelete}>删除</Button>
-        <Button onclick={handleSave} disabled={saving}>
-          {saving ? '保存中...' : '保存'}
-        </Button>
       </div>
     </div>
 
+    <div class="grid gap-6 lg:grid-cols-2">
+      <!-- 基本信息 -->
+      <Card.Root>
+        <Card.Header>
+          <Card.Title>基本信息</Card.Title>
+        </Card.Header>
+        <Card.Content>
+          <dl class="grid gap-3 text-sm">
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">名称</dt>
+              <dd>{datacenter.name}</dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">供应商</dt>
+              <dd>
+                {#if datacenter.provider_id}
+                  <a href="/providers/{datacenter.provider_id}" class="text-primary hover:underline">
+                    {providerMap[datacenter.provider_id] || datacenter.provider_id}
+                  </a>
+                {:else}
+                  -
+                {/if}
+              </dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">状态</dt>
+              <dd>{getOptionLabel(commonStatusOptions, datacenter.status)}</dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">描述</dt>
+              <dd>{datacenter.description || '-'}</dd>
+            </div>
+          </dl>
+        </Card.Content>
+      </Card.Root>
+
+      <!-- 地理信息 -->
+      <Card.Root>
+        <Card.Header>
+          <Card.Title>地理信息</Card.Title>
+        </Card.Header>
+        <Card.Content>
+          <dl class="grid gap-3 text-sm">
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">国家</dt>
+              <dd>{datacenter.country || '-'}</dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">省份</dt>
+              <dd>{datacenter.province || '-'}</dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">城市</dt>
+              <dd>{datacenter.city || '-'}</dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">线路类型</dt>
+              <dd>{datacenter.line_type || '-'}</dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">地址</dt>
+              <dd>{datacenter.address || '-'}</dd>
+            </div>
+          </dl>
+        </Card.Content>
+      </Card.Root>
+
+      <!-- 联系信息 -->
+      <Card.Root>
+        <Card.Header>
+          <Card.Title>联系信息</Card.Title>
+        </Card.Header>
+        <Card.Content>
+          <dl class="grid gap-3 text-sm">
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">电话</dt>
+              <dd>{datacenter.phone || '-'}</dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">创建时间</dt>
+              <dd>{formatDate(datacenter.created_at)}</dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">更新时间</dt>
+              <dd>{formatDate(datacenter.updated_at)}</dd>
+            </div>
+          </dl>
+        </Card.Content>
+      </Card.Root>
+    </div>
+
+    <!-- 关联服务器 -->
     <Card.Root>
       <Card.Header>
-        <Card.Title>基本信息</Card.Title>
+        <Card.Title>关联服务器 ({servers.length})</Card.Title>
       </Card.Header>
-      <Card.Content class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <div class="space-y-2">
-          <Label for="name">名称</Label>
-          <Input id="name" bind:value={form.name} />
-        </div>
-        <div class="space-y-2">
-          <Label for="code">编码</Label>
-          <Input id="code" bind:value={form.code} />
-        </div>
-        <div class="space-y-2">
-          <Label for="location">位置</Label>
-          <Input id="location" bind:value={form.location} />
-        </div>
-        <div class="space-y-2">
-          <Label for="address">地址</Label>
-          <Input id="address" bind:value={form.address} />
-        </div>
-        <FormSelect
-          label="供应商"
-          bind:value={form.provider_id}
-          options={providerOptions}
-          placeholder="选择供应商"
-        />
-        <div class="space-y-2">
-          <Label for="tier_level">等级</Label>
-          <Input id="tier_level" bind:value={form.tier_level} placeholder="T1 / T2 / T3 / T4" />
-        </div>
-        <div class="space-y-2">
-          <Label for="total_racks">总机架数</Label>
-          <Input id="total_racks" type="number" bind:value={form.total_racks} />
-        </div>
-        <div class="space-y-2">
-          <Label for="used_racks">已用机架数</Label>
-          <Input id="used_racks" type="number" bind:value={form.used_racks} />
-        </div>
-        <div class="space-y-2">
-          <Label for="power_capacity_kw">电力容量(KW)</Label>
-          <Input id="power_capacity_kw" type="number" bind:value={form.power_capacity_kw} />
-        </div>
-        <div class="space-y-2">
-          <Label for="contact_name">联系人</Label>
-          <Input id="contact_name" bind:value={form.contact_name} />
-        </div>
-        <div class="space-y-2">
-          <Label for="contact_phone">联系电话</Label>
-          <Input id="contact_phone" bind:value={form.contact_phone} />
-        </div>
-        <div class="space-y-2">
-          <Label for="phone">电话</Label>
-          <Input id="phone" bind:value={form.phone} />
-        </div>
-        <div class="space-y-2">
-          <Label for="country">国家</Label>
-          <Input id="country" bind:value={form.country} />
-        </div>
-        <div class="space-y-2">
-          <Label for="province">省份</Label>
-          <Input id="province" bind:value={form.province} />
-        </div>
-        <div class="space-y-2">
-          <Label for="city">城市</Label>
-          <Input id="city" bind:value={form.city} />
-        </div>
-        <div class="space-y-2">
-          <Label for="line_type">线路类型</Label>
-          <Input id="line_type" bind:value={form.line_type} placeholder="电信 / 联通 / BGP" />
-        </div>
-        <div class="space-y-2 md:col-span-2 lg:col-span-3">
-          <Label for="description">描述</Label>
-          <Input id="description" bind:value={form.description} />
-        </div>
-        <FormSelect
-          label="状态"
-          bind:value={form.status}
-          options={commonStatusOptions}
-        />
-        <div class="space-y-2 md:col-span-2 lg:col-span-3">
-          <Label for="remarks">备注</Label>
-          <Input id="remarks" bind:value={form.remarks} />
-        </div>
+      <Card.Content>
+        {#if servers.length === 0}
+          <p class="text-sm text-muted-foreground">暂无关联服务器</p>
+        {:else}
+          <Table.Root>
+            <Table.Header>
+              <Table.Row>
+                <Table.Head>名称</Table.Head>
+                <Table.Head>资产编号</Table.Head>
+                <Table.Head>主IP</Table.Head>
+                <Table.Head>服务器类型</Table.Head>
+                <Table.Head>状态</Table.Head>
+              </Table.Row>
+            </Table.Header>
+            <Table.Body>
+              {#each servers as server}
+                <Table.Row>
+                  <Table.Cell>
+                    <a href="/servers/{server.id}" class="text-primary hover:underline">
+                      {server.name}
+                    </a>
+                  </Table.Cell>
+                  <Table.Cell class="font-mono">{server.asset_code || '-'}</Table.Cell>
+                  <Table.Cell class="font-mono">{server.primary_ip || '-'}</Table.Cell>
+                  <Table.Cell>{server.server_type || '-'}</Table.Cell>
+                  <Table.Cell><StatusBadge status={server.status} /></Table.Cell>
+                </Table.Row>
+              {/each}
+            </Table.Body>
+          </Table.Root>
+        {/if}
       </Card.Content>
     </Card.Root>
   {/if}

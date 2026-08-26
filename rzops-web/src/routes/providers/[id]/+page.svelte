@@ -2,40 +2,33 @@
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import { providersApi } from '$lib/api/providers';
-  import type { ProviderResponse, UpdateProviderRequest } from '$lib/types/provider';
+  import { serversApi } from '$lib/api/servers';
+  import type { ProviderResponse } from '$lib/types/provider';
+  import type { ServerResponse } from '$lib/types/server';
   import { Button } from '$lib/ui/button';
-  import { Input } from '$lib/ui/input';
-  import { Label } from '$lib/ui/label';
   import * as Card from '$lib/ui/card';
+  import * as Table from '$lib/ui/table';
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import StatusBadge from '$lib/components/shared/StatusBadge.svelte';
-  import FormSelect from '$lib/components/shared/FormSelect.svelte';
-  import { providerTypeOptions } from '$lib/utils/enum-options';
+  import { getOptionLabel, getOptionLabels, providerTypeOptions, commonStatusOptions } from '$lib/utils/enum-options';
+  import { formatDate } from '$lib/utils/format';
   import { onMount } from 'svelte';
 
   let provider = $state<ProviderResponse | null>(null);
+  let servers = $state<ServerResponse[]>([]);
   let loading = $state(true);
-  let saving = $state(false);
-  let form = $state<UpdateProviderRequest>({});
 
   onMount(async () => {
+    const id = $page.params.id;
+    if (!id) { goto('/providers'); return; }
+
     try {
-      provider = await providersApi.getById($page.params.id ?? "");
-      form = {
-        name: provider.name,
-        provider_type: provider.provider_type ?? undefined,
-        contact_name: provider.contact_name ?? undefined,
-        contact_phone: provider.contact_phone ?? undefined,
-        contact_email: provider.contact_email ?? undefined,
-        contact_qq: provider.contact_qq ?? undefined,
-        fax: provider.fax ?? undefined,
-        address: provider.address ?? undefined,
-        country: provider.country ?? undefined,
-        description: provider.description ?? undefined,
-        website: provider.website ?? undefined,
-        remarks: provider.remarks ?? undefined,
-        status: provider.status,
-      };
+      const [provData, serverData] = await Promise.all([
+        providersApi.getById(id),
+        serversApi.list({ isp_provider_id: id, limit: 100 }),
+      ]);
+      provider = provData;
+      servers = serverData.data;
     } catch (err) {
       console.error('Failed to load provider:', err);
       goto('/providers');
@@ -43,19 +36,6 @@
       loading = false;
     }
   });
-
-  async function handleSave() {
-    if (!provider) return;
-    saving = true;
-    try {
-      await providersApi.update(provider.id, form);
-      goto('/providers');
-    } catch (err) {
-      console.error('Failed to save provider:', err);
-    } finally {
-      saving = false;
-    }
-  }
 
   async function handleDelete() {
     if (!provider) return;
@@ -69,83 +49,150 @@
   }
 </script>
 
-<div class="space-y-4">
+<div class="space-y-6">
   <Breadcrumb items={[
     { label: '供应商', href: '/providers' },
     { label: provider?.name || '详情' }
   ]} />
 
   {#if loading}
-    <div class="text-muted-foreground">加载中...</div>
+    <div class="flex items-center justify-center py-12">
+      <div class="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+    </div>
   {:else if provider}
+    <!-- 页面标题 -->
     <div class="flex items-center justify-between">
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-3">
         <h1 class="text-2xl font-semibold">{provider.name}</h1>
         <StatusBadge status={provider.status} />
       </div>
       <div class="flex gap-2">
+        <Button variant="outline" onclick={() => goto('/providers')}>返回列表</Button>
+        <Button onclick={() => goto(`/providers/${provider?.id}/edit`)}>编辑</Button>
         <Button variant="destructive" onclick={handleDelete}>删除</Button>
-        <Button onclick={handleSave} disabled={saving}>
-          {saving ? '保存中...' : '保存'}
-        </Button>
       </div>
     </div>
 
+    <div class="grid gap-6 lg:grid-cols-2">
+      <!-- 基本信息 -->
+      <Card.Root>
+        <Card.Header>
+          <Card.Title>基本信息</Card.Title>
+        </Card.Header>
+        <Card.Content>
+          <dl class="grid gap-3 text-sm">
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">名称</dt>
+              <dd>{provider.name}</dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">供应商类型</dt>
+              <dd>{getOptionLabels(providerTypeOptions, provider.provider_types).join(', ') || '-'}</dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">国家</dt>
+              <dd>{provider.country || '-'}</dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">地址</dt>
+              <dd>{provider.address || '-'}</dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">网站</dt>
+              <dd>
+                {#if provider.website}
+                  <a href={provider.website} target="_blank" rel="noopener noreferrer" class="text-primary hover:underline">
+                    {provider.website}
+                  </a>
+                {:else}
+                  -
+                {/if}
+              </dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">状态</dt>
+              <dd>{getOptionLabel(commonStatusOptions, provider.status)}</dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">描述</dt>
+              <dd>{provider.description || '-'}</dd>
+            </div>
+          </dl>
+        </Card.Content>
+      </Card.Root>
+
+      <!-- 联系信息 -->
+      <Card.Root>
+        <Card.Header>
+          <Card.Title>联系信息</Card.Title>
+        </Card.Header>
+        <Card.Content>
+          <dl class="grid gap-3 text-sm">
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">联系人</dt>
+              <dd>{provider.contact_name || '-'}</dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">联系电话</dt>
+              <dd>{provider.contact_phone || '-'}</dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">QQ</dt>
+              <dd>{provider.contact_qq || '-'}</dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">传真</dt>
+              <dd>{provider.fax || '-'}</dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">创建时间</dt>
+              <dd>{formatDate(provider.created_at)}</dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">更新时间</dt>
+              <dd>{formatDate(provider.updated_at)}</dd>
+            </div>
+          </dl>
+        </Card.Content>
+      </Card.Root>
+    </div>
+
+    <!-- 关联服务器 -->
     <Card.Root>
       <Card.Header>
-        <Card.Title>基本信息</Card.Title>
+        <Card.Title>关联服务器 ({servers.length})</Card.Title>
       </Card.Header>
-      <Card.Content class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <div class="space-y-2">
-          <Label for="name">名称</Label>
-          <Input id="name" bind:value={form.name} />
-        </div>
-        <FormSelect
-          label="供应商类型"
-          bind:value={form.provider_type}
-          options={providerTypeOptions}
-          placeholder="选择供应商类型"
-        />
-        <div class="space-y-2">
-          <Label for="contact">联系人</Label>
-          <Input id="contact" bind:value={form.contact_name} />
-        </div>
-        <div class="space-y-2">
-          <Label for="phone">电话</Label>
-          <Input id="phone" bind:value={form.contact_phone} />
-        </div>
-        <div class="space-y-2">
-          <Label for="email">邮箱</Label>
-          <Input id="email" type="email" bind:value={form.contact_email} />
-        </div>
-        <div class="space-y-2">
-          <Label for="website">网站</Label>
-          <Input id="website" bind:value={form.website} />
-        </div>
-        <div class="space-y-2">
-          <Label for="contact_qq">QQ</Label>
-          <Input id="contact_qq" bind:value={form.contact_qq} />
-        </div>
-        <div class="space-y-2">
-          <Label for="fax">传真</Label>
-          <Input id="fax" bind:value={form.fax} />
-        </div>
-        <div class="space-y-2">
-          <Label for="address">地址</Label>
-          <Input id="address" bind:value={form.address} />
-        </div>
-        <div class="space-y-2">
-          <Label for="country">国家</Label>
-          <Input id="country" bind:value={form.country} />
-        </div>
-        <div class="space-y-2 md:col-span-2 lg:col-span-3">
-          <Label for="description">描述</Label>
-          <Input id="description" bind:value={form.description} />
-        </div>
-        <div class="space-y-2 md:col-span-2 lg:col-span-3">
-          <Label for="remarks">备注</Label>
-          <Input id="remarks" bind:value={form.remarks} />
-        </div>
+      <Card.Content>
+        {#if servers.length === 0}
+          <p class="text-sm text-muted-foreground">暂无关联服务器</p>
+        {:else}
+          <Table.Root>
+            <Table.Header>
+              <Table.Row>
+                <Table.Head>名称</Table.Head>
+                <Table.Head>资产编号</Table.Head>
+                <Table.Head>主IP</Table.Head>
+                <Table.Head>服务器类型</Table.Head>
+                <Table.Head>状态</Table.Head>
+              </Table.Row>
+            </Table.Header>
+            <Table.Body>
+              {#each servers as server}
+                <Table.Row>
+                  <Table.Cell>
+                    <a href="/servers/{server.id}" class="text-primary hover:underline">
+                      {server.name}
+                    </a>
+                  </Table.Cell>
+                  <Table.Cell class="font-mono">{server.asset_code || '-'}</Table.Cell>
+                  <Table.Cell class="font-mono">{server.primary_ip || '-'}</Table.Cell>
+                  <Table.Cell>{server.server_type || '-'}</Table.Cell>
+                  <Table.Cell><StatusBadge status={server.status} /></Table.Cell>
+                </Table.Row>
+              {/each}
+            </Table.Body>
+          </Table.Root>
+        {/if}
       </Card.Content>
     </Card.Root>
   {/if}

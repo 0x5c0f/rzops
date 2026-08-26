@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use axum::{
-    extract::{Path, Query, State},
+    extract::{Extension, Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
     Json,
@@ -14,6 +14,7 @@ use rzops_domain::models::data_center::DataCenter;
 use rzops_domain::ports::datacenter_repository::{DataCenterFilter, DataCenterRepository};
 
 use crate::auth_extractor::AuthUser;
+use crate::change_log::{record_change, ChangeLogState};
 use crate::dto::datacenter_dto::*;
 use crate::dto::provider_dto::ErrorResponse;
 
@@ -131,8 +132,9 @@ pub async fn list_data_centers(
 /// POST /data-centers
 #[utoipa::path(post, path = "/api/v1/data-centers", request_body = CreateDataCenterRequest, responses((status = 201, body = DataCenterResponse), (status = 400, body = ErrorResponse)), tag = "DataCenter", security(("bearer_auth" = [])))]
 pub async fn create_data_center(
-    _auth: AuthUser,
+    auth: AuthUser,
     State(repo): State<Arc<dyn DataCenterRepository>>,
+    Extension(change_log): Extension<ChangeLogState>,
     Json(body): Json<CreateDataCenterRequest>,
 ) -> impl IntoResponse {
     let now = Utc::now();
@@ -157,11 +159,14 @@ pub async fn create_data_center(
     };
 
     match repo.create(&dc).await {
-        Ok(created) => (
-            StatusCode::CREATED,
-            Json(to_response(&created)),
-        )
-            .into_response(),
+        Ok(created) => {
+            record_change(&change_log, &auth, rzops_domain::enums::ChangeType::Create, "data_center", Some(created.id), serde_json::json!(null), serde_json::to_value(to_response(&created)).unwrap_or(serde_json::json!({})), None).await;
+            (
+                StatusCode::CREATED,
+                Json(to_response(&created)),
+            )
+                .into_response()
+        },
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ErrorResponse {
@@ -175,8 +180,9 @@ pub async fn create_data_center(
 /// PUT /data-centers/:id
 #[utoipa::path(put, path = "/api/v1/data-centers/{id}", params(("id" = uuid::Uuid, Path)), request_body = UpdateDataCenterRequest, responses((status = 200, body = DataCenterResponse), (status = 404, body = ErrorResponse)), tag = "DataCenter", security(("bearer_auth" = [])))]
 pub async fn update_data_center(
-    _auth: AuthUser,
+    auth: AuthUser,
     State(repo): State<Arc<dyn DataCenterRepository>>,
+    Extension(change_log): Extension<ChangeLogState>,
     Path(id): Path<Uuid>,
     Json(body): Json<UpdateDataCenterRequest>,
 ) -> impl IntoResponse {
@@ -202,6 +208,7 @@ pub async fn update_data_center(
         }
     };
 
+    let before_value = serde_json::to_value(to_response(&existing)).unwrap_or(serde_json::json!({}));
     let dc = DataCenter {
         id: existing.id,
         name: body.name.unwrap_or(existing.name),
@@ -227,7 +234,10 @@ pub async fn update_data_center(
     };
 
     match repo.update(id, &dc).await {
-        Ok(Some(updated)) => (StatusCode::OK, Json(to_response(&updated))).into_response(),
+        Ok(Some(updated)) => {
+            record_change(&change_log, &auth, rzops_domain::enums::ChangeType::Update, "data_center", Some(updated.id), before_value, serde_json::to_value(to_response(&updated)).unwrap_or(serde_json::json!({})), None).await;
+            (StatusCode::OK, Json(to_response(&updated))).into_response()
+        }
         Ok(None) => (
             StatusCode::NOT_FOUND,
             Json(ErrorResponse {
@@ -248,12 +258,16 @@ pub async fn update_data_center(
 /// DELETE /data-centers/:id
 #[utoipa::path(delete, path = "/api/v1/data-centers/{id}", params(("id" = uuid::Uuid, Path)), responses((status = 200), (status = 404, body = ErrorResponse)), tag = "DataCenter", security(("bearer_auth" = [])))]
 pub async fn delete_data_center(
-    _auth: AuthUser,
+    auth: AuthUser,
     State(repo): State<Arc<dyn DataCenterRepository>>,
+    Extension(change_log): Extension<ChangeLogState>,
     Path(id): Path<Uuid>,
 ) -> impl IntoResponse {
     match repo.delete(id).await {
-        Ok(true) => StatusCode::NO_CONTENT.into_response(),
+        Ok(true) => {
+            record_change(&change_log, &auth, rzops_domain::enums::ChangeType::Delete, "data_center", Some(id), serde_json::json!({}), serde_json::json!(null), None).await;
+            StatusCode::NO_CONTENT.into_response()
+        }
         Ok(false) => (
             StatusCode::NOT_FOUND,
             Json(ErrorResponse {

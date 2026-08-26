@@ -2,47 +2,33 @@
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import { certificatesApi } from '$lib/api/certificates';
-  import type { CertificateResponse, UpdateCertificateRequest } from '$lib/types/certificate';
+  import type { CertificateResponse } from '$lib/types/certificate';
   import { Button } from '$lib/ui/button';
-  import { Input } from '$lib/ui/input';
-  import { Label } from '$lib/ui/label';
   import * as Card from '$lib/ui/card';
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import StatusBadge from '$lib/components/shared/StatusBadge.svelte';
-  import FormSelect from '$lib/components/shared/FormSelect.svelte';
-  import { certificateStatusOptions, certificateTypeOptions } from '$lib/utils/enum-options';
-  import { getProviderOptions } from '$lib/utils/entity-options';
+  import { certificateStatusOptions, certificateTypeOptions, getOptionLabel } from '$lib/utils/enum-options';
+  import { getProviderOptions, getCredentialOptions } from '$lib/utils/entity-options';
+  import { formatDate } from '$lib/utils/format';
   import { onMount } from 'svelte';
-
-  let providerOptions = $state<{ label: string; value: string }[]>([]);
 
   let certificate = $state<CertificateResponse | null>(null);
   let loading = $state(true);
-  let saving = $state(false);
-  let form = $state<UpdateCertificateRequest>({});
+  let providerMap = $state<Record<string, string>>({});
+  let credentialMap = $state<Record<string, string>>({});
 
   onMount(async () => {
+    const id = $page.params.id;
+    if (!id) { goto('/certificates'); return; }
     try {
-      const [cert, providers] = await Promise.all([
-        certificatesApi.getById($page.params.id ?? ""),
+      const [cert, providers, credentials] = await Promise.all([
+        certificatesApi.getById(id),
         getProviderOptions(),
+        getCredentialOptions(),
       ]);
       certificate = cert;
-      providerOptions = providers;
-      form = {
-        name: certificate.name,
-        provider_id: certificate.provider_id ?? undefined,
-        lease_start_date: certificate.lease_start_date ?? undefined,
-        lease_end_date: certificate.lease_end_date ?? undefined,
-        certificate_type: certificate.certificate_type ?? undefined,
-        status: certificate.status,
-        private_key_credential_id: certificate.private_key_credential_id ?? undefined,
-        domain_id: certificate.domain_id ?? undefined,
-        domain_pattern: certificate.domain_pattern ?? undefined,
-        certificate_id: certificate.certificate_id ?? undefined,
-        is_primary: certificate.is_primary ?? undefined,
-        remarks: certificate.remarks ?? undefined,
-      };
+      providerMap = Object.fromEntries(providers.map(o => [o.value, o.label]));
+      credentialMap = Object.fromEntries(credentials.map(o => [o.value, o.label]));
     } catch (err) {
       console.error('Failed to load certificate:', err);
       goto('/certificates');
@@ -50,19 +36,6 @@
       loading = false;
     }
   });
-
-  async function handleSave() {
-    if (!certificate) return;
-    saving = true;
-    try {
-      await certificatesApi.update(certificate.id, form);
-      goto('/certificates');
-    } catch (err) {
-      console.error('Failed to save certificate:', err);
-    } finally {
-      saving = false;
-    }
-  }
 
   async function handleDelete() {
     if (!certificate) return;
@@ -76,73 +49,87 @@
   }
 </script>
 
-<div class="space-y-4">
+<div class="space-y-6">
   <Breadcrumb items={[
     { label: '证书', href: '/certificates' },
     { label: certificate?.name || '详情' }
   ]} />
 
   {#if loading}
-    <div class="text-muted-foreground">加载中...</div>
+    <div class="flex items-center justify-center py-12">
+      <div class="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+    </div>
   {:else if certificate}
     <div class="flex items-center justify-between">
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-3">
         <h1 class="text-2xl font-semibold">{certificate.name}</h1>
         <StatusBadge status={certificate.status} />
       </div>
       <div class="flex gap-2">
+        <Button variant="outline" onclick={() => goto('/certificates')}>返回列表</Button>
+        <Button onclick={() => goto(`/certificates/${certificate?.id}/edit`)}>编辑</Button>
         <Button variant="destructive" onclick={handleDelete}>删除</Button>
-        <Button onclick={handleSave} disabled={saving}>
-          {saving ? '保存中...' : '保存'}
-        </Button>
       </div>
     </div>
 
-    <Card.Root>
-      <Card.Header>
-        <Card.Title>基本信息</Card.Title>
-      </Card.Header>
-      <Card.Content class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <div class="space-y-2">
-          <Label for="name">名称</Label>
-          <Input id="name" bind:value={form.name} />
-        </div>
-        <FormSelect label="证书类型" bind:value={form.certificate_type} options={certificateTypeOptions} />
-        <FormSelect label="供应商" bind:value={form.provider_id} options={providerOptions} />
-        <FormSelect label="状态" bind:value={form.status} options={certificateStatusOptions} />
-        <div class="space-y-2">
-          <Label for="lease_start_date">起始日期</Label>
-          <Input id="lease_start_date" type="date" bind:value={form.lease_start_date} />
-        </div>
-        <div class="space-y-2">
-          <Label for="lease_end_date">到期日期</Label>
-          <Input id="lease_end_date" type="date" bind:value={form.lease_end_date} />
-        </div>
-        <div class="space-y-2">
-          <Label for="private_key_credential_id">密钥凭证ID</Label>
-          <Input id="private_key_credential_id" bind:value={form.private_key_credential_id} />
-        </div>
-        <div class="space-y-2">
-          <Label for="domain_id">域名ID</Label>
-          <Input id="domain_id" bind:value={form.domain_id} />
-        </div>
-        <div class="space-y-2">
-          <Label for="domain_pattern">域名模式</Label>
-          <Input id="domain_pattern" bind:value={form.domain_pattern} />
-        </div>
-        <div class="space-y-2">
-          <Label for="certificate_id">证书标识</Label>
-          <Input id="certificate_id" bind:value={form.certificate_id} />
-        </div>
-        <div class="flex items-center gap-2 pt-6">
-          <input id="is_primary" type="checkbox" bind:checked={form.is_primary} class="h-4 w-4 rounded border-gray-300" />
-          <Label for="is_primary">主证书</Label>
-        </div>
-        <div class="space-y-2 md:col-span-2 lg:col-span-3">
-          <Label for="remarks">备注</Label>
-          <Input id="remarks" bind:value={form.remarks} />
-        </div>
-      </Card.Content>
-    </Card.Root>
+    <div class="grid gap-6 lg:grid-cols-2">
+      <Card.Root>
+        <Card.Header>
+          <Card.Title>基本信息</Card.Title>
+        </Card.Header>
+        <Card.Content>
+          <dl class="grid gap-3 text-sm">
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">名称</dt>
+              <dd>{certificate.name}</dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">证书类型</dt>
+              <dd>{getOptionLabel(certificateTypeOptions, certificate.certificate_type)}</dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">状态</dt>
+              <dd>{getOptionLabel(certificateStatusOptions, certificate.status)}</dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">供应商</dt>
+              <dd>
+                {#if certificate.provider_id}
+                  <a href="/providers/{certificate.provider_id}" class="text-primary hover:underline">
+                    {providerMap[certificate.provider_id] || certificate.provider_id}
+                  </a>
+                {:else}
+                  -
+                {/if}
+              </dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">起始日期</dt>
+              <dd>{formatDate(certificate.lease_start_date)}</dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">到期日期</dt>
+              <dd>{formatDate(certificate.lease_end_date)}</dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">密钥凭证</dt>
+              <dd>
+                {#if certificate.private_key_credential_id}
+                  <a href="/credentials/{certificate.private_key_credential_id}" class="text-primary hover:underline">
+                    {credentialMap[certificate.private_key_credential_id] || certificate.private_key_credential_id}
+                  </a>
+                {:else}
+                  -
+                {/if}
+              </dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">备注</dt>
+              <dd>{certificate.remarks || '-'}</dd>
+            </div>
+          </dl>
+        </Card.Content>
+      </Card.Root>
+    </div>
   {/if}
 </div>

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use axum::{
-    extract::{Path, Query, State},
+    extract::{Extension, Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
     Json,
@@ -14,6 +14,7 @@ use rzops_domain::models::server_port::ServerPort;
 use rzops_domain::ports::server_port_repository::{ServerPortFilter, ServerPortRepository};
 
 use crate::auth_extractor::AuthUser;
+use crate::change_log::{record_change, ChangeLogState};
 use crate::dto::provider_dto::ErrorResponse;
 use crate::dto::server_port_dto::*;
 
@@ -106,8 +107,9 @@ pub async fn list_server_ports(
 /// POST /server-ports
 #[utoipa::path(post, path = "/api/v1/server-ports", request_body = CreateServerPortRequest, responses((status = 201, body = ServerPortResponse), (status = 400, body = ErrorResponse)), tag = "ServerPort", security(("bearer_auth" = [])))]
 pub async fn create_server_port(
-    _auth: AuthUser,
+    auth: AuthUser,
     State(repo): State<Arc<dyn ServerPortRepository>>,
+    Extension(change_log): Extension<ChangeLogState>,
     Json(body): Json<CreateServerPortRequest>,
 ) -> impl IntoResponse {
     let now = Utc::now();
@@ -125,7 +127,10 @@ pub async fn create_server_port(
     };
 
     match repo.create(&port).await {
-        Ok(created) => (StatusCode::CREATED, Json(to_response(&created))).into_response(),
+        Ok(created) => {
+            record_change(&change_log, &auth, rzops_domain::enums::ChangeType::Create, "server_port", Some(created.id), serde_json::json!(null), serde_json::to_value(to_response(&created)).unwrap_or(serde_json::json!({})), None).await;
+            (StatusCode::CREATED, Json(to_response(&created))).into_response()
+        }
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ErrorResponse { error: format!("failed to create server port: {}", e) }),
@@ -136,8 +141,9 @@ pub async fn create_server_port(
 /// PUT /server-ports/:id
 #[utoipa::path(put, path = "/api/v1/server-ports/{id}", params(("id" = uuid::Uuid, Path)), request_body = UpdateServerPortRequest, responses((status = 200, body = ServerPortResponse), (status = 404, body = ErrorResponse)), tag = "ServerPort", security(("bearer_auth" = [])))]
 pub async fn update_server_port(
-    _auth: AuthUser,
+    auth: AuthUser,
     State(repo): State<Arc<dyn ServerPortRepository>>,
+    Extension(change_log): Extension<ChangeLogState>,
     Path(id): Path<Uuid>,
     Json(body): Json<UpdateServerPortRequest>,
 ) -> impl IntoResponse {
@@ -151,6 +157,7 @@ pub async fn update_server_port(
         }
     };
 
+    let before_value = serde_json::to_value(to_response(&existing)).unwrap_or(serde_json::json!({}));
     let port = ServerPort {
         id: existing.id,
         server_id: existing.server_id,
@@ -165,7 +172,10 @@ pub async fn update_server_port(
     };
 
     match repo.update(id, &port).await {
-        Ok(Some(updated)) => (StatusCode::OK, Json(to_response(&updated))).into_response(),
+        Ok(Some(updated)) => {
+            record_change(&change_log, &auth, rzops_domain::enums::ChangeType::Update, "server_port", Some(updated.id), before_value, serde_json::to_value(to_response(&updated)).unwrap_or(serde_json::json!({})), None).await;
+            (StatusCode::OK, Json(to_response(&updated))).into_response()
+        }
         Ok(None) => (StatusCode::NOT_FOUND, Json(ErrorResponse { error: "server port not found".to_string() })).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: format!("failed to update server port: {}", e) })).into_response(),
     }
@@ -174,12 +184,16 @@ pub async fn update_server_port(
 /// DELETE /server-ports/:id
 #[utoipa::path(delete, path = "/api/v1/server-ports/{id}", params(("id" = uuid::Uuid, Path)), responses((status = 200), (status = 404, body = ErrorResponse)), tag = "ServerPort", security(("bearer_auth" = [])))]
 pub async fn delete_server_port(
-    _auth: AuthUser,
+    auth: AuthUser,
     State(repo): State<Arc<dyn ServerPortRepository>>,
+    Extension(change_log): Extension<ChangeLogState>,
     Path(id): Path<Uuid>,
 ) -> impl IntoResponse {
     match repo.delete(id).await {
-        Ok(true) => StatusCode::NO_CONTENT.into_response(),
+        Ok(true) => {
+            record_change(&change_log, &auth, rzops_domain::enums::ChangeType::Delete, "server_port", Some(id), serde_json::json!({}), serde_json::json!(null), None).await;
+            StatusCode::NO_CONTENT.into_response()
+        }
         Ok(false) => (StatusCode::NOT_FOUND, Json(ErrorResponse { error: "server port not found".to_string() })).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: format!("failed to delete server port: {}", e) })).into_response(),
     }

@@ -6,6 +6,12 @@
 import { providersApi } from '$lib/api/providers';
 import { datacentersApi } from '$lib/api/datacenters';
 import { serversApi } from '$lib/api/servers';
+import { databaseInstancesApi } from '$lib/api/database-instances';
+import { domainsApi } from '$lib/api/domains';
+import { credentialsApi } from '$lib/api/credentials';
+import { opsSitesApi } from '$lib/api/ops-sites';
+import { backupPlansApi } from '$lib/api/backup-plans';
+import { monitorTargetsApi } from '$lib/api/monitor-targets';
 
 export interface SelectOption {
   label: string;
@@ -56,6 +62,102 @@ export async function getServerOptions(): Promise<SelectOption[]> {
     }));
   } catch (err) {
     console.error('Failed to load servers:', err);
+    return [];
+  }
+}
+
+/**
+ * 获取数据库实例选项
+ */
+export async function getDatabaseInstanceOptions(): Promise<SelectOption[]> {
+  try {
+    const res = await databaseInstancesApi.list({ limit: 200 });
+    return res.data.map(item => ({
+      label: `${item.name} (${item.db_type})`,
+      value: item.id,
+    }));
+  } catch (err) {
+    console.error('Failed to load database instances:', err);
+    return [];
+  }
+}
+
+/**
+ * 获取域名选项
+ */
+export async function getDomainOptions(): Promise<SelectOption[]> {
+  try {
+    const res = await domainsApi.list({ limit: 200 });
+    return res.data.map(item => ({
+      label: item.domain_name,
+      value: item.id,
+    }));
+  } catch (err) {
+    console.error('Failed to load domains:', err);
+    return [];
+  }
+}
+
+/**
+ * 获取凭证选项
+ */
+export async function getCredentialOptions(): Promise<SelectOption[]> {
+  try {
+    const res = await credentialsApi.list({ limit: 200 });
+    return res.data.map(item => ({
+      label: item.name,
+      value: item.id,
+    }));
+  } catch (err) {
+    console.error('Failed to load credentials:', err);
+    return [];
+  }
+}
+
+/**
+ * 获取站点选项
+ */
+export async function getOpsSiteOptions(): Promise<SelectOption[]> {
+  try {
+    const res = await opsSitesApi.list({ limit: 200 });
+    return res.data.map(item => ({
+      label: item.name,
+      value: item.id,
+    }));
+  } catch (err) {
+    console.error('Failed to load ops sites:', err);
+    return [];
+  }
+}
+
+/**
+ * 获取备份计划选项
+ */
+export async function getBackupPlanOptions(): Promise<SelectOption[]> {
+  try {
+    const res = await backupPlansApi.list({ limit: 200 });
+    return res.data.map(item => ({
+      label: item.name,
+      value: item.id,
+    }));
+  } catch (err) {
+    console.error('Failed to load backup plans:', err);
+    return [];
+  }
+}
+
+/**
+ * 获取监控目标选项
+ */
+export async function getMonitorTargetOptions(): Promise<SelectOption[]> {
+  try {
+    const res = await monitorTargetsApi.list({ limit: 200 });
+    return res.data.map(item => ({
+      label: item.name,
+      value: item.id,
+    }));
+  } catch (err) {
+    console.error('Failed to load monitor targets:', err);
     return [];
   }
 }

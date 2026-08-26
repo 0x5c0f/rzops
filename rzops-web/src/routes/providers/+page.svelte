@@ -24,7 +24,13 @@
 
   const columns = $derived([
     { key: 'name', label: '名称' },
-    { key: 'provider_type', label: '类型', valueMap: providerTypeMap },
+    {
+      key: 'provider_types', label: '类型',
+      render: (v: unknown) => {
+        const arr = v as string[];
+        return (arr || []).map(t => providerTypeMap[t] || t).join(', ') || '-';
+      }
+    },
     { key: 'contact_name', label: '联系人' },
     { key: 'contact_phone', label: '电话' },
     { key: 'status', label: '状态', valueMap: commonStatusMap },
@@ -58,7 +64,7 @@
   }
 
   function handleEdit(item: ProviderResponse) {
-    goto(`/providers/${item.id}`);
+    goto(`/providers/${item.id}/edit`);
   }
 
   async function handleDelete(item: ProviderResponse) {

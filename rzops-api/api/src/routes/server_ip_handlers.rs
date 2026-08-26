@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use axum::{
-    extract::{Path, Query, State},
+    extract::{Extension, Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
     Json,
@@ -14,6 +14,7 @@ use rzops_domain::models::server_ip::ServerIP;
 use rzops_domain::ports::server_ip_repository::{ServerIpFilter, ServerIpRepository};
 
 use crate::auth_extractor::AuthUser;
+use crate::change_log::{record_change, ChangeLogState};
 use crate::dto::provider_dto::ErrorResponse;
 use crate::dto::server_ip_dto::*;
 
@@ -104,8 +105,9 @@ pub async fn list_server_ips(
 /// POST /server-ips
 #[utoipa::path(post, path = "/api/v1/server-ips", request_body = CreateServerIpRequest, responses((status = 201, body = ServerIpResponse), (status = 400, body = ErrorResponse)), tag = "ServerIp", security(("bearer_auth" = [])))]
 pub async fn create_server_ip(
-    _auth: AuthUser,
+    auth: AuthUser,
     State(repo): State<Arc<dyn ServerIpRepository>>,
+    Extension(change_log): Extension<ChangeLogState>,
     Json(body): Json<CreateServerIpRequest>,
 ) -> impl IntoResponse {
     let now = Utc::now();
@@ -123,7 +125,10 @@ pub async fn create_server_ip(
     };
 
     match repo.create(&ip).await {
-        Ok(created) => (StatusCode::CREATED, Json(to_response(&created))).into_response(),
+        Ok(created) => {
+            record_change(&change_log, &auth, rzops_domain::enums::ChangeType::Create, "server_ip", Some(created.id), serde_json::json!(null), serde_json::to_value(to_response(&created)).unwrap_or(serde_json::json!({})), None).await;
+            (StatusCode::CREATED, Json(to_response(&created))).into_response()
+        }
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ErrorResponse { error: format!("failed to create server IP: {}", e) }),
@@ -134,8 +139,9 @@ pub async fn create_server_ip(
 /// PUT /server-ips/:id
 #[utoipa::path(put, path = "/api/v1/server-ips/{id}", params(("id" = uuid::Uuid, Path)), request_body = UpdateServerIpRequest, responses((status = 200, body = ServerIpResponse), (status = 404, body = ErrorResponse)), tag = "ServerIp", security(("bearer_auth" = [])))]
 pub async fn update_server_ip(
-    _auth: AuthUser,
+    auth: AuthUser,
     State(repo): State<Arc<dyn ServerIpRepository>>,
+    Extension(change_log): Extension<ChangeLogState>,
     Path(id): Path<Uuid>,
     Json(body): Json<UpdateServerIpRequest>,
 ) -> impl IntoResponse {
@@ -149,6 +155,7 @@ pub async fn update_server_ip(
         }
     };
 
+    let before_value = serde_json::to_value(to_response(&existing)).unwrap_or(serde_json::json!({}));
     let ip = ServerIP {
         id: existing.id,
         server_id: existing.server_id,
@@ -163,7 +170,10 @@ pub async fn update_server_ip(
     };
 
     match repo.update(id, &ip).await {
-        Ok(Some(updated)) => (StatusCode::OK, Json(to_response(&updated))).into_response(),
+        Ok(Some(updated)) => {
+            record_change(&change_log, &auth, rzops_domain::enums::ChangeType::Update, "server_ip", Some(updated.id), before_value, serde_json::to_value(to_response(&updated)).unwrap_or(serde_json::json!({})), None).await;
+            (StatusCode::OK, Json(to_response(&updated))).into_response()
+        }
         Ok(None) => (StatusCode::NOT_FOUND, Json(ErrorResponse { error: "server IP not found".to_string() })).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: format!("failed to update server IP: {}", e) })).into_response(),
     }
@@ -172,12 +182,16 @@ pub async fn update_server_ip(
 /// DELETE /server-ips/:id
 #[utoipa::path(delete, path = "/api/v1/server-ips/{id}", params(("id" = uuid::Uuid, Path)), responses((status = 200), (status = 404, body = ErrorResponse)), tag = "ServerIp", security(("bearer_auth" = [])))]
 pub async fn delete_server_ip(
-    _auth: AuthUser,
+    auth: AuthUser,
     State(repo): State<Arc<dyn ServerIpRepository>>,
+    Extension(change_log): Extension<ChangeLogState>,
     Path(id): Path<Uuid>,
 ) -> impl IntoResponse {
     match repo.delete(id).await {
-        Ok(true) => StatusCode::NO_CONTENT.into_response(),
+        Ok(true) => {
+            record_change(&change_log, &auth, rzops_domain::enums::ChangeType::Delete, "server_ip", Some(id), serde_json::json!({}), serde_json::json!(null), None).await;
+            StatusCode::NO_CONTENT.into_response()
+        }
         Ok(false) => (StatusCode::NOT_FOUND, Json(ErrorResponse { error: "server IP not found".to_string() })).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: format!("failed to delete server IP: {}", e) })).into_response(),
     }

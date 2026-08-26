@@ -1,17 +1,15 @@
 export interface ProviderResponse {
   id: string;
   name: string;
-  provider_type: string | null;
+  provider_types: string[];
   contact_name: string | null;
   contact_phone: string | null;
-  contact_email: string | null;
   contact_qq: string | null;
   fax: string | null;
   address: string | null;
+  website: string | null;
   country: string | null;
   description: string | null;
-  website: string | null;
-  remarks: string | null;
   status: string;
   created_at: string;
   updated_at: string;
@@ -24,17 +22,15 @@ export interface ProviderListResponse {
 
 export interface CreateProviderRequest {
   name: string;
-  provider_type?: string;
+  provider_types?: string[];
   contact_name?: string;
   contact_phone?: string;
-  contact_email?: string;
   contact_qq?: string;
   fax?: string;
   address?: string;
+  website?: string;
   country?: string;
   description?: string;
-  website?: string;
-  remarks?: string;
   status?: string;
 }
 

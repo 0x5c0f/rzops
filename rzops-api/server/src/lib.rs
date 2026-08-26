@@ -9,6 +9,8 @@ use rzops_domain::ports::*;
 use rzops_infra::db::repositories::*;
 use rzops_infra::auth::JwtService;
 
+mod middleware;
+
 /// Application state shared across handlers.
 #[derive(Clone)]
 pub struct AppState {
@@ -79,6 +81,16 @@ pub fn create_router(state: AppState) -> Router {
         token_service: state.token_service.clone(),
     };
 
+    let change_log = rzops_api::ChangeLogState::new(
+        state.change_record_repo.clone(),
+        state.user_repo.clone(),
+    );
+
+    let audit_state = middleware::audit::AuditState::new(
+        state.audit_log_repo.clone(),
+        state.token_service.clone(),
+    );
+
     let api_routes = Router::new()
         .nest("/api/v1/auth", rzops_api::auth_routes(auth_state))
         .nest("/api/v1/providers", rzops_api::provider_routes(state.provider_repo.clone()))
@@ -107,6 +119,11 @@ pub fn create_router(state: AppState) -> Router {
 
     api_routes
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", openapi))
+        .layer(axum::middleware::from_fn_with_state(
+            audit_state,
+            middleware::audit::audit_log_middleware,
+        ))
+        .layer(axum::Extension(change_log))
         .layer(axum::Extension(state.token_service.clone() as Arc<dyn token_service::TokenService>))
         .layer(axum::Extension(state.user_repo.clone() as Arc<dyn user_repository::UserRepository>))
         .layer(cors_layer())

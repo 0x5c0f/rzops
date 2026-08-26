@@ -2,38 +2,30 @@
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import { contractsApi } from '$lib/api/contracts';
-  import type { ContractResponse, UpdateContractRequest } from '$lib/types/contract';
+  import type { ContractResponse } from '$lib/types/contract';
   import { Button } from '$lib/ui/button';
-  import { Input } from '$lib/ui/input';
-  import { Label } from '$lib/ui/label';
   import * as Card from '$lib/ui/card';
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import StatusBadge from '$lib/components/shared/StatusBadge.svelte';
+  import { getProviderOptions } from '$lib/utils/entity-options';
+  import { formatDate } from '$lib/utils/format';
   import { onMount } from 'svelte';
-  import FormSelect from '$lib/components/shared/FormSelect.svelte';
-  import { contractStatusOptions } from '$lib/utils/enum-options';
 
   let contract = $state<ContractResponse | null>(null);
   let loading = $state(true);
-  let saving = $state(false);
-  let form = $state<UpdateContractRequest>({});
+  let providerMap = $state<Record<string, string>>({});
 
   onMount(async () => {
+    const id = $page.params.id;
+    if (!id) { goto('/contracts'); return; }
+
     try {
-      contract = await contractsApi.getById($page.params.id ?? "");
-      form = {
-        name: contract.name,
-        provider_id: contract.provider_id ?? undefined,
-        contract_no: contract.contract_no ?? undefined,
-        start_date: contract.start_date ?? undefined,
-        end_date: contract.end_date ?? undefined,
-        amount: contract.amount ?? undefined,
-        currency: contract.currency ?? undefined,
-        status: contract.status,
-        subject_type: contract.subject_type ?? undefined,
-        subject_id: contract.subject_id ?? undefined,
-        remarks: contract.remarks ?? undefined,
-      };
+      const [contractData, provOptions] = await Promise.all([
+        contractsApi.getById(id),
+        getProviderOptions(),
+      ]);
+      contract = contractData;
+      providerMap = Object.fromEntries(provOptions.map(o => [o.value, o.label]));
     } catch (err) {
       console.error('Failed to load contract:', err);
       goto('/contracts');
@@ -41,19 +33,6 @@
       loading = false;
     }
   });
-
-  async function handleSave() {
-    if (!contract) return;
-    saving = true;
-    try {
-      await contractsApi.update(contract.id, form);
-      goto('/contracts');
-    } catch (err) {
-      console.error('Failed to save contract:', err);
-    } finally {
-      saving = false;
-    }
-  }
 
   async function handleDelete() {
     if (!contract) return;
@@ -67,75 +46,96 @@
   }
 </script>
 
-<div class="space-y-4">
+<div class="space-y-6">
   <Breadcrumb items={[
     { label: '合同', href: '/contracts' },
     { label: contract?.name || '详情' }
   ]} />
 
   {#if loading}
-    <div class="text-muted-foreground">加载中...</div>
+    <div class="flex items-center justify-center py-12">
+      <div class="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+    </div>
   {:else if contract}
+    <!-- 页面标题 -->
     <div class="flex items-center justify-between">
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-3">
         <h1 class="text-2xl font-semibold">{contract.name}</h1>
         <StatusBadge status={contract.status} />
       </div>
       <div class="flex gap-2">
+        <Button variant="outline" onclick={() => goto('/contracts')}>返回列表</Button>
+        <Button onclick={() => goto(`/contracts/${contract?.id}/edit`)}>编辑</Button>
         <Button variant="destructive" onclick={handleDelete}>删除</Button>
-        <Button onclick={handleSave} disabled={saving}>
-          {saving ? '保存中...' : '保存'}
-        </Button>
       </div>
     </div>
 
-    <Card.Root>
-      <Card.Header>
-        <Card.Title>基本信息</Card.Title>
-      </Card.Header>
-      <Card.Content class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <div class="space-y-2">
-          <Label for="name">名称</Label>
-          <Input id="name" bind:value={form.name} />
-        </div>
-        <div class="space-y-2">
-          <Label for="provider_id">供应商ID</Label>
-          <Input id="provider_id" bind:value={form.provider_id} />
-        </div>
-        <div class="space-y-2">
-          <Label for="contract_no">合同编号</Label>
-          <Input id="contract_no" bind:value={form.contract_no} />
-        </div>
-        <div class="space-y-2">
-          <Label for="start_date">开始日期</Label>
-          <Input id="start_date" type="date" bind:value={form.start_date} />
-        </div>
-        <div class="space-y-2">
-          <Label for="end_date">结束日期</Label>
-          <Input id="end_date" type="date" bind:value={form.end_date} />
-        </div>
-        <div class="space-y-2">
-          <Label for="amount">金额</Label>
-          <Input id="amount" bind:value={form.amount} />
-        </div>
-        <div class="space-y-2">
-          <Label for="currency">货币</Label>
-          <Input id="currency" bind:value={form.currency} placeholder="CNY / USD / ..." />
-        </div>
-        <FormSelect label="状态" bind:value={form.status} options={contractStatusOptions} />
-        <div class="space-y-2">
-          <Label for="subject_type">主体类型</Label>
-          <Input id="subject_type" bind:value={form.subject_type} />
-        </div>
-        <div class="space-y-2">
-          <Label for="subject_id">主体ID</Label>
-          <Input id="subject_id" bind:value={form.subject_id} />
-        </div>
-        <div class="space-y-2 md:col-span-2 lg:col-span-3">
-          <Label for="remarks">备注</Label>
-          <Input id="remarks" bind:value={form.remarks} />
-        </div>
-      </Card.Content>
-    </Card.Root>
+    <div class="grid gap-6 lg:grid-cols-2">
+      <!-- 基本信息 -->
+      <Card.Root>
+        <Card.Header>
+          <Card.Title>基本信息</Card.Title>
+        </Card.Header>
+        <Card.Content>
+          <dl class="grid gap-3 text-sm">
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">名称</dt>
+              <dd>{contract.name}</dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">供应商</dt>
+              <dd>
+                {#if contract.provider_id}
+                  <a href="/providers/{contract.provider_id}" class="text-primary hover:underline">
+                    {providerMap[contract.provider_id] || contract.provider_id}
+                  </a>
+                {:else}
+                  -
+                {/if}
+              </dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">合同编号</dt>
+              <dd class="font-mono">{contract.contract_no || '-'}</dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">主体类型</dt>
+              <dd>{contract.subject_type || '-'}</dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">主体ID</dt>
+              <dd class="font-mono">{contract.subject_id || '-'}</dd>
+            </div>
+          </dl>
+        </Card.Content>
+      </Card.Root>
+
+      <!-- 财务与时间 -->
+      <Card.Root>
+        <Card.Header>
+          <Card.Title>财务与时间</Card.Title>
+        </Card.Header>
+        <Card.Content>
+          <dl class="grid gap-3 text-sm">
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">开始日期</dt>
+              <dd>{formatDate(contract.start_date)}</dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">结束日期</dt>
+              <dd>{formatDate(contract.end_date)}</dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">金额</dt>
+              <dd>{contract.amount ? `${contract.amount} ${contract.currency || ''}` : '-'}</dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">货币</dt>
+              <dd>{contract.currency || '-'}</dd>
+            </div>
+          </dl>
+        </Card.Content>
+      </Card.Root>
+    </div>
   {/if}
 </div>

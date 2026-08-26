@@ -2,33 +2,23 @@
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import { monitorTargetsApi } from '$lib/api/monitor-targets';
-  import type { MonitorTargetResponse, UpdateMonitorTargetRequest } from '$lib/types/monitor_target';
+  import type { MonitorTargetResponse } from '$lib/types/monitor_target';
   import { Button } from '$lib/ui/button';
-  import { Input } from '$lib/ui/input';
-  import { Label } from '$lib/ui/label';
   import * as Card from '$lib/ui/card';
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import StatusBadge from '$lib/components/shared/StatusBadge.svelte';
+  import { monitorTypeOptions, getOptionLabel } from '$lib/utils/enum-options';
   import { onMount } from 'svelte';
-  import FormSelect from '$lib/components/shared/FormSelect.svelte';
-  import { monitorTypeOptions, commonStatusOptions } from '$lib/utils/enum-options';
 
   let target = $state<MonitorTargetResponse | null>(null);
   let loading = $state(true);
-  let saving = $state(false);
-  let form = $state<UpdateMonitorTargetRequest>({});
 
   onMount(async () => {
+    const id = $page.params.id;
+    if (!id) { goto('/monitor-targets'); return; }
+
     try {
-      target = await monitorTargetsApi.getById($page.params.id ?? "");
-      form = {
-        name: target.name,
-        monitor_type: target.monitor_type ?? undefined,
-        endpoint: target.endpoint ?? undefined,
-        interval_seconds: target.interval_seconds ?? undefined,
-        remarks: target.remarks ?? undefined,
-        status: target.status,
-      };
+      target = await monitorTargetsApi.getById(id);
     } catch (err) {
       console.error('Failed to load monitor-target:', err);
       goto('/monitor-targets');
@@ -36,19 +26,6 @@
       loading = false;
     }
   });
-
-  async function handleSave() {
-    if (!target) return;
-    saving = true;
-    try {
-      await monitorTargetsApi.update(target.id, form);
-      goto('/monitor-targets');
-    } catch (err) {
-      console.error('Failed to save monitor-target:', err);
-    } finally {
-      saving = false;
-    }
-  }
 
   async function handleDelete() {
     if (!target) return;
@@ -62,52 +39,76 @@
   }
 </script>
 
-<div class="space-y-4">
+<div class="space-y-6">
   <Breadcrumb items={[
     { label: '监控目标', href: '/monitor-targets' },
     { label: target?.name || '详情' }
   ]} />
 
   {#if loading}
-    <div class="text-muted-foreground">加载中...</div>
+    <div class="flex items-center justify-center py-12">
+      <div class="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+    </div>
   {:else if target}
+    <!-- 页面标题 -->
     <div class="flex items-center justify-between">
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-3">
         <h1 class="text-2xl font-semibold">{target.name}</h1>
         <StatusBadge status={target.status} />
       </div>
       <div class="flex gap-2">
+        <Button variant="outline" onclick={() => goto('/monitor-targets')}>返回列表</Button>
+        <Button onclick={() => goto(`/monitor-targets/${target?.id}/edit`)}>编辑</Button>
         <Button variant="destructive" onclick={handleDelete}>删除</Button>
-        <Button onclick={handleSave} disabled={saving}>
-          {saving ? '保存中...' : '保存'}
-        </Button>
       </div>
     </div>
 
-    <Card.Root>
-      <Card.Header>
-        <Card.Title>基本信息</Card.Title>
-      </Card.Header>
-      <Card.Content class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <div class="space-y-2">
-          <Label for="name">名称</Label>
-          <Input id="name" bind:value={form.name} />
-        </div>
-        <FormSelect label="监控类型" bind:value={form.monitor_type} options={monitorTypeOptions} />
-        <div class="space-y-2">
-          <Label for="endpoint">端点</Label>
-          <Input id="endpoint" bind:value={form.endpoint} placeholder="URL / IP:Port / ..." />
-        </div>
-        <div class="space-y-2">
-          <Label for="interval_seconds">间隔(秒)</Label>
-          <Input id="interval_seconds" type="number" bind:value={form.interval_seconds} />
-        </div>
-        <FormSelect label="状态" bind:value={form.status} options={commonStatusOptions} />
-        <div class="space-y-2 md:col-span-2 lg:col-span-3">
-          <Label for="remarks">备注</Label>
-          <Input id="remarks" bind:value={form.remarks} />
-        </div>
-      </Card.Content>
-    </Card.Root>
+    <div class="grid gap-6 lg:grid-cols-2">
+      <!-- 基本信息 -->
+      <Card.Root>
+        <Card.Header>
+          <Card.Title>基本信息</Card.Title>
+        </Card.Header>
+        <Card.Content>
+          <dl class="grid gap-3 text-sm">
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">名称</dt>
+              <dd>{target.name}</dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">监控类型</dt>
+              <dd>{getOptionLabel(monitorTypeOptions, target.monitor_type)}</dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">端点</dt>
+              <dd class="font-mono">{target.endpoint || '-'}</dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">间隔(秒)</dt>
+              <dd>{target.interval_seconds ?? '-'}</dd>
+            </div>
+          </dl>
+        </Card.Content>
+      </Card.Root>
+
+      <!-- 关联信息 -->
+      <Card.Root>
+        <Card.Header>
+          <Card.Title>关联信息</Card.Title>
+        </Card.Header>
+        <Card.Content>
+          <dl class="grid gap-3 text-sm">
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">目标类型</dt>
+              <dd>{target.target_type || '-'}</dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">目标ID</dt>
+              <dd class="font-mono">{target.target_id || '-'}</dd>
+            </div>
+          </dl>
+        </Card.Content>
+      </Card.Root>
+    </div>
   {/if}
 </div>

@@ -2,10 +2,9 @@
 	import { Dialog as DialogPrimitive } from "bits-ui";
 	import DialogPortal from "./dialog-portal.svelte";
 	import XIcon from "@lucide/svelte/icons/x";
-	import type { Snippet } from "svelte";
+	import type { Snippet, ComponentProps } from "svelte";
 	import * as Dialog from "./index.js";
-	import { cn, type WithoutChildrenOrChild } from "$lib/utils.js";
-	import type { ComponentProps } from "svelte";
+	import { cn } from "$lib/utils.js";
 
 	let {
 		ref = $bindable(null),
@@ -14,8 +13,8 @@
 		children,
 		showCloseButton = true,
 		...restProps
-	}: WithoutChildrenOrChild<DialogPrimitive.ContentProps> & {
-		portalProps?: WithoutChildrenOrChild<ComponentProps<typeof DialogPortal>>;
+	}: Omit<ComponentProps<typeof DialogPrimitive.Content>, "children" | "child"> & {
+		portalProps?: ComponentProps<typeof DialogPortal>;
 		children: Snippet;
 		showCloseButton?: boolean;
 	} = $props();

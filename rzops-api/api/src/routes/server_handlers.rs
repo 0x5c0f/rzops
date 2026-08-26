@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use axum::{
-    extract::{Path, Query, State},
+    extract::{Extension, Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
     Json,
@@ -15,6 +15,7 @@ use rzops_domain::models::server::Server;
 use rzops_domain::ports::server_repository::{ServerFilter, ServerRepository};
 
 use crate::auth_extractor::AuthUser;
+use crate::change_log::{record_change, ChangeLogState};
 use crate::dto::provider_dto::ErrorResponse;
 use crate::dto::server_dto::*;
 
@@ -293,14 +294,18 @@ pub async fn list_servers(
 /// POST /servers
 #[utoipa::path(post, path = "/api/v1/servers", request_body = CreateServerRequest, responses((status = 201, body = ServerResponse), (status = 400, body = ErrorResponse)), tag = "Server", security(("bearer_auth" = [])))]
 pub async fn create_server(
-    _auth: AuthUser,
+    auth: AuthUser,
     State(repo): State<Arc<dyn ServerRepository>>,
+    Extension(change_log): Extension<ChangeLogState>,
     Json(body): Json<CreateServerRequest>,
 ) -> impl IntoResponse {
     let server = build_server_from_create(body);
 
     match repo.create(&server).await {
-        Ok(created) => (StatusCode::CREATED, Json(to_response(&created))).into_response(),
+        Ok(created) => {
+            record_change(&change_log, &auth, rzops_domain::enums::ChangeType::Create, "server", Some(created.id), serde_json::json!(null), serde_json::to_value(to_response(&created)).unwrap_or(serde_json::json!({})), None).await;
+            (StatusCode::CREATED, Json(to_response(&created))).into_response()
+        }
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ErrorResponse {
@@ -314,8 +319,9 @@ pub async fn create_server(
 /// PUT /servers/:id
 #[utoipa::path(put, path = "/api/v1/servers/{id}", params(("id" = uuid::Uuid, Path)), request_body = UpdateServerRequest, responses((status = 200, body = ServerResponse), (status = 404, body = ErrorResponse)), tag = "Server", security(("bearer_auth" = [])))]
 pub async fn update_server(
-    _auth: AuthUser,
+    auth: AuthUser,
     State(repo): State<Arc<dyn ServerRepository>>,
+    Extension(change_log): Extension<ChangeLogState>,
     Path(id): Path<Uuid>,
     Json(body): Json<UpdateServerRequest>,
 ) -> impl IntoResponse {
@@ -341,6 +347,7 @@ pub async fn update_server(
         }
     };
 
+    let before_value = serde_json::to_value(to_response(&existing)).unwrap_or(serde_json::json!({}));
     let server = Server {
         id: existing.id,
         asset_code: body.asset_code.or(existing.asset_code),
@@ -402,7 +409,10 @@ pub async fn update_server(
     };
 
     match repo.update(id, &server).await {
-        Ok(Some(updated)) => (StatusCode::OK, Json(to_response(&updated))).into_response(),
+        Ok(Some(updated)) => {
+            record_change(&change_log, &auth, rzops_domain::enums::ChangeType::Update, "server", Some(updated.id), before_value, serde_json::to_value(to_response(&updated)).unwrap_or(serde_json::json!({})), None).await;
+            (StatusCode::OK, Json(to_response(&updated))).into_response()
+        }
         Ok(None) => (
             StatusCode::NOT_FOUND,
             Json(ErrorResponse {
@@ -423,12 +433,16 @@ pub async fn update_server(
 /// DELETE /servers/:id
 #[utoipa::path(delete, path = "/api/v1/servers/{id}", params(("id" = uuid::Uuid, Path)), responses((status = 200), (status = 404, body = ErrorResponse)), tag = "Server", security(("bearer_auth" = [])))]
 pub async fn delete_server(
-    _auth: AuthUser,
+    auth: AuthUser,
     State(repo): State<Arc<dyn ServerRepository>>,
+    Extension(change_log): Extension<ChangeLogState>,
     Path(id): Path<Uuid>,
 ) -> impl IntoResponse {
     match repo.delete(id).await {
-        Ok(true) => StatusCode::NO_CONTENT.into_response(),
+        Ok(true) => {
+            record_change(&change_log, &auth, rzops_domain::enums::ChangeType::Delete, "server", Some(id), serde_json::json!({}), serde_json::json!(null), None).await;
+            StatusCode::NO_CONTENT.into_response()
+        }
         Ok(false) => (
             StatusCode::NOT_FOUND,
             Json(ErrorResponse {

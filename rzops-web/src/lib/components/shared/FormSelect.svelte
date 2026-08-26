@@ -10,7 +10,7 @@
 
   let {
     label,
-    value = $bindable(undefined),
+    value = $bindable(),
     options,
     placeholder = '请选择',
     required = false,
@@ -29,10 +29,6 @@
   let selectedLabel = $derived(
     value ? (options.find(opt => opt.value === value)?.label || placeholder) : placeholder
   );
-
-  function handleChange(v: string) {
-    value = v || undefined;
-  }
 </script>
 
 <div class={cn('space-y-2', className)}>
@@ -42,7 +38,7 @@
       <span class="text-destructive">*</span>
     {/if}
   </Label>
-  <Select.Root type="single" value={value ?? ''} onValueChange={handleChange} {disabled}>
+  <Select.Root type="single" bind:value={value} {disabled}>
     <Select.Trigger class="w-full">
       {selectedLabel}
     </Select.Trigger>

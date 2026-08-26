@@ -22,7 +22,19 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${BASE_URL}${path}`, { ...init, headers });
+  // 空字符串的引用/日期字段会破坏后端 Option<Uuid>/Option<DateTime> 反序列化，
+  // 提交前统一剔除（等于不更新该字段，后端部分更新语义会保留原值）。
+  let body = init?.body;
+  if (body && typeof body === 'string' && (init?.method === 'POST' || init?.method === 'PUT')) {
+    try {
+      const parsed = JSON.parse(body);
+      body = JSON.stringify(sanitizeEmptyRefs(parsed));
+    } catch {
+      // 非 JSON body（如 FormData），保持原样
+    }
+  }
+
+  const res = await fetch(`${BASE_URL}${path}`, { ...init, headers, body });
 
   if (res.status === 401) {
     if (typeof window !== 'undefined') {
@@ -72,3 +84,19 @@ export const api = {
 
   delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
 };
+
+// 空字符串的引用字段（*_id）与日期字段（*_date / *_time）会让后端
+// Option<Uuid> / Option<DateTime> 反序列化失败（422）。编辑表单常用空串表示"未设置"，
+// 提交前剔除这些字段，让后端部分更新语义保留原值。
+function sanitizeEmptyRefs(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(sanitizeEmptyRefs);
+  if (value && typeof value === 'object') {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      if (v === '' && /_(id|date|time)$/.test(k)) continue;
+      out[k] = sanitizeEmptyRefs(v);
+    }
+    return out;
+  }
+  return value;
+}

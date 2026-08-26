@@ -17,12 +17,32 @@ pub struct DatabaseConfig {
 
 impl DatabaseConfig {
     /// Build a PostgreSQL connection URL for sqlx.
+    ///
+    /// `user` and `password` are percent-encoded so special characters
+    /// (e.g. `%`, `:`, `/`, `@`) do not break libpq URL parsing.
     pub fn url(&self) -> String {
         format!(
             "postgres://{}:{}@{}:{}/{}",
-            self.user, self.password, self.host, self.port, self.name
+            url_encode(&self.user),
+            url_encode(&self.password),
+            self.host,
+            self.port,
+            self.name
         )
     }
+}
+
+/// Percent-encode a string for safe inclusion in a URL userinfo component.
+/// Unreserved characters (RFC 3986) are kept as-is; everything else is `%XX`.
+fn url_encode(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    for b in s.bytes() {
+        match b {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => out.push(b as char),
+            _ => out.push_str(&format!("%{b:02X}")),
+        }
+    }
+    out
 }
 
 #[derive(Debug, Deserialize)]

@@ -2,32 +2,32 @@
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import { serverIpsApi } from '$lib/api/server-ips';
-  import type { ServerIpResponse, UpdateServerIpRequest } from '$lib/types/server_ip';
+  import type { ServerIpResponse } from '$lib/types/server_ip';
   import { Button } from '$lib/ui/button';
-  import { Input } from '$lib/ui/input';
-  import { Label } from '$lib/ui/label';
   import * as Card from '$lib/ui/card';
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import StatusBadge from '$lib/components/shared/StatusBadge.svelte';
+  import { commonStatusOptions, getOptionLabel } from '$lib/utils/enum-options';
+  import { getServerOptions, getProviderOptions } from '$lib/utils/entity-options';
   import { onMount } from 'svelte';
 
   let serverIp = $state<ServerIpResponse | null>(null);
   let loading = $state(true);
-  let saving = $state(false);
-  let form = $state<UpdateServerIpRequest>({});
+  let serverMap = $state<Record<string, string>>({});
+  let providerMap = $state<Record<string, string>>({});
 
   onMount(async () => {
+    const id = $page.params.id;
+    if (!id) { goto('/server-ips'); return; }
     try {
-      serverIp = await serverIpsApi.getById($page.params.id ?? "");
-      form = {
-        server_id: serverIp.server_id,
-        ip_address: serverIp.ip_address,
-        ip_type: serverIp.ip_type ?? undefined,
-        is_primary: serverIp.is_primary ?? undefined,
-        isp_provider_id: serverIp.isp_provider_id ?? undefined,
-        description: serverIp.description ?? undefined,
-        status: serverIp.status,
-      };
+      const [ip, servers, providers] = await Promise.all([
+        serverIpsApi.getById(id),
+        getServerOptions(),
+        getProviderOptions(),
+      ]);
+      serverIp = ip;
+      serverMap = Object.fromEntries(servers.map(o => [o.value, o.label]));
+      providerMap = Object.fromEntries(providers.map(o => [o.value, o.label]));
     } catch (err) {
       console.error('Failed to load server IP:', err);
       goto('/server-ips');
@@ -35,19 +35,6 @@
       loading = false;
     }
   });
-
-  async function handleSave() {
-    if (!serverIp) return;
-    saving = true;
-    try {
-      await serverIpsApi.update(serverIp.id, form);
-      goto('/server-ips');
-    } catch (err) {
-      console.error('Failed to save server IP:', err);
-    } finally {
-      saving = false;
-    }
-  }
 
   async function handleDelete() {
     if (!serverIp) return;
@@ -61,54 +48,79 @@
   }
 </script>
 
-<div class="space-y-4">
+<div class="space-y-6">
   <Breadcrumb items={[
     { label: '服务器IP', href: '/server-ips' },
     { label: serverIp?.ip_address || '详情' }
   ]} />
 
   {#if loading}
-    <div class="text-muted-foreground">加载中...</div>
+    <div class="flex items-center justify-center py-12">
+      <div class="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+    </div>
   {:else if serverIp}
     <div class="flex items-center justify-between">
-      <div class="flex items-center gap-2">
-        <h1 class="text-2xl font-semibold">{serverIp.ip_address}</h1>
+      <div class="flex items-center gap-3">
+        <h1 class="text-2xl font-semibold font-mono">{serverIp.ip_address}</h1>
         <StatusBadge status={serverIp.status} />
       </div>
       <div class="flex gap-2">
+        <Button variant="outline" onclick={() => goto('/server-ips')}>返回列表</Button>
+        <Button onclick={() => goto(`/server-ips/${serverIp?.id}/edit`)}>编辑</Button>
         <Button variant="destructive" onclick={handleDelete}>删除</Button>
-        <Button onclick={handleSave} disabled={saving}>
-          {saving ? '保存中...' : '保存'}
-        </Button>
       </div>
     </div>
 
-    <Card.Root>
-      <Card.Header>
-        <Card.Title>基本信息</Card.Title>
-      </Card.Header>
-      <Card.Content class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <div class="space-y-2">
-          <Label for="ip_address">IP地址</Label>
-          <Input id="ip_address" bind:value={form.ip_address} />
-        </div>
-        <div class="space-y-2">
-          <Label for="ip_type">IP类型</Label>
-          <Input id="ip_type" bind:value={form.ip_type} placeholder="公网 / 内网 / ..." />
-        </div>
-        <div class="space-y-2">
-          <Label for="server_id">服务器ID</Label>
-          <Input id="server_id" bind:value={form.server_id} />
-        </div>
-        <div class="space-y-2">
-          <Label for="isp_provider_id">ISP供应商ID</Label>
-          <Input id="isp_provider_id" bind:value={form.isp_provider_id} />
-        </div>
-        <div class="space-y-2">
-          <Label for="description">描述</Label>
-          <Input id="description" bind:value={form.description} />
-        </div>
-      </Card.Content>
-    </Card.Root>
+    <div class="grid gap-6 lg:grid-cols-2">
+      <Card.Root>
+        <Card.Header>
+          <Card.Title>基本信息</Card.Title>
+        </Card.Header>
+        <Card.Content>
+          <dl class="grid gap-3 text-sm">
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">服务器</dt>
+              <dd>
+                <a href="/servers/{serverIp.server_id}" class="text-primary hover:underline">
+                  {serverMap[serverIp.server_id] || serverIp.server_id}
+                </a>
+              </dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">IP地址</dt>
+              <dd class="font-mono">{serverIp.ip_address}</dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">IP类型</dt>
+              <dd>{serverIp.ip_type || '-'}</dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">主 IP</dt>
+              <dd>{serverIp.is_primary ? '是' : '否'}</dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">ISP供应商</dt>
+              <dd>
+                {#if serverIp.isp_provider_id}
+                  <a href="/providers/{serverIp.isp_provider_id}" class="text-primary hover:underline">
+                    {providerMap[serverIp.isp_provider_id] || serverIp.isp_provider_id}
+                  </a>
+                {:else}
+                  -
+                {/if}
+              </dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">状态</dt>
+              <dd>{getOptionLabel(commonStatusOptions, serverIp.status)}</dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">描述</dt>
+              <dd>{serverIp.description || '-'}</dd>
+            </div>
+          </dl>
+        </Card.Content>
+      </Card.Root>
+    </div>
   {/if}
 </div>

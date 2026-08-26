@@ -2,31 +2,27 @@
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import { serverPortsApi } from '$lib/api/server-ports';
-  import type { ServerPortResponse, UpdateServerPortRequest } from '$lib/types/server_port';
+  import type { ServerPortResponse } from '$lib/types/server_port';
   import { Button } from '$lib/ui/button';
-  import { Input } from '$lib/ui/input';
-  import { Label } from '$lib/ui/label';
   import * as Card from '$lib/ui/card';
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
+  import { getServerOptions } from '$lib/utils/entity-options';
   import { onMount } from 'svelte';
 
   let serverPort = $state<ServerPortResponse | null>(null);
   let loading = $state(true);
-  let saving = $state(false);
-  let form = $state<UpdateServerPortRequest>({});
+  let serverMap = $state<Record<string, string>>({});
 
   onMount(async () => {
+    const id = $page.params.id;
+    if (!id) { goto('/server-ports'); return; }
     try {
-      serverPort = await serverPortsApi.getById($page.params.id ?? "");
-      form = {
-        server_id: serverPort.server_id,
-        protocol: serverPort.protocol,
-        port: serverPort.port,
-        service_name: serverPort.service_name ?? undefined,
-        access_scope: serverPort.access_scope ?? undefined,
-        is_enabled: serverPort.is_enabled ?? undefined,
-        description: serverPort.description ?? undefined,
-      };
+      const [port, servers] = await Promise.all([
+        serverPortsApi.getById(id),
+        getServerOptions(),
+      ]);
+      serverPort = port;
+      serverMap = Object.fromEntries(servers.map(o => [o.value, o.label]));
     } catch (err) {
       console.error('Failed to load server port:', err);
       goto('/server-ports');
@@ -35,22 +31,9 @@
     }
   });
 
-  async function handleSave() {
-    if (!serverPort) return;
-    saving = true;
-    try {
-      await serverPortsApi.update(serverPort.id, form);
-      goto('/server-ports');
-    } catch (err) {
-      console.error('Failed to save server port:', err);
-    } finally {
-      saving = false;
-    }
-  }
-
   async function handleDelete() {
     if (!serverPort) return;
-    if (!confirm(`确定要删除端口 "${serverPort.port}" 吗？`)) return;
+    if (!confirm(`确定要删除端口 "${serverPort.protocol}/${serverPort.port}" 吗？`)) return;
     try {
       await serverPortsApi.delete(serverPort.id);
       goto('/server-ports');
@@ -60,57 +43,73 @@
   }
 </script>
 
-<div class="space-y-4">
+<div class="space-y-6">
   <Breadcrumb items={[
     { label: '服务器端口', href: '/server-ports' },
-    { label: serverPort ? `${serverPort.protocol}:${serverPort.port}` : '详情' }
+    { label: serverPort ? `${serverPort.protocol}/${serverPort.port}` : '详情' }
   ]} />
 
   {#if loading}
-    <div class="text-muted-foreground">加载中...</div>
+    <div class="flex items-center justify-center py-12">
+      <div class="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+    </div>
   {:else if serverPort}
     <div class="flex items-center justify-between">
-      <div class="flex items-center gap-2">
-        <h1 class="text-2xl font-semibold">{serverPort.protocol}:{serverPort.port}</h1>
+      <div class="flex items-center gap-3">
+        <h1 class="text-2xl font-semibold">{serverPort.protocol}/{serverPort.port}</h1>
+        <span class={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${serverPort.is_enabled ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+          {serverPort.is_enabled ? '启用' : '停用'}
+        </span>
       </div>
       <div class="flex gap-2">
+        <Button variant="outline" onclick={() => goto('/server-ports')}>返回列表</Button>
+        <Button onclick={() => goto(`/server-ports/${serverPort?.id}/edit`)}>编辑</Button>
         <Button variant="destructive" onclick={handleDelete}>删除</Button>
-        <Button onclick={handleSave} disabled={saving}>
-          {saving ? '保存中...' : '保存'}
-        </Button>
       </div>
     </div>
 
-    <Card.Root>
-      <Card.Header>
-        <Card.Title>基本信息</Card.Title>
-      </Card.Header>
-      <Card.Content class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <div class="space-y-2">
-          <Label for="server_id">服务器ID</Label>
-          <Input id="server_id" bind:value={form.server_id} />
-        </div>
-        <div class="space-y-2">
-          <Label for="protocol">协议</Label>
-          <Input id="protocol" bind:value={form.protocol} placeholder="TCP / UDP / ..." />
-        </div>
-        <div class="space-y-2">
-          <Label for="port">端口</Label>
-          <Input id="port" type="number" bind:value={form.port} />
-        </div>
-        <div class="space-y-2">
-          <Label for="service_name">服务名称</Label>
-          <Input id="service_name" bind:value={form.service_name} />
-        </div>
-        <div class="space-y-2">
-          <Label for="access_scope">访问范围</Label>
-          <Input id="access_scope" bind:value={form.access_scope} placeholder="公网 / 内网 / ..." />
-        </div>
-        <div class="space-y-2">
-          <Label for="description">描述</Label>
-          <Input id="description" bind:value={form.description} />
-        </div>
-      </Card.Content>
-    </Card.Root>
+    <div class="grid gap-6 lg:grid-cols-2">
+      <Card.Root>
+        <Card.Header>
+          <Card.Title>基本信息</Card.Title>
+        </Card.Header>
+        <Card.Content>
+          <dl class="grid gap-3 text-sm">
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">服务器</dt>
+              <dd>
+                <a href="/servers/{serverPort.server_id}" class="text-primary hover:underline">
+                  {serverMap[serverPort.server_id] || serverPort.server_id}
+                </a>
+              </dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">协议</dt>
+              <dd>{serverPort.protocol}</dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">端口</dt>
+              <dd class="font-mono">{serverPort.port}</dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">服务名称</dt>
+              <dd>{serverPort.service_name}</dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">访问范围</dt>
+              <dd>{serverPort.access_scope || '-'}</dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">状态</dt>
+              <dd>{serverPort.is_enabled ? '启用' : '停用'}</dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">描述</dt>
+              <dd>{serverPort.description || '-'}</dd>
+            </div>
+          </dl>
+        </Card.Content>
+      </Card.Root>
+    </div>
   {/if}
 </div>

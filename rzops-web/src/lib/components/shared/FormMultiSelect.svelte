@@ -12,7 +12,7 @@
 
   let {
     label,
-    value = $bindable(undefined),
+    value = $bindable(),
     options,
     placeholder = '请选择',
     required = false,

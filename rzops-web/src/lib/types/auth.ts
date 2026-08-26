@@ -22,6 +22,4 @@ export interface UserInfo {
   is_superuser: boolean;
 }
 
-export interface MeResponse {
-  user: UserInfo;
-}
+export interface MeResponse extends UserInfo {}
