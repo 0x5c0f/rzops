@@ -4,6 +4,7 @@ pub mod datacenter_handlers;
 pub mod server_handlers;
 pub mod server_ip_handlers;
 pub mod server_port_handlers;
+pub mod certificate_domain_handlers;
 pub mod domain_handlers;
 pub mod certificate_handlers;
 pub mod database_instance_handlers;
@@ -28,6 +29,7 @@ use datacenter_handlers::*;
 use server_handlers::*;
 use server_ip_handlers::*;
 use server_port_handlers::*;
+use certificate_domain_handlers::*;
 use domain_handlers::*;
 use certificate_handlers::*;
 use database_instance_handlers::*;
@@ -69,6 +71,10 @@ pub fn server_ip_routes(repo: Arc<dyn server_ip_repository::ServerIpRepository>)
 pub fn server_port_routes(repo: Arc<dyn server_port_repository::ServerPortRepository>) -> Router {
     Router::new().route("/", axum::routing::get(list_server_ports).post(create_server_port))
         .route("/{id}", axum::routing::get(get_server_port).put(update_server_port).delete(delete_server_port)).with_state(repo)
+}
+pub fn certificate_domain_routes(repo: Arc<dyn certificate_domain_repository::CertificateDomainRepository>) -> Router {
+    Router::new().route("/", axum::routing::get(list_certificate_domains).post(create_certificate_domain))
+        .route("/{id}", axum::routing::get(get_certificate_domain).put(update_certificate_domain).delete(delete_certificate_domain)).with_state(repo)
 }
 pub fn domain_routes(repo: Arc<dyn domain_repository::DomainRepository>) -> Router {
     Router::new().route("/", axum::routing::get(list_domains).post(create_domain))

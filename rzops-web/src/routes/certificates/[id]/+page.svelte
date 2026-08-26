@@ -2,33 +2,42 @@
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import { certificatesApi } from '$lib/api/certificates';
+  import { certificateDomainsApi } from '$lib/api/certificate-domains';
   import type { CertificateResponse } from '$lib/types/certificate';
+  import type { CertificateDomainResponse } from '$lib/types/certificate_domain';
   import { Button } from '$lib/ui/button';
   import * as Card from '$lib/ui/card';
+  import * as Table from '$lib/ui/table';
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import StatusBadge from '$lib/components/shared/StatusBadge.svelte';
   import { certificateStatusOptions, certificateTypeOptions, getOptionLabel } from '$lib/utils/enum-options';
-  import { getProviderOptions, getCredentialOptions } from '$lib/utils/entity-options';
+  import { getProviderOptions, getCredentialOptions, getDomainOptions } from '$lib/utils/entity-options';
   import { formatDate } from '$lib/utils/format';
   import { onMount } from 'svelte';
 
   let certificate = $state<CertificateResponse | null>(null);
+  let domains = $state<CertificateDomainResponse[]>([]);
   let loading = $state(true);
   let providerMap = $state<Record<string, string>>({});
   let credentialMap = $state<Record<string, string>>({});
+  let domainMap = $state<Record<string, string>>({});
 
   onMount(async () => {
     const id = $page.params.id;
     if (!id) { goto('/certificates'); return; }
     try {
-      const [cert, providers, credentials] = await Promise.all([
+      const [cert, providers, credentials, domainList, domainsData] = await Promise.all([
         certificatesApi.getById(id),
         getProviderOptions(),
         getCredentialOptions(),
+        getDomainOptions(),
+        certificateDomainsApi.list({ certificate_id: id, limit: 100 }),
       ]);
       certificate = cert;
       providerMap = Object.fromEntries(providers.map(o => [o.value, o.label]));
       credentialMap = Object.fromEntries(credentials.map(o => [o.value, o.label]));
+      domainMap = Object.fromEntries(domainList.map(o => [o.value, o.label]));
+      domains = domainsData.data;
     } catch (err) {
       console.error('Failed to load certificate:', err);
       goto('/certificates');
@@ -131,5 +140,44 @@
         </Card.Content>
       </Card.Root>
     </div>
+
+    <!-- 绑定域名 -->
+    <Card.Root>
+      <Card.Header>
+        <Card.Title>绑定域名 ({domains.length})</Card.Title>
+      </Card.Header>
+      <Card.Content>
+        {#if domains.length === 0}
+          <p class="text-sm text-muted-foreground">暂无绑定域名</p>
+        {:else}
+          <Table.Root>
+            <Table.Header>
+              <Table.Row>
+                <Table.Head>域名 / 模式</Table.Head>
+                <Table.Head>关联域名</Table.Head>
+                <Table.Head>主域名</Table.Head>
+              </Table.Row>
+            </Table.Header>
+            <Table.Body>
+              {#each domains as d}
+                <Table.Row>
+                  <Table.Cell class="font-mono">{d.domain_pattern}</Table.Cell>
+                  <Table.Cell>
+                    {#if d.domain_id}
+                      <a href="/domains/{d.domain_id}" class="text-primary hover:underline">
+                        {domainMap[d.domain_id] || d.domain_id}
+                      </a>
+                    {:else}
+                      -
+                    {/if}
+                  </Table.Cell>
+                  <Table.Cell>{d.is_primary ? '是' : '-'}</Table.Cell>
+                </Table.Row>
+              {/each}
+            </Table.Body>
+          </Table.Root>
+        {/if}
+      </Card.Content>
+    </Card.Root>
   {/if}
 </div>

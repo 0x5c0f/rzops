@@ -2,12 +2,18 @@
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import { serversApi } from '$lib/api/servers';
+  import { serverIpsApi } from '$lib/api/server-ips';
+  import { serverPortsApi } from '$lib/api/server-ports';
   import type { CreateServerRequest, ServerResponse } from '$lib/types/server';
+  import type { ServerIpResponse } from '$lib/types/server_ip';
+  import type { ServerPortResponse } from '$lib/types/server_port';
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import ServerForm from '$lib/components/forms/ServerForm.svelte';
   import { onMount } from 'svelte';
 
   let server = $state<ServerResponse | null>(null);
+  let ips = $state<ServerIpResponse[]>([]);
+  let ports = $state<ServerPortResponse[]>([]);
   let loading = $state(true);
   let loadError = $state(false);
 
@@ -15,7 +21,14 @@
     const id = $page.params.id;
     if (!id) { goto('/servers'); return; }
     try {
-      server = await serversApi.getById(id);
+      const [serverData, ipData, portData] = await Promise.all([
+        serversApi.getById(id),
+        serverIpsApi.list({ server_id: id, limit: 100 }),
+        serverPortsApi.list({ server_id: id, limit: 100 }),
+      ]);
+      server = serverData;
+      ips = ipData.data;
+      ports = portData.data;
     } catch (err) {
       console.error('Failed to load server:', err);
       loadError = true;
@@ -63,11 +76,34 @@
     };
   }
 
+  function toIpDraft(ip: ServerIpResponse) {
+    return {
+      id: ip.id,
+      ip_address: ip.ip_address,
+      ip_type: ip.ip_type ?? '',
+      is_primary: ip.is_primary,
+      isp_provider_id: ip.isp_provider_id ?? '',
+      description: ip.description ?? '',
+    };
+  }
+
+  function toPortDraft(p: ServerPortResponse) {
+    return {
+      id: p.id,
+      protocol: p.protocol,
+      port: String(p.port),
+      service_name: p.service_name,
+      access_scope: p.access_scope ?? '',
+      is_enabled: p.is_enabled,
+      description: p.description ?? '',
+    };
+  }
+
   async function handleUpdate(data: CreateServerRequest) {
     const id = $page.params.id;
     if (!id) return;
     await serversApi.update(id, data);
-    goto(`/servers/${id}`);
+    return id;
   }
 </script>
 
@@ -89,6 +125,12 @@
   {:else if loadError || !server}
     <p class="text-sm text-muted-foreground">加载失败，服务器可能不存在。</p>
   {:else}
-    <ServerForm initial={toForm(server)} submitLabel="保存" onSubmit={handleUpdate} />
+    <ServerForm
+      initial={toForm(server)}
+      initialIps={ips.map(toIpDraft)}
+      initialPorts={ports.map(toPortDraft)}
+      submitLabel="保存"
+      onSubmit={handleUpdate}
+    />
   {/if}
 </div>

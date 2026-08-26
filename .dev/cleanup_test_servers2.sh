@@ -1,0 +1,2 @@
+#!/bin/bash
+docker exec rzops-postgres psql -U rzops -d rzopsdb -c "DELETE FROM cmdb_server WHERE name IN ('test-inline-v2','test-inline-v3');"

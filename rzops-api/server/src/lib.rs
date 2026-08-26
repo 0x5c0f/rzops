@@ -20,6 +20,7 @@ pub struct AppState {
     pub server_repo: Arc<dyn server_repository::ServerRepository>,
     pub server_ip_repo: Arc<dyn server_ip_repository::ServerIpRepository>,
     pub server_port_repo: Arc<dyn server_port_repository::ServerPortRepository>,
+    pub certificate_domain_repo: Arc<dyn certificate_domain_repository::CertificateDomainRepository>,
     pub domain_repo: Arc<dyn domain_repository::DomainRepository>,
     pub certificate_repo: Arc<dyn certificate_repository::CertificateRepository>,
     pub database_instance_repo: Arc<dyn database_instance_repository::DatabaseInstanceRepository>,
@@ -48,6 +49,7 @@ impl AppState {
             server_repo: Arc::new(PgServerRepository::new(pool.clone())),
             server_ip_repo: Arc::new(PgServerIpRepository::new(pool.clone())),
             server_port_repo: Arc::new(PgServerPortRepository::new(pool.clone())),
+            certificate_domain_repo: Arc::new(PgCertificateDomainRepository::new(pool.clone())),
             domain_repo: Arc::new(PgDomainRepository::new(pool.clone())),
             certificate_repo: Arc::new(PgCertificateRepository::new(pool.clone())),
             database_instance_repo: Arc::new(PgDatabaseInstanceRepository::new(pool.clone())),
@@ -100,6 +102,7 @@ pub fn create_router(state: AppState) -> Router {
         .nest("/api/v1/servers", rzops_api::server_routes(state.server_repo.clone()))
         .nest("/api/v1/server-ips", rzops_api::server_ip_routes(state.server_ip_repo.clone()))
         .nest("/api/v1/server-ports", rzops_api::server_port_routes(state.server_port_repo.clone()))
+        .nest("/api/v1/certificate-domains", rzops_api::certificate_domain_routes(state.certificate_domain_repo.clone()))
         .nest("/api/v1/domains", rzops_api::domain_routes(state.domain_repo.clone()))
         .nest("/api/v1/certificates", rzops_api::certificate_routes(state.certificate_repo.clone()))
         .nest("/api/v1/database-instances", rzops_api::database_instance_routes(state.database_instance_repo.clone()))

@@ -1,13 +1,12 @@
 <script lang="ts">
-  import { goto } from '$app/navigation';
   import { certificatesApi } from '$lib/api/certificates';
   import type { CreateCertificateRequest } from '$lib/types/certificate';
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import CertificateForm from '$lib/components/forms/CertificateForm.svelte';
 
   async function handleCreate(data: CreateCertificateRequest) {
-    await certificatesApi.create(data);
-    goto('/certificates');
+    const cert = await certificatesApi.create(data);
+    return cert.id;
   }
 </script>
 

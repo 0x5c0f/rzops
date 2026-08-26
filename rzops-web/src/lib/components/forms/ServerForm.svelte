@@ -1,5 +1,8 @@
 <script lang="ts">
   import type { CreateServerRequest } from '$lib/types/server';
+  import type { ServerIpResponse } from '$lib/types/server_ip';
+  import type { ServerPortResponse } from '$lib/types/server_port';
+  import { goto } from '$app/navigation';
   import { Button } from '$lib/ui/button';
   import { Input } from '$lib/ui/input';
   import { Label } from '$lib/ui/label';
@@ -16,18 +19,45 @@
     architectureOptions,
     raidLevelOptions,
     webServerSoftwareOptions,
+    ipTypeOptions,
+    protocolOptions,
   } from '$lib/utils/enum-options';
+  import { serverIpsApi } from '$lib/api/server-ips';
+  import { serverPortsApi } from '$lib/api/server-ports';
   import { getProviderOptions, getDataCenterOptions } from '$lib/utils/entity-options';
   import { onMount } from 'svelte';
 
+  // IP / 端口 明细草稿行（id 存在 = 已有记录，用于编辑增量同步）
+  interface IpDraft {
+    id?: string;
+    ip_address: string;
+    ip_type: string;
+    is_primary: boolean;
+    isp_provider_id: string;
+    description: string;
+  }
+  interface PortDraft {
+    id?: string;
+    protocol: string;
+    port: string;
+    service_name: string;
+    access_scope: string;
+    is_enabled: boolean;
+    description: string;
+  }
+
   let {
     initial = {} as CreateServerRequest,
+    initialIps = [] as IpDraft[],
+    initialPorts = [] as PortDraft[],
     submitLabel = '保存',
     onSubmit,
   }: {
     initial?: CreateServerRequest;
+    initialIps?: IpDraft[];
+    initialPorts?: PortDraft[];
     submitLabel?: string;
-    onSubmit: (data: CreateServerRequest) => Promise<void>;
+    onSubmit: (data: CreateServerRequest) => Promise<string | void>;
   } = $props();
 
   let saving = $state(false);
@@ -36,14 +66,18 @@
 
   // 默认值为空字符串，确保编辑时清空字段能正确提交（后端部分更新语义）
   let form = $state<CreateServerRequest>(createInitial(initial));
+  let ips = $state<IpDraft[]>(initialIps.length ? structuredClone(initialIps) : []);
+  let ports = $state<PortDraft[]>(initialPorts.length ? structuredClone(initialPorts) : []);
 
   function createInitial(initial?: CreateServerRequest): CreateServerRequest {
     return {
       name: '',
       asset_code: '',
       primary_ip: '',
-      server_type: '',
-      status: 'active',
+      location: '',
+      isp_provider_id: '',
+      data_center_id: '',
+      hosting_type: '',
       is_dual_line: false,
       is_database_server: false,
       is_raid: false,
@@ -61,6 +95,115 @@
     dataCenterOptions = dataCenters;
   });
 
+  function emptyIp(): IpDraft {
+    return { ip_address: '', ip_type: '', is_primary: false, isp_provider_id: '', description: '' };
+  }
+  function emptyPort(): PortDraft {
+    return { protocol: 'tcp', port: '', service_name: '', access_scope: '', is_enabled: true, description: '' };
+  }
+
+  function addIpRow() {
+    ips = [...ips, emptyIp()];
+  }
+  function removeIpRow(index: number) {
+    ips = ips.filter((_, i) => i !== index);
+  }
+  function addPortRow() {
+    ports = [...ports, emptyPort()];
+  }
+  function removePortRow(index: number) {
+    ports = ports.filter((_, i) => i !== index);
+  }
+
+  // 主 IP 同步策略（保证编辑时主 IP 稳定、尊重用户显式勾选）：
+  // 1) 有用户显式勾选的主 IP 行 → 跟随该行
+  // 2) 无显式勾选且已有主 IP 仍在列表 → 保持该主 IP，并标记对应行
+  // 3) 新建 / 原主 IP 已被移除 → 第一行设为主
+  function syncPrimaryIp() {
+    const manually = ips.find(i => i.is_primary);
+    if (manually) {
+      form.primary_ip = manually.ip_address.trim();
+      return;
+    }
+    const existing = (form.primary_ip || '').trim();
+    const listAddrs = ips.map(i => i.ip_address.trim());
+    if (existing && listAddrs.includes(existing)) {
+      for (const i of ips) i.is_primary = i.ip_address.trim() === existing;
+      return;
+    }
+    if (ips.length > 0) {
+      ips[0].is_primary = true;
+      form.primary_ip = ips[0].ip_address.trim();
+    } else {
+      form.primary_ip = '';
+    }
+  }
+
+  function validateRows(): boolean {
+    if (ips.some(i => !i.ip_address.trim())) {
+      alert('IP 地址为必填，请填写完整或删除空行');
+      return false;
+    }
+    for (const p of ports) {
+      const portNum = Number(p.port);
+      if (!p.port || !Number.isInteger(portNum) || portNum < 1 || portNum > 65535) {
+        alert('端口号必须是 1-65535 的整数');
+        return false;
+      }
+      if (!p.protocol || !p.service_name.trim()) {
+        alert('端口记录中协议和服务名为必填');
+        return false;
+      }
+    }
+    return true;
+  }
+
+  // 增量同步 IP：删除表单中已移除的、更新有 id 的、新增无 id 的
+  async function syncIps(serverId: string) {
+    for (const dbIp of initialIps) {
+      if (dbIp.id && !ips.some(r => r.id === dbIp.id)) {
+        await serverIpsApi.delete(dbIp.id);
+      }
+    }
+    for (const row of ips) {
+      const payload = {
+        ip_address: row.ip_address.trim(),
+        ip_type: row.ip_type || undefined,
+        is_primary: row.is_primary,
+        isp_provider_id: row.isp_provider_id || undefined,
+        description: row.description || undefined,
+      };
+      if (row.id) {
+        await serverIpsApi.update(row.id, payload);
+      } else {
+        await serverIpsApi.create({ server_id: serverId, ...payload });
+      }
+    }
+  }
+
+  async function syncPorts(serverId: string) {
+    for (const dbPort of initialPorts) {
+      if (dbPort.id && !ports.some(r => r.id === dbPort.id)) {
+        await serverPortsApi.delete(dbPort.id);
+      }
+    }
+    for (const row of ports) {
+      const payload = {
+        protocol: row.protocol,
+        port: Number(row.port),
+        service_name: row.service_name.trim(),
+        access_scope: row.access_scope || undefined,
+        is_enabled: row.is_enabled,
+        description: row.description || undefined,
+      };
+      if (row.id) {
+        await serverPortsApi.update(row.id, payload);
+      } else {
+        await serverPortsApi.create({ server_id: serverId, ...payload });
+      }
+    }
+  }
+
   async function handleSave() {
     if (
       form.lease_start_date &&
@@ -70,11 +213,19 @@
       alert('租赁结束日期不能早于开始日期');
       return;
     }
+    if (!validateRows()) return;
+    syncPrimaryIp();
     saving = true;
     try {
-      await onSubmit(form);
+      const serverId = await onSubmit(form);
+      if (serverId) {
+        await syncIps(serverId);
+        await syncPorts(serverId);
+        goto(`/servers/${serverId}`);
+      }
     } catch (err) {
       console.error('Failed to save server:', err);
+      alert('保存失败，请重试');
     } finally {
       saving = false;
     }
@@ -109,8 +260,8 @@
       </div>
 
       <div class="space-y-2">
-        <Label for="primary_ip">主IP</Label>
-        <Input id="primary_ip" bind:value={form.primary_ip} />
+        <Label for="location">位置</Label>
+        <Input id="location" bind:value={form.location} />
       </div>
 
       <FormSelect
@@ -134,11 +285,6 @@
       />
 
       <div class="space-y-2">
-        <Label for="location">位置</Label>
-        <Input id="location" bind:value={form.location} />
-      </div>
-
-      <div class="space-y-2">
         <Label for="brand">品牌</Label>
         <Input id="brand" bind:value={form.brand} />
       </div>
@@ -147,6 +293,102 @@
         <Label for="operating_system">操作系统</Label>
         <Input id="operating_system" bind:value={form.operating_system} />
       </div>
+    </Card.Content>
+  </Card.Root>
+
+  <!-- IP 地址 -->
+  <Card.Root>
+    <Card.Header>
+      <Card.Title>IP 地址</Card.Title>
+      <p class="text-sm text-muted-foreground">一台服务器可维护多个 IP，第一行或标记"主 IP"的行将作为服务器主 IP</p>
+    </Card.Header>
+    <Card.Content class="space-y-3">
+      {#each ips as ip, i}
+        <div class="grid gap-3 rounded-lg border p-3 md:grid-cols-12">
+          <div class="space-y-1 md:col-span-3">
+            <Label>IP 地址 *</Label>
+            <Input bind:value={ip.ip_address} placeholder="192.168.1.10" />
+          </div>
+          <div class="space-y-1 md:col-span-3">
+            <FormSelect
+              label="类型"
+              bind:value={ip.ip_type}
+              options={$ipTypeOptions}
+              placeholder="选择类型"
+            />
+          </div>
+          <div class="space-y-1 md:col-span-2">
+            <FormSelect
+              label="ISP 供应商"
+              bind:value={ip.isp_provider_id}
+              options={providerOptions}
+              placeholder="选择供应商"
+            />
+          </div>
+          <div class="flex items-end gap-2 md:col-span-2">
+            <label class="flex items-center gap-2 pb-2 text-sm">
+              <input type="checkbox" bind:checked={ip.is_primary} class="h-4 w-4" />
+              主 IP
+            </label>
+          </div>
+          <div class="flex items-end justify-end gap-2 md:col-span-2">
+            <Button variant="ghost" size="sm" type="button" onclick={() => removeIpRow(i)}>删除</Button>
+          </div>
+          <div class="space-y-1 md:col-span-12">
+            <Label>描述</Label>
+            <Input bind:value={ip.description} placeholder="用途 / 备注" />
+          </div>
+        </div>
+      {/each}
+      <Button variant="outline" size="sm" type="button" onclick={addIpRow}>+ 添加 IP</Button>
+    </Card.Content>
+  </Card.Root>
+
+  <!-- 服务端口 -->
+  <Card.Root>
+    <Card.Header>
+      <Card.Title>服务端口</Card.Title>
+      <p class="text-sm text-muted-foreground">维护该服务器对外提供的服务端口</p>
+    </Card.Header>
+    <Card.Content class="space-y-3">
+      {#each ports as port, i}
+        <div class="grid gap-3 rounded-lg border p-3 md:grid-cols-12">
+          <div class="space-y-1 md:col-span-2">
+            <FormSelect
+              label="协议 *"
+              bind:value={port.protocol}
+              options={$protocolOptions}
+              placeholder="TCP"
+            />
+          </div>
+          <div class="space-y-1 md:col-span-2">
+            <Label>端口 *</Label>
+            <Input type="number" bind:value={port.port} placeholder="80" min={1} max={65535} />
+          </div>
+          <div class="space-y-1 md:col-span-3">
+            <Label>服务名 *</Label>
+            <Input bind:value={port.service_name} placeholder="nginx" />
+          </div>
+          <div class="space-y-1 md:col-span-2">
+            <Label>访问范围</Label>
+            <Input bind:value={port.access_scope} placeholder="公网 / 内网" />
+          </div>
+          <div class="flex items-end gap-2 md:col-span-2">
+            <label class="flex items-center gap-2 pb-2 text-sm">
+              <input type="checkbox" bind:checked={port.is_enabled} class="h-4 w-4" />
+              启用
+            </label>
+          </div>
+          <div class="flex items-end justify-end md:col-span-1">
+            <Button variant="ghost" size="sm" type="button" onclick={() => removePortRow(i)}>删除</Button>
+          </div>
+          <div class="space-y-1 md:col-span-12">
+            <Label>描述</Label>
+            <Input bind:value={port.description} placeholder="用途说明" />
+          </div>
+        </div>
+      {/each}
+      <Button variant="outline" size="sm" type="button" onclick={addPortRow}>+ 添加端口</Button>
     </Card.Content>
   </Card.Root>
 

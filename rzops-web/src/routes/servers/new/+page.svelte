@@ -6,8 +6,8 @@
   import ServerForm from '$lib/components/forms/ServerForm.svelte';
 
   async function handleCreate(data: CreateServerRequest) {
-    await serversApi.create(data);
-    goto('/servers');
+    const server = await serversApi.create(data);
+    return server.id;
   }
 </script>
 

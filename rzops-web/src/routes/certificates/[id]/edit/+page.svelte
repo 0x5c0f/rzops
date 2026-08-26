@@ -2,12 +2,15 @@
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import { certificatesApi } from '$lib/api/certificates';
+  import { certificateDomainsApi } from '$lib/api/certificate-domains';
   import type { CertificateResponse, CreateCertificateRequest } from '$lib/types/certificate';
+  import type { CertificateDomainResponse } from '$lib/types/certificate_domain';
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import CertificateForm from '$lib/components/forms/CertificateForm.svelte';
   import { onMount } from 'svelte';
 
   let cert = $state<CertificateResponse | null>(null);
+  let domains = $state<CertificateDomainResponse[]>([]);
   let loading = $state(true);
   let loadError = $state(false);
 
@@ -15,7 +18,12 @@
     const id = $page.params.id;
     if (!id) { goto('/certificates'); return; }
     try {
-      cert = await certificatesApi.getById(id);
+      const [certData, domainData] = await Promise.all([
+        certificatesApi.getById(id),
+        certificateDomainsApi.list({ certificate_id: id, limit: 100 }),
+      ]);
+      cert = certData;
+      domains = domainData.data;
     } catch (err) {
       console.error('Failed to load certificate:', err);
       loadError = true;
@@ -37,11 +45,20 @@
     };
   }
 
+  function toDomainDraft(d: CertificateDomainResponse) {
+    return {
+      id: d.id,
+      domain_pattern: d.domain_pattern,
+      domain_id: d.domain_id ?? '',
+      is_primary: d.is_primary,
+    };
+  }
+
   async function handleUpdate(data: CreateCertificateRequest) {
     const id = $page.params.id;
     if (!id) return;
     await certificatesApi.update(id, data);
-    goto(`/certificates/${id}`);
+    return id;
   }
 </script>
 
@@ -63,6 +80,11 @@
   {:else if loadError || !cert}
     <p class="text-sm text-muted-foreground">加载失败，证书可能不存在。</p>
   {:else}
-    <CertificateForm initial={toForm(cert)} submitLabel="保存" onSubmit={handleUpdate} />
+    <CertificateForm
+      initial={toForm(cert)}
+      initialDomains={domains.map(toDomainDraft)}
+      submitLabel="保存"
+      onSubmit={handleUpdate}
+    />
   {/if}
 </div>
