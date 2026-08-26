@@ -77,7 +77,7 @@
             </div>
             <div class="flex justify-between">
               <dt class="text-muted-foreground">监控类型</dt>
-              <dd>{getOptionLabel(monitorTypeOptions, target.monitor_type)}</dd>
+              <dd>{getOptionLabel($monitorTypeOptions, target.monitor_type)}</dd>
             </div>
             <div class="flex justify-between">
               <dt class="text-muted-foreground">端点</dt>

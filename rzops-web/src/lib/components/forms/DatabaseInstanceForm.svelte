@@ -84,7 +84,7 @@
       <FormSelect
         label="数据库类型 *"
         bind:value={form.db_type}
-        options={databaseTypeOptions}
+        options={$databaseTypeOptions}
         placeholder="选择数据库类型"
         required
       />
@@ -99,13 +99,13 @@
       <FormSelect
         label="状态"
         bind:value={form.status}
-        options={databaseStatusOptions}
+        options={$databaseStatusOptions}
       />
 
       <FormSelect
         label="重要性"
         bind:value={form.importance}
-        options={importanceOptions}
+        options={$importanceOptions}
         placeholder="选择重要性"
       />
 

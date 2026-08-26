@@ -87,7 +87,7 @@
             </div>
             <div class="flex justify-between">
               <dt class="text-muted-foreground">供应商类型</dt>
-              <dd>{getOptionLabels(providerTypeOptions, provider.provider_types).join(', ') || '-'}</dd>
+              <dd>{getOptionLabels($providerTypeOptions, provider.provider_types).join(', ') || '-'}</dd>
             </div>
             <div class="flex justify-between">
               <dt class="text-muted-foreground">国家</dt>
@@ -111,7 +111,7 @@
             </div>
             <div class="flex justify-between">
               <dt class="text-muted-foreground">状态</dt>
-              <dd>{getOptionLabel(commonStatusOptions, provider.status)}</dd>
+              <dd>{getOptionLabel($commonStatusOptions, provider.status)}</dd>
             </div>
             <div class="flex justify-between">
               <dt class="text-muted-foreground">描述</dt>

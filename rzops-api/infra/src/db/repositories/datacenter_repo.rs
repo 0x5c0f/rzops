@@ -3,7 +3,6 @@ use chrono::{DateTime, Utc};
 use sqlx::{Pool, Postgres, Row};
 use uuid::Uuid;
 
-use rzops_domain::enums::{CommonStatus, LineType};
 use rzops_domain::models::data_center::DataCenter;
 use rzops_domain::ports::datacenter_repository::{DataCenterFilter, DataCenterRepository};
 
@@ -18,40 +17,9 @@ impl PgDataCenterRepository {
     }
 }
 
-fn parse_line_type(s: &str) -> LineType {
-    match s {
-        "single_line" => LineType::SingleLine,
-        "dual_line" => LineType::DualLine,
-        "multi_line" => LineType::MultiLine,
-        _ => LineType::Other,
-    }
-}
 
-fn line_type_to_string(lt: &LineType) -> String {
-    match lt {
-        LineType::SingleLine => "single_line".to_string(),
-        LineType::DualLine => "dual_line".to_string(),
-        LineType::MultiLine => "multi_line".to_string(),
-        LineType::Other => "other".to_string(),
-    }
-}
 
-fn parse_common_status(s: &str) -> CommonStatus {
-    match s {
-        "active" => CommonStatus::Active,
-        "inactive" => CommonStatus::Inactive,
-        "archived" => CommonStatus::Archived,
-        _ => CommonStatus::Active,
-    }
-}
 
-fn common_status_to_string(s: &CommonStatus) -> String {
-    match s {
-        CommonStatus::Active => "active".to_string(),
-        CommonStatus::Inactive => "inactive".to_string(),
-        CommonStatus::Archived => "archived".to_string(),
-    }
-}
 
 fn row_to_datacenter(row: &sqlx::postgres::PgRow) -> DataCenter {
     let status_str: String = row.get("status");
@@ -66,9 +34,9 @@ fn row_to_datacenter(row: &sqlx::postgres::PgRow) -> DataCenter {
         country: row.get("country"),
         province: row.get("province"),
         city: row.get("city"),
-        line_type: line_type_str.map(|s| parse_line_type(&s)),
+        line_type: line_type_str,
         description: row.get("description"),
-        status: parse_common_status(&status_str),
+        status: status_str,
         created_at: row.get::<DateTime<Utc>, _>("created_at"),
         updated_at: row.get::<DateTime<Utc>, _>("updated_at"),
     }
@@ -178,9 +146,9 @@ impl DataCenterRepository for PgDataCenterRepository {
         .bind(&dc.country)
         .bind(&dc.province)
         .bind(&dc.city)
-        .bind(dc.line_type.as_ref().map(line_type_to_string))
+        .bind(dc.line_type.clone())
         .bind(&dc.description)
-        .bind(common_status_to_string(&dc.status))
+        .bind(dc.status.clone())
         .bind(dc.created_at)
         .bind(dc.updated_at)
         .fetch_one(&self.pool)
@@ -207,9 +175,9 @@ impl DataCenterRepository for PgDataCenterRepository {
         .bind(&dc.country)
         .bind(&dc.province)
         .bind(&dc.city)
-        .bind(dc.line_type.as_ref().map(line_type_to_string))
+        .bind(dc.line_type.clone())
         .bind(&dc.description)
-        .bind(common_status_to_string(&dc.status))
+        .bind(dc.status.clone())
         .bind(dc.updated_at)
         .fetch_optional(&self.pool)
         .await?;

@@ -4,7 +4,6 @@ use rust_decimal::Decimal;
 use sqlx::{Pool, Postgres, Row};
 use uuid::Uuid;
 
-use rzops_domain::enums::DomainPrivacyStatus;
 use rzops_domain::models::domain_asset::DomainAsset;
 use rzops_domain::ports::domain_repository::{DomainFilter, DomainRepository};
 
@@ -18,21 +17,7 @@ impl PgDomainRepository {
     }
 }
 
-fn parse_privacy_status(s: &str) -> DomainPrivacyStatus {
-    match s {
-        "enabled" => DomainPrivacyStatus::Enabled,
-        "disabled" => DomainPrivacyStatus::Disabled,
-        _ => DomainPrivacyStatus::Unknown,
-    }
-}
 
-fn privacy_status_to_string(s: &DomainPrivacyStatus) -> String {
-    match s {
-        DomainPrivacyStatus::Enabled => "enabled".to_string(),
-        DomainPrivacyStatus::Disabled => "disabled".to_string(),
-        DomainPrivacyStatus::Unknown => "unknown".to_string(),
-    }
-}
 
 fn row_to_domain(row: &sqlx::postgres::PgRow) -> DomainAsset {
     let privacy_str: Option<String> = row.get("privacy_status");
@@ -48,7 +33,7 @@ fn row_to_domain(row: &sqlx::postgres::PgRow) -> DomainAsset {
         account_credential_id: row.get("account_credential_id"),
         platform_phone: row.get("platform_phone"),
         domain_email: row.get("domain_email"),
-        privacy_status: privacy_str.map(|s| parse_privacy_status(&s)),
+        privacy_status: privacy_str,
         is_enabled: row.get("is_enabled"),
         remarks: row.get("remarks"),
         created_at: row.get::<DateTime<Utc>, _>("created_at"),
@@ -119,7 +104,7 @@ impl DomainRepository for PgDomainRepository {
         .bind(d.expiry_date).bind(d.renewal_amount).bind(&d.renewal_currency)
         .bind(d.provider_id).bind(d.account_credential_id).bind(&d.platform_phone)
         .bind(&d.domain_email)
-        .bind(d.privacy_status.as_ref().map(privacy_status_to_string))
+        .bind(d.privacy_status.clone())
         .bind(d.is_enabled).bind(&d.remarks).bind(d.created_at).bind(d.updated_at)
         .fetch_one(&self.pool).await?;
         Ok(row_to_domain(&row))
@@ -138,7 +123,7 @@ impl DomainRepository for PgDomainRepository {
         .bind(d.expiry_date).bind(d.renewal_amount).bind(&d.renewal_currency)
         .bind(d.provider_id).bind(d.account_credential_id).bind(&d.platform_phone)
         .bind(&d.domain_email)
-        .bind(d.privacy_status.as_ref().map(privacy_status_to_string))
+        .bind(d.privacy_status.clone())
         .bind(d.is_enabled).bind(&d.remarks).bind(d.updated_at)
         .fetch_optional(&self.pool).await?;
         Ok(row.map(|r| row_to_domain(&r)))

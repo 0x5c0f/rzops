@@ -85,11 +85,11 @@
             </div>
             <div class="flex justify-between">
               <dt class="text-muted-foreground">证书类型</dt>
-              <dd>{getOptionLabel(certificateTypeOptions, certificate.certificate_type)}</dd>
+              <dd>{getOptionLabel($certificateTypeOptions, certificate.certificate_type)}</dd>
             </div>
             <div class="flex justify-between">
               <dt class="text-muted-foreground">状态</dt>
-              <dd>{getOptionLabel(certificateStatusOptions, certificate.status)}</dd>
+              <dd>{getOptionLabel($certificateStatusOptions, certificate.status)}</dd>
             </div>
             <div class="flex justify-between">
               <dt class="text-muted-foreground">供应商</dt>

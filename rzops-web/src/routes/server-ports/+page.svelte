@@ -17,7 +17,7 @@
   let offset = $derived(query.offset ?? 0);
   let limit = $derived(query.limit ?? 20);
   let serverMap = $state<Record<string, string>>({});
-  let protocolMap = $derived(Object.fromEntries(protocolOptions.map(o => [o.value, o.label])));
+  let protocolMap = $derived(Object.fromEntries($protocolOptions.map(o => [o.value, o.label])));
 
   const columns = $derived([
     { key: 'server_id', label: '服务器', valueMap: serverMap },

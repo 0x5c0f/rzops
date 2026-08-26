@@ -58,14 +58,14 @@
       <FormMultiSelect
         label="供应商类型"
         bind:value={form.provider_types}
-        options={providerTypeOptions}
+        options={$providerTypeOptions}
         placeholder="选择供应商类型"
       />
 
       <FormSelect
         label="状态"
         bind:value={form.status}
-        options={commonStatusOptions}
+        options={$commonStatusOptions}
       />
 
       <div class="space-y-2">

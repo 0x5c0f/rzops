@@ -18,7 +18,7 @@
   let offset = $derived(query.offset ?? 0);
   let limit = $derived(query.limit ?? 20);
 
-  let statusMap = $derived(Object.fromEntries(commonStatusOptions.map(o => [o.value, o.label])));
+  let statusMap = $derived(Object.fromEntries($commonStatusOptions.map(o => [o.value, o.label])));
 
   const columns = [
     { key: 'filename', label: '文件名' },

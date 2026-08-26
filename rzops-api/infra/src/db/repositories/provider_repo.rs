@@ -3,7 +3,6 @@ use chrono::Utc;
 use sqlx::{postgres::PgRow, Pool, Postgres, Row};
 use uuid::Uuid;
 
-use rzops_domain::enums::CommonStatus;
 use rzops_domain::models::provider::Provider;
 use rzops_domain::ports::provider_repository::{ProviderFilter, ProviderRepository};
 
@@ -21,12 +20,7 @@ impl PgProviderRepository {
 /// Helper: parse a PgRow into a Provider domain model.
 fn row_to_provider(row: &PgRow) -> Result<Provider, sqlx::Error> {
     let status_str: String = row.get("status");
-    let status = match status_str.as_str() {
-        "active" => CommonStatus::Active,
-        "inactive" => CommonStatus::Inactive,
-        "archived" => CommonStatus::Archived,
-        _ => CommonStatus::Active,
-    };
+    let status = status_str;
 
     // Read JSONB column as serde_json::Value, then convert to Vec<String>
     let provider_types_json: serde_json::Value = row.get("provider_types");
@@ -161,11 +155,7 @@ impl ProviderRepository for PgProviderRepository {
     }
 
     async fn create(&self, provider: &Provider) -> Result<Provider, sqlx::Error> {
-        let status_str = match provider.status {
-            CommonStatus::Active => "active",
-            CommonStatus::Inactive => "inactive",
-            CommonStatus::Archived => "archived",
-        };
+        let status_str = provider.status.clone();
 
         let row = sqlx::query(
             r#"
@@ -200,11 +190,7 @@ impl ProviderRepository for PgProviderRepository {
     }
 
     async fn update(&self, id: Uuid, provider: &Provider) -> Result<Option<Provider>, sqlx::Error> {
-        let status_str = match provider.status {
-            CommonStatus::Active => "active",
-            CommonStatus::Inactive => "inactive",
-            CommonStatus::Archived => "archived",
-        };
+        let status_str = provider.status.clone();
 
         let row = sqlx::query(
             r#"

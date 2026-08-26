@@ -17,9 +17,9 @@
   let offset = $derived(query.offset ?? 0);
   let limit = $derived(query.limit ?? 20);
   let serverMap = $state<Record<string, string>>({});
-  let dbTypeMap = $derived(Object.fromEntries(databaseTypeOptions.map(o => [o.value, o.label])));
-  let dbStatusMap = $derived(Object.fromEntries(databaseStatusOptions.map(o => [o.value, o.label])));
-  let importanceMap = $derived(Object.fromEntries(importanceOptions.map(o => [o.value, o.label])));
+  let dbTypeMap = $derived(Object.fromEntries($databaseTypeOptions.map(o => [o.value, o.label])));
+  let dbStatusMap = $derived(Object.fromEntries($databaseStatusOptions.map(o => [o.value, o.label])));
+  let importanceMap = $derived(Object.fromEntries($importanceOptions.map(o => [o.value, o.label])));
 
   const columns = $derived([
     { key: 'name', label: '名称' },

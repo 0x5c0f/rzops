@@ -79,7 +79,7 @@
       <FormSelect
         label="证书类型"
         bind:value={form.certificate_type}
-        options={certificateTypeOptions}
+        options={$certificateTypeOptions}
         placeholder="选择证书类型"
       />
 
@@ -93,7 +93,7 @@
       <FormSelect
         label="状态"
         bind:value={form.status}
-        options={certificateStatusOptions}
+        options={$certificateStatusOptions}
       />
 
       <DateField

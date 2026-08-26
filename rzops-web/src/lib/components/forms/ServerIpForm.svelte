@@ -101,7 +101,7 @@
       <FormSelect
         label="状态"
         bind:value={form.status}
-        options={commonStatusOptions}
+        options={$commonStatusOptions}
       />
 
       <div class="flex items-center gap-2 pt-6">

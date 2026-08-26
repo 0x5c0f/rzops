@@ -2,7 +2,6 @@ use chrono::{DateTime, NaiveDate, Utc};
 use rust_decimal::Decimal;
 use uuid::Uuid;
 
-use crate::enums::{HostingType, ServerRole, ServerStatus, ServerType, WebServerSoftware};
 
 /// Server entity — maps to cmdb_server.
 #[derive(Debug, Clone)]
@@ -14,14 +13,14 @@ pub struct Server {
     pub location: Option<String>,
     pub isp_provider_id: Option<Uuid>,
     pub data_center_id: Option<Uuid>,
-    pub hosting_type: Option<HostingType>,
+    pub hosting_type: Option<String>,
     pub is_dual_line: bool,
     pub lease_start_date: Option<NaiveDate>,
     pub lease_end_date: Option<NaiveDate>,
     pub price: Option<Decimal>,
     pub price_currency: String,
-    pub server_type: Option<ServerType>,
-    pub role_tags: Vec<ServerRole>,
+    pub server_type: Option<String>,
+    pub role_tags: Vec<String>,
     pub is_database_server: bool,
     pub cpu: Option<String>,
     pub memory_gb: Option<i32>,
@@ -34,10 +33,10 @@ pub struct Server {
     pub brand: Option<String>,
     pub warranty_info: Option<String>,
     pub operating_system: Option<String>,
-    pub web_server_type: Vec<WebServerSoftware>,
+    pub web_server_type: Vec<String>,
     pub server_provider_id: Option<Uuid>,
     pub software_provider_id: Option<Uuid>,
-    pub status: ServerStatus,
+    pub status: String,
     pub offline_time: Option<DateTime<Utc>>,
     pub offline_reason: Option<String>,
     pub remarks: Option<String>,

@@ -2,18 +2,15 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use sqlx::{Pool, Postgres, Row};
 use uuid::Uuid;
-use rzops_domain::enums::ReservedStatus;
 use rzops_domain::models::backup_plan::BackupPlan;
 use rzops_domain::ports::backup_plan_repository::{BackupPlanFilter, BackupPlanRepository};
 
 pub struct PgBackupPlanRepository { pool: Pool<Postgres> }
 impl PgBackupPlanRepository { pub fn new(pool: Pool<Postgres>) -> Self { Self { pool } } }
 
-fn parse_status(s: &str) -> ReservedStatus { match s { "draft" => ReservedStatus::Draft, "active" => ReservedStatus::Active, "inactive" => ReservedStatus::Inactive, "archived" => ReservedStatus::Archived, _ => ReservedStatus::Draft } }
-fn status_to_string(s: &ReservedStatus) -> String { match s { ReservedStatus::Draft => "draft", ReservedStatus::Active => "active", ReservedStatus::Inactive => "inactive", ReservedStatus::Archived => "archived" }.to_string() }
 
 fn row_to_entity(row: &sqlx::postgres::PgRow) -> BackupPlan {
-    BackupPlan { id: row.get("id"), name: row.get("name"), target_type: row.get("target_type"), target_id: row.get("target_id"), schedule: row.get("schedule"), retention_days: row.get("retention_days"), status: parse_status(&row.get::<String, _>("status")), remarks: row.get("remarks"), created_at: row.get::<DateTime<Utc>, _>("created_at"), updated_at: row.get::<DateTime<Utc>, _>("updated_at") }
+    BackupPlan { id: row.get("id"), name: row.get("name"), target_type: row.get("target_type"), target_id: row.get("target_id"), schedule: row.get("schedule"), retention_days: row.get("retention_days"), status: row.get::<String, _>("status"), remarks: row.get("remarks"), created_at: row.get::<DateTime<Utc>, _>("created_at"), updated_at: row.get::<DateTime<Utc>, _>("updated_at") }
 }
 
 const COLS: &str = "id, name, target_type, target_id, schedule, retention_days, status::text, remarks, created_at, updated_at";
@@ -52,12 +49,12 @@ impl BackupPlanRepository for PgBackupPlanRepository {
     }
     async fn create(&self, e: &BackupPlan) -> Result<BackupPlan, sqlx::Error> {
         Ok(row_to_entity(&sqlx::query(&format!("INSERT INTO cmdb_backup_plan (id,name,target_type,target_id,schedule,retention_days,status,remarks,created_at,updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING {}", COLS))
-            .bind(e.id).bind(&e.name).bind(&e.target_type).bind(e.target_id).bind(&e.schedule).bind(e.retention_days).bind(status_to_string(&e.status)).bind(&e.remarks).bind(e.created_at).bind(e.updated_at)
+            .bind(e.id).bind(&e.name).bind(&e.target_type).bind(e.target_id).bind(&e.schedule).bind(e.retention_days).bind(e.status.clone()).bind(&e.remarks).bind(e.created_at).bind(e.updated_at)
             .fetch_one(&self.pool).await?))
     }
     async fn update(&self, id: Uuid, e: &BackupPlan) -> Result<Option<BackupPlan>, sqlx::Error> {
         Ok(sqlx::query(&format!("UPDATE cmdb_backup_plan SET name=$2,target_type=$3,target_id=$4,schedule=$5,retention_days=$6,status=$7,remarks=$8,updated_at=$9 WHERE id=$1 RETURNING {}", COLS))
-            .bind(id).bind(&e.name).bind(&e.target_type).bind(e.target_id).bind(&e.schedule).bind(e.retention_days).bind(status_to_string(&e.status)).bind(&e.remarks).bind(e.updated_at)
+            .bind(id).bind(&e.name).bind(&e.target_type).bind(e.target_id).bind(&e.schedule).bind(e.retention_days).bind(e.status.clone()).bind(&e.remarks).bind(e.updated_at)
             .fetch_optional(&self.pool).await?.map(|r| row_to_entity(&r)))
     }
     async fn delete(&self, id: Uuid) -> Result<bool, sqlx::Error> {

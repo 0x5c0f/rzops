@@ -92,7 +92,7 @@
           <dl class="grid gap-3 text-sm">
             <div class="flex justify-between">
               <dt class="text-muted-foreground">数据库类型</dt>
-              <dd>{getOptionLabel(databaseTypeOptions, instance.db_type)}</dd>
+              <dd>{getOptionLabel($databaseTypeOptions, instance.db_type)}</dd>
             </div>
             <div class="flex justify-between">
               <dt class="text-muted-foreground">服务器</dt>
@@ -116,7 +116,7 @@
             </div>
             <div class="flex justify-between">
               <dt class="text-muted-foreground">重要性</dt>
-              <dd>{getOptionLabel(importanceOptions, instance.importance)}</dd>
+              <dd>{getOptionLabel($importanceOptions, instance.importance)}</dd>
             </div>
             <div class="flex justify-between">
               <dt class="text-muted-foreground">自建</dt>
@@ -174,7 +174,7 @@
             </div>
             <div class="flex justify-between">
               <dt class="text-muted-foreground">状态</dt>
-              <dd>{getOptionLabel(databaseStatusOptions, instance.status)}</dd>
+              <dd>{getOptionLabel($databaseStatusOptions, instance.status)}</dd>
             </div>
             <div class="flex justify-between">
               <dt class="text-muted-foreground">下线时间</dt>

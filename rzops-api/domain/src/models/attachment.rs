@@ -1,7 +1,6 @@
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
-use crate::enums::ReservedStatus;
 
 /// Attachment entity — maps to cmdb_attachment.
 #[derive(Debug, Clone)]
@@ -14,7 +13,7 @@ pub struct Attachment {
     pub content_type: Option<String>,
     pub size_bytes: Option<i64>,
     pub uploaded_by_id: Option<Uuid>,
-    pub status: ReservedStatus,
+    pub status: String,
     pub remarks: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,

@@ -9,7 +9,6 @@ use axum::{
 use chrono::Utc;
 use uuid::Uuid;
 
-use rzops_domain::enums::IpStatus;
 use rzops_domain::models::server_ip::ServerIP;
 use rzops_domain::ports::server_ip_repository::{ServerIpFilter, ServerIpRepository};
 
@@ -18,22 +17,7 @@ use crate::change_log::{record_change, ChangeLogState};
 use crate::dto::provider_dto::ErrorResponse;
 use crate::dto::server_ip_dto::*;
 
-fn parse_ip_status(s: &str) -> IpStatus {
-    match s {
-        "enabled" => IpStatus::Enabled,
-        "disabled" => IpStatus::Disabled,
-        "reserved" => IpStatus::Reserved,
-        _ => IpStatus::Enabled,
-    }
-}
 
-fn to_status_string(s: &IpStatus) -> String {
-    match s {
-        IpStatus::Enabled => "enabled".to_string(),
-        IpStatus::Disabled => "disabled".to_string(),
-        IpStatus::Reserved => "reserved".to_string(),
-    }
-}
 
 fn to_response(ip: &ServerIP) -> ServerIpResponse {
     ServerIpResponse {
@@ -44,7 +28,7 @@ fn to_response(ip: &ServerIP) -> ServerIpResponse {
         is_primary: ip.is_primary,
         isp_provider_id: ip.isp_provider_id,
         description: ip.description.clone(),
-        status: to_status_string(&ip.status),
+        status: ip.status.clone(),
         created_at: ip.created_at,
         updated_at: ip.updated_at,
     }
@@ -119,7 +103,7 @@ pub async fn create_server_ip(
         is_primary: body.is_primary.unwrap_or(false),
         isp_provider_id: body.isp_provider_id,
         description: body.description,
-        status: body.status.as_deref().map(parse_ip_status).unwrap_or(IpStatus::Enabled),
+        status: body.status.unwrap_or_else(|| "enabled".to_string()),
         created_at: now,
         updated_at: now,
     };
@@ -164,7 +148,7 @@ pub async fn update_server_ip(
         is_primary: body.is_primary.unwrap_or(existing.is_primary),
         isp_provider_id: body.isp_provider_id.or(existing.isp_provider_id),
         description: body.description.or(existing.description),
-        status: body.status.as_deref().map(parse_ip_status).unwrap_or(existing.status),
+        status: body.status.unwrap_or(existing.status),
         created_at: existing.created_at,
         updated_at: Utc::now(),
     };

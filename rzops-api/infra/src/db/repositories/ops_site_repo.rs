@@ -3,7 +3,6 @@ use chrono::{DateTime, Utc};
 use sqlx::{Pool, Postgres, Row};
 use uuid::Uuid;
 
-use rzops_domain::enums::{CodeRepoType, Importance, ServiceTarget, SiteStatus, WebFramework};
 use rzops_domain::models::ops_site::OpsSite;
 use rzops_domain::ports::ops_site_repository::{OpsSiteFilter, OpsSiteRepository};
 
@@ -17,71 +16,11 @@ impl PgOpsSiteRepository {
     }
 }
 
-fn parse_site_status(s: &str) -> SiteStatus {
-    match s {
-        "active" => SiteStatus::Active,
-        "temporary_offline" => SiteStatus::TemporaryOffline,
-        "permanent_offline" => SiteStatus::PermanentOffline,
-        _ => SiteStatus::Active,
-    }
-}
 
-fn site_status_to_string(s: &SiteStatus) -> String {
-    match s {
-        SiteStatus::Active => "active".to_string(),
-        SiteStatus::TemporaryOffline => "temporary_offline".to_string(),
-        SiteStatus::PermanentOffline => "permanent_offline".to_string(),
-    }
-}
 
-fn parse_importance(s: &str) -> Importance {
-    match s {
-        "critical" => Importance::Critical,
-        "high" => Importance::High,
-        "medium" => Importance::Medium,
-        "low" => Importance::Low,
-        _ => Importance::Medium,
-    }
-}
 
-fn parse_service_target(s: &str) -> ServiceTarget {
-    match s {
-        "internal" => ServiceTarget::Internal,
-        "external" => ServiceTarget::External,
-        "partner" => ServiceTarget::Partner,
-        "mixed" => ServiceTarget::Mixed,
-        _ => ServiceTarget::Internal,
-    }
-}
 
-fn parse_code_repo_type(s: &str) -> CodeRepoType {
-    match s {
-        "svn" => CodeRepoType::Svn,
-        "git" => CodeRepoType::Git,
-        "none" => CodeRepoType::None,
-        _ => CodeRepoType::Other,
-    }
-}
 
-fn parse_web_framework(s: &str) -> WebFramework {
-    match s {
-        "django" => WebFramework::Django,
-        "flask" => WebFramework::Flask,
-        "fastapi" => WebFramework::Fastapi,
-        "spring_boot" => WebFramework::SpringBoot,
-        "express" => WebFramework::Express,
-        "rails" => WebFramework::Rails,
-        "laravel" => WebFramework::Laravel,
-        "asp_net_mvc" => WebFramework::AspNetMvc,
-        "asp_net_core" => WebFramework::AspNetCore,
-        "gin" => WebFramework::Gin,
-        "echo" => WebFramework::Echo,
-        "nextjs" => WebFramework::Nextjs,
-        "nuxtjs" => WebFramework::Nuxtjs,
-        "ant_design_pro" => WebFramework::AntDesignPro,
-        _ => WebFramework::Other,
-    }
-}
 
 fn row_to_ops_site(row: &sqlx::postgres::PgRow) -> OpsSite {
     let status_str: String = row.get("status");
@@ -96,21 +35,21 @@ fn row_to_ops_site(row: &sqlx::postgres::PgRow) -> OpsSite {
         url: row.get("url"),
         business_unit_id: row.get("business_unit_id"),
         department_id: row.get("department_id"),
-        service_target: st_str.map(|s| parse_service_target(&s)),
-        importance: imp_str.map(|s| parse_importance(&s)),
+        service_target: st_str,
+        importance: imp_str,
         online_time: row.get("online_time"),
-        code_repo_type: crt_str.map(|s| parse_code_repo_type(&s)),
+        code_repo_type: crt_str,
         code_repo_url: row.get("code_repo_url"),
         purpose: row.get("purpose"),
         is_internal_system: row.get("is_internal_system"),
         language_runtime: row.get("language_runtime"),
-        web_framework: wf_str.map(|s| parse_web_framework(&s)),
+        web_framework: wf_str,
         uses_cdn: row.get("uses_cdn"),
         is_test_site: row.get("is_test_site"),
         backup_plan_id: row.get("backup_plan_id"),
         last_backup_time: row.get("last_backup_time"),
         monitor_target_id: row.get("monitor_target_id"),
-        status: parse_site_status(&status_str),
+        status: status_str,
         offline_time: row.get("offline_time"),
         offline_reason: row.get("offline_reason"),
         function_summary: row.get("function_summary"),
@@ -184,33 +123,15 @@ impl OpsSiteRepository for PgOpsSiteRepository {
                RETURNING {}"#, SELECT_COLS
         ))
         .bind(s.id).bind(&s.name).bind(&s.url).bind(s.business_unit_id).bind(s.department_id)
-        .bind(s.service_target.as_ref().map(|v| match v {
-            ServiceTarget::Internal => "internal", ServiceTarget::External => "external",
-            ServiceTarget::Partner => "partner", ServiceTarget::Mixed => "mixed",
-        }.to_string()))
-        .bind(s.importance.as_ref().map(|v| match v {
-            Importance::Critical => "critical", Importance::High => "high",
-            Importance::Medium => "medium", Importance::Low => "low",
-        }.to_string()))
+        .bind(s.service_target.clone())
+        .bind(s.importance.clone())
         .bind(s.online_time)
-        .bind(s.code_repo_type.as_ref().map(|v| match v {
-            CodeRepoType::Svn => "svn", CodeRepoType::Git => "git",
-            CodeRepoType::None => "none", CodeRepoType::Other => "other",
-        }.to_string()))
+        .bind(s.code_repo_type.clone())
         .bind(&s.code_repo_url).bind(&s.purpose).bind(s.is_internal_system)
         .bind(&s.language_runtime)
-        .bind(s.web_framework.as_ref().map(|v| match v {
-            WebFramework::Django => "django", WebFramework::Flask => "flask",
-            WebFramework::Fastapi => "fastapi", WebFramework::SpringBoot => "spring_boot",
-            WebFramework::Express => "express", WebFramework::Rails => "rails",
-            WebFramework::Laravel => "laravel", WebFramework::AspNetMvc => "asp_net_mvc",
-            WebFramework::AspNetCore => "asp_net_core", WebFramework::Gin => "gin",
-            WebFramework::Echo => "echo", WebFramework::Nextjs => "nextjs",
-            WebFramework::Nuxtjs => "nuxtjs", WebFramework::AntDesignPro => "ant_design_pro",
-            WebFramework::Other => "other",
-        }.to_string()))
+        .bind(s.web_framework.clone())
         .bind(s.uses_cdn).bind(s.is_test_site).bind(s.backup_plan_id).bind(s.last_backup_time)
-        .bind(s.monitor_target_id).bind(site_status_to_string(&s.status))
+        .bind(s.monitor_target_id).bind(s.status.clone())
         .bind(s.offline_time).bind(&s.offline_reason).bind(&s.function_summary).bind(&s.remarks)
         .bind(s.created_at).bind(s.updated_at)
         .fetch_one(&self.pool).await?;
@@ -229,33 +150,15 @@ impl OpsSiteRepository for PgOpsSiteRepository {
                WHERE id=$1 RETURNING {}"#, SELECT_COLS
         ))
         .bind(id).bind(&s.name).bind(&s.url).bind(s.business_unit_id).bind(s.department_id)
-        .bind(s.service_target.as_ref().map(|v| match v {
-            ServiceTarget::Internal => "internal", ServiceTarget::External => "external",
-            ServiceTarget::Partner => "partner", ServiceTarget::Mixed => "mixed",
-        }.to_string()))
-        .bind(s.importance.as_ref().map(|v| match v {
-            Importance::Critical => "critical", Importance::High => "high",
-            Importance::Medium => "medium", Importance::Low => "low",
-        }.to_string()))
+        .bind(s.service_target.clone())
+        .bind(s.importance.clone())
         .bind(s.online_time)
-        .bind(s.code_repo_type.as_ref().map(|v| match v {
-            CodeRepoType::Svn => "svn", CodeRepoType::Git => "git",
-            CodeRepoType::None => "none", CodeRepoType::Other => "other",
-        }.to_string()))
+        .bind(s.code_repo_type.clone())
         .bind(&s.code_repo_url).bind(&s.purpose).bind(s.is_internal_system)
         .bind(&s.language_runtime)
-        .bind(s.web_framework.as_ref().map(|v| match v {
-            WebFramework::Django => "django", WebFramework::Flask => "flask",
-            WebFramework::Fastapi => "fastapi", WebFramework::SpringBoot => "spring_boot",
-            WebFramework::Express => "express", WebFramework::Rails => "rails",
-            WebFramework::Laravel => "laravel", WebFramework::AspNetMvc => "asp_net_mvc",
-            WebFramework::AspNetCore => "asp_net_core", WebFramework::Gin => "gin",
-            WebFramework::Echo => "echo", WebFramework::Nextjs => "nextjs",
-            WebFramework::Nuxtjs => "nuxtjs", WebFramework::AntDesignPro => "ant_design_pro",
-            WebFramework::Other => "other",
-        }.to_string()))
+        .bind(s.web_framework.clone())
         .bind(s.uses_cdn).bind(s.is_test_site).bind(s.backup_plan_id).bind(s.last_backup_time)
-        .bind(s.monitor_target_id).bind(site_status_to_string(&s.status))
+        .bind(s.monitor_target_id).bind(s.status.clone())
         .bind(s.offline_time).bind(&s.offline_reason).bind(&s.function_summary).bind(&s.remarks)
         .bind(s.updated_at)
         .fetch_optional(&self.pool).await?;

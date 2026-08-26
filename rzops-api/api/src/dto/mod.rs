@@ -16,6 +16,7 @@ pub mod attachment_dto;
 pub mod audit_log_dto;
 pub mod change_record_dto;
 pub mod site_relation_dto;
+pub mod dict_dto;
 
 pub use auth_dto::*;
 pub use provider_dto::*;
@@ -35,3 +36,4 @@ pub use attachment_dto::*;
 pub use audit_log_dto::*;
 pub use change_record_dto::*;
 pub use site_relation_dto::*;
+pub use dict_dto::*;

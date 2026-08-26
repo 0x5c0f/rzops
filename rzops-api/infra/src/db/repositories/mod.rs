@@ -16,6 +16,7 @@ pub mod attachment_repo;
 pub mod audit_log_repo;
 pub mod change_record_repo;
 pub mod site_relation_repo;
+pub mod dict_repo;
 
 pub use user_repo::PgUserRepository;
 pub use provider_repo::PgProviderRepository;
@@ -35,3 +36,4 @@ pub use attachment_repo::PgAttachmentRepository;
 pub use audit_log_repo::PgAuditLogRepository;
 pub use change_record_repo::PgChangeRecordRepository;
 pub use site_relation_repo::PgSiteRelationRepository;
+pub use dict_repo::PgDictRepository;

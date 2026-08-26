@@ -74,6 +74,7 @@
         { href: '/contracts', label: '合同' },
         { href: '/attachments', label: '附件' },
         { href: '/site-relations', label: '站点关联' },
+        { href: '/dicts', label: '字典管理' },
       ],
     },
     {

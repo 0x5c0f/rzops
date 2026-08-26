@@ -2,20 +2,15 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use sqlx::{Pool, Postgres, Row};
 use uuid::Uuid;
-use rzops_domain::enums::{CredentialType, ReservedStatus};
 use rzops_domain::models::credential::Credential;
 use rzops_domain::ports::credential_repository::{CredentialFilter, CredentialRepository};
 
 pub struct PgCredentialRepository { pool: Pool<Postgres> }
 impl PgCredentialRepository { pub fn new(pool: Pool<Postgres>) -> Self { Self { pool } } }
 
-fn parse_cred_type(s: &str) -> CredentialType { match s { "password" => CredentialType::Password, "ssh_key" => CredentialType::SshKey, "api_token" => CredentialType::ApiToken, "certificate" => CredentialType::Certificate, _ => CredentialType::Other } }
-fn cred_type_to_string(t: &CredentialType) -> String { match t { CredentialType::Password => "password", CredentialType::SshKey => "ssh_key", CredentialType::ApiToken => "api_token", CredentialType::Certificate => "certificate", CredentialType::Other => "other" }.to_string() }
-fn parse_reserved_status(s: &str) -> ReservedStatus { match s { "draft" => ReservedStatus::Draft, "active" => ReservedStatus::Active, "inactive" => ReservedStatus::Inactive, "archived" => ReservedStatus::Archived, _ => ReservedStatus::Draft } }
-fn reserved_status_to_string(s: &ReservedStatus) -> String { match s { ReservedStatus::Draft => "draft", ReservedStatus::Active => "active", ReservedStatus::Inactive => "inactive", ReservedStatus::Archived => "archived" }.to_string() }
 
 fn row_to_entity(row: &sqlx::postgres::PgRow) -> Credential {
-    Credential { id: row.get("id"), name: row.get("name"), credential_type: parse_cred_type(&row.get::<String, _>("credential_type")), username: row.get("username"), secret_ref: row.get("secret_ref"), owner_id: row.get("owner_id"), status: parse_reserved_status(&row.get::<String, _>("status")), remarks: row.get("remarks"), created_at: row.get::<DateTime<Utc>, _>("created_at"), updated_at: row.get::<DateTime<Utc>, _>("updated_at") }
+    Credential { id: row.get("id"), name: row.get("name"), credential_type: row.get::<String, _>("credential_type"), username: row.get("username"), secret_ref: row.get("secret_ref"), owner_id: row.get("owner_id"), status: row.get::<String, _>("status"), remarks: row.get("remarks"), created_at: row.get::<DateTime<Utc>, _>("created_at"), updated_at: row.get::<DateTime<Utc>, _>("updated_at") }
 }
 
 const COLS: &str = "id, name, credential_type::text, username, secret_ref, owner_id, status::text, remarks, created_at, updated_at";
@@ -60,12 +55,12 @@ impl CredentialRepository for PgCredentialRepository {
     }
     async fn create(&self, e: &Credential) -> Result<Credential, sqlx::Error> {
         Ok(row_to_entity(&sqlx::query(&format!("INSERT INTO cmdb_credential (id,name,credential_type,username,secret_ref,owner_id,status,remarks,created_at,updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING {}", COLS))
-            .bind(e.id).bind(&e.name).bind(cred_type_to_string(&e.credential_type)).bind(&e.username).bind(&e.secret_ref).bind(e.owner_id).bind(reserved_status_to_string(&e.status)).bind(&e.remarks).bind(e.created_at).bind(e.updated_at)
+            .bind(e.id).bind(&e.name).bind(e.credential_type.clone()).bind(&e.username).bind(&e.secret_ref).bind(e.owner_id).bind(e.status.clone()).bind(&e.remarks).bind(e.created_at).bind(e.updated_at)
             .fetch_one(&self.pool).await?))
     }
     async fn update(&self, id: Uuid, e: &Credential) -> Result<Option<Credential>, sqlx::Error> {
         Ok(sqlx::query(&format!("UPDATE cmdb_credential SET name=$2,credential_type=$3,username=$4,secret_ref=$5,owner_id=$6,status=$7,remarks=$8,updated_at=$9 WHERE id=$1 RETURNING {}", COLS))
-            .bind(id).bind(&e.name).bind(cred_type_to_string(&e.credential_type)).bind(&e.username).bind(&e.secret_ref).bind(e.owner_id).bind(reserved_status_to_string(&e.status)).bind(&e.remarks).bind(e.updated_at)
+            .bind(id).bind(&e.name).bind(e.credential_type.clone()).bind(&e.username).bind(&e.secret_ref).bind(e.owner_id).bind(e.status.clone()).bind(&e.remarks).bind(e.updated_at)
             .fetch_optional(&self.pool).await?.map(|r| row_to_entity(&r)))
     }
     async fn delete(&self, id: Uuid) -> Result<bool, sqlx::Error> {

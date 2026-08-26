@@ -1,7 +1,6 @@
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
-use crate::enums::{SiteDatabaseUsage, SiteServerRole};
 
 /// OpsSiteServer relation — maps to cmdb_ops_site_server.
 #[derive(Debug, Clone)]
@@ -9,7 +8,7 @@ pub struct OpsSiteServer {
     pub id: Uuid,
     pub site_id: Uuid,
     pub server_id: Uuid,
-    pub deploy_role: Option<SiteServerRole>,
+    pub deploy_role: Option<String>,
     pub is_primary: bool,
     pub created_at: DateTime<Utc>,
 }
@@ -20,7 +19,7 @@ pub struct OpsSiteDatabase {
     pub id: Uuid,
     pub site_id: Uuid,
     pub database_instance_id: Uuid,
-    pub usage_type: Option<SiteDatabaseUsage>,
+    pub usage_type: Option<String>,
     pub is_primary: bool,
     pub created_at: DateTime<Utc>,
 }

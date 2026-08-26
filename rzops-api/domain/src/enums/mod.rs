@@ -1,3 +1,3 @@
-pub mod cmdb_enums;
+pub mod change_type;
 
-pub use cmdb_enums::*;
+pub use change_type::ChangeType;

@@ -9,7 +9,6 @@ use axum::{
 use chrono::Utc;
 use uuid::Uuid;
 
-use rzops_domain::enums::Protocol;
 use rzops_domain::models::server_port::ServerPort;
 use rzops_domain::ports::server_port_repository::{ServerPortFilter, ServerPortRepository};
 
@@ -18,30 +17,13 @@ use crate::change_log::{record_change, ChangeLogState};
 use crate::dto::provider_dto::ErrorResponse;
 use crate::dto::server_port_dto::*;
 
-fn parse_protocol(s: &str) -> Protocol {
-    match s {
-        "tcp" => Protocol::Tcp,
-        "udp" => Protocol::Udp,
-        "http" => Protocol::Http,
-        "https" => Protocol::Https,
-        _ => Protocol::Tcp,
-    }
-}
 
-fn to_protocol_string(p: &Protocol) -> String {
-    match p {
-        Protocol::Tcp => "tcp".to_string(),
-        Protocol::Udp => "udp".to_string(),
-        Protocol::Http => "http".to_string(),
-        Protocol::Https => "https".to_string(),
-    }
-}
 
 fn to_response(p: &ServerPort) -> ServerPortResponse {
     ServerPortResponse {
         id: p.id,
         server_id: p.server_id,
-        protocol: to_protocol_string(&p.protocol),
+        protocol: p.protocol.clone(),
         port: p.port,
         service_name: p.service_name.clone(),
         access_scope: p.access_scope.clone(),
@@ -116,7 +98,7 @@ pub async fn create_server_port(
     let port = ServerPort {
         id: Uuid::new_v4(),
         server_id: body.server_id,
-        protocol: parse_protocol(&body.protocol),
+        protocol: body.protocol,
         port: body.port,
         service_name: body.service_name,
         access_scope: body.access_scope,
@@ -161,7 +143,7 @@ pub async fn update_server_port(
     let port = ServerPort {
         id: existing.id,
         server_id: existing.server_id,
-        protocol: body.protocol.as_deref().map(parse_protocol).unwrap_or(existing.protocol),
+        protocol: body.protocol.unwrap_or(existing.protocol),
         port: body.port.unwrap_or(existing.port),
         service_name: body.service_name.unwrap_or(existing.service_name),
         access_scope: body.access_scope.or(existing.access_scope),

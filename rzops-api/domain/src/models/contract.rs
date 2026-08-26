@@ -2,7 +2,6 @@ use chrono::{DateTime, NaiveDate, Utc};
 use rust_decimal::Decimal;
 use uuid::Uuid;
 
-use crate::enums::ContractStatus;
 
 /// Contract entity — maps to cmdb_contract.
 #[derive(Debug, Clone)]
@@ -17,7 +16,7 @@ pub struct Contract {
     pub end_date: Option<NaiveDate>,
     pub amount: Option<Decimal>,
     pub currency: String,
-    pub status: ContractStatus,
+    pub status: String,
     pub remarks: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,

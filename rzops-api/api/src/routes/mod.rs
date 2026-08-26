@@ -16,6 +16,7 @@ pub mod attachment_handlers;
 pub mod audit_log_handlers;
 pub mod change_record_handlers;
 pub mod site_relation_handlers;
+pub mod dict_handlers;
 
 use std::sync::Arc;
 use axum::Router;
@@ -39,6 +40,7 @@ use attachment_handlers::*;
 use audit_log_handlers::*;
 use change_record_handlers::*;
 use site_relation_handlers::*;
+use dict_handlers::*;
 
 pub fn auth_routes(state: auth_handlers::AuthState) -> Router {
     Router::new()
@@ -111,6 +113,10 @@ pub fn audit_log_routes(repo: Arc<dyn audit_log_repository::AuditLogRepository>)
 pub fn change_record_routes(repo: Arc<dyn change_record_repository::ChangeRecordRepository>) -> Router {
     Router::new().route("/", axum::routing::get(list_change_records))
         .route("/{id}", axum::routing::get(get_change_record)).with_state(repo)
+}
+pub fn dict_routes(repo: Arc<dyn dict_repository::DictRepository>) -> Router {
+    Router::new().route("/", axum::routing::get(list_dicts).post(create_dict))
+        .route("/{id}", axum::routing::get(get_dict).put(update_dict).delete(delete_dict)).with_state(repo)
 }
 /// Shared state for site relation routes.
 #[derive(Clone)]

@@ -103,7 +103,7 @@
             </div>
             <div class="flex justify-between">
               <dt class="text-muted-foreground">状态</dt>
-              <dd>{getOptionLabel(commonStatusOptions, datacenter.status)}</dd>
+              <dd>{getOptionLabel($commonStatusOptions, datacenter.status)}</dd>
             </div>
             <div class="flex justify-between">
               <dt class="text-muted-foreground">描述</dt>

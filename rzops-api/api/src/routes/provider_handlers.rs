@@ -9,7 +9,6 @@ use axum::{
 use chrono::Utc;
 use uuid::Uuid;
 
-use rzops_domain::enums::CommonStatus;
 use rzops_domain::models::provider::Provider;
 use rzops_domain::ports::provider_repository::{ProviderFilter, ProviderRepository};
 
@@ -23,14 +22,11 @@ fn to_response(p: &Provider) -> ProviderResponse {
         contact_name: p.contact_name.clone(), contact_phone: p.contact_phone.clone(),
         contact_qq: p.contact_qq.clone(), fax: p.fax.clone(), address: p.address.clone(),
         website: p.website.clone(), country: p.country.clone(), description: p.description.clone(),
-        status: match p.status { CommonStatus::Active => "active", CommonStatus::Inactive => "inactive", CommonStatus::Archived => "archived" }.to_string(),
+        status: p.status.clone(),
         created_at: p.created_at, updated_at: p.updated_at,
     }
 }
 
-fn parse_status(s: &str) -> CommonStatus {
-    match s { "active" => CommonStatus::Active, "inactive" => CommonStatus::Inactive, "archived" => CommonStatus::Archived, _ => CommonStatus::Active }
-}
 
 /// GET /providers/:id 鈥?Get a provider by ID.
 #[utoipa::path(get, path = "/api/v1/providers/{id}", params(("id" = Uuid, Path, description = "Provider ID")), responses((status = 200, body = ProviderResponse), (status = 404, body = ErrorResponse)), tag = "Provider")]
@@ -68,7 +64,7 @@ pub async fn create_provider(auth: AuthUser, State(repo): State<Arc<dyn Provider
         contact_name: body.contact_name, contact_phone: body.contact_phone, contact_qq: body.contact_qq,
         fax: body.fax, address: body.address, website: body.website, country: body.country,
         description: body.description,
-        status: body.status.as_deref().map(parse_status).unwrap_or(CommonStatus::Active),
+        status: body.status.unwrap_or_else(|| "active".to_string()),
         created_at: now, updated_at: now,
     };
     match repo.create(&provider).await {
@@ -96,7 +92,7 @@ pub async fn update_provider(auth: AuthUser, State(repo): State<Arc<dyn Provider
         contact_qq: body.contact_qq.or(existing.contact_qq), fax: body.fax.or(existing.fax),
         address: body.address.or(existing.address), website: body.website.or(existing.website),
         country: body.country.or(existing.country), description: body.description.or(existing.description),
-        status: body.status.as_deref().map(parse_status).unwrap_or(existing.status),
+        status: body.status.unwrap_or(existing.status),
         created_at: existing.created_at, updated_at: Utc::now(),
     };
     match repo.update(id, &provider).await {

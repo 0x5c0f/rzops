@@ -19,8 +19,8 @@
   let offset = $derived(query.offset ?? 0);
   let limit = $derived(query.limit ?? 20);
 
-  let providerTypeMap = $derived(Object.fromEntries(providerTypeOptions.map(o => [o.value, o.label])));
-  let commonStatusMap = $derived(Object.fromEntries(commonStatusOptions.map(o => [o.value, o.label])));
+  let providerTypeMap = $derived(Object.fromEntries($providerTypeOptions.map(o => [o.value, o.label])));
+  let commonStatusMap = $derived(Object.fromEntries($commonStatusOptions.map(o => [o.value, o.label])));
 
   const columns = $derived([
     { key: 'name', label: '名称' },

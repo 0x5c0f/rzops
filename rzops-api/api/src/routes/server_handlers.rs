@@ -10,7 +10,6 @@ use chrono::Utc;
 use rust_decimal::Decimal;
 use uuid::Uuid;
 
-use rzops_domain::enums::{HostingType, ServerRole, ServerStatus, ServerType, WebServerSoftware};
 use rzops_domain::models::server::Server;
 use rzops_domain::ports::server_repository::{ServerFilter, ServerRepository};
 
@@ -21,112 +20,15 @@ use crate::dto::server_dto::*;
 
 // ── Enum converters ──
 
-fn to_status_string(s: &ServerStatus) -> String {
-    match s {
-        ServerStatus::Active => "active".to_string(),
-        ServerStatus::Retired => "retired".to_string(),
-    }
-}
 
-fn parse_status(s: &str) -> ServerStatus {
-    match s {
-        "active" => ServerStatus::Active,
-        "retired" => ServerStatus::Retired,
-        _ => ServerStatus::Active,
-    }
-}
 
-fn parse_hosting_type(s: &str) -> HostingType {
-    match s {
-        "colocation" => HostingType::Colocation,
-        "rental" => HostingType::Rental,
-        "cloud" => HostingType::Cloud,
-        "self_owned" => HostingType::SelfOwned,
-        _ => HostingType::Other,
-    }
-}
 
-fn to_hosting_type_string(ht: &HostingType) -> String {
-    match ht {
-        HostingType::Colocation => "colocation".to_string(),
-        HostingType::Rental => "rental".to_string(),
-        HostingType::Cloud => "cloud".to_string(),
-        HostingType::SelfOwned => "self_owned".to_string(),
-        HostingType::Other => "other".to_string(),
-    }
-}
 
-fn parse_server_type(s: &str) -> ServerType {
-    match s {
-        "physical" => ServerType::Physical,
-        "virtual" => ServerType::Virtual,
-        "cloud" => ServerType::Cloud,
-        "container" => ServerType::Container,
-        _ => ServerType::Other,
-    }
-}
 
-fn to_server_type_string(st: &ServerType) -> String {
-    match st {
-        ServerType::Physical => "physical".to_string(),
-        ServerType::Virtual => "virtual".to_string(),
-        ServerType::Cloud => "cloud".to_string(),
-        ServerType::Container => "container".to_string(),
-        ServerType::Other => "other".to_string(),
-    }
-}
 
-fn parse_server_role(s: &str) -> ServerRole {
-    match s {
-        "web" => ServerRole::Web,
-        "db" => ServerRole::Db,
-        "cache" => ServerRole::Cache,
-        "worker" => ServerRole::Worker,
-        "file" => ServerRole::File,
-        "monitor" => ServerRole::Monitor,
-        "backup" => ServerRole::Backup,
-        _ => ServerRole::Other,
-    }
-}
 
-fn to_server_role_string(r: &ServerRole) -> String {
-    match r {
-        ServerRole::Web => "web".to_string(),
-        ServerRole::Db => "db".to_string(),
-        ServerRole::Cache => "cache".to_string(),
-        ServerRole::Worker => "worker".to_string(),
-        ServerRole::File => "file".to_string(),
-        ServerRole::Monitor => "monitor".to_string(),
-        ServerRole::Backup => "backup".to_string(),
-        ServerRole::Other => "other".to_string(),
-    }
-}
 
-fn parse_web_server_software(s: &str) -> WebServerSoftware {
-    match s {
-        "nginx" => WebServerSoftware::Nginx,
-        "apache" => WebServerSoftware::Apache,
-        "iis" => WebServerSoftware::Iis,
-        "openresty" => WebServerSoftware::OpenResty,
-        "caddy" => WebServerSoftware::Caddy,
-        "traefik" => WebServerSoftware::Traefik,
-        "tomcat" => WebServerSoftware::Tomcat,
-        _ => WebServerSoftware::Other,
-    }
-}
 
-fn to_web_server_string(w: &WebServerSoftware) -> String {
-    match w {
-        WebServerSoftware::Nginx => "nginx".to_string(),
-        WebServerSoftware::Apache => "apache".to_string(),
-        WebServerSoftware::Iis => "iis".to_string(),
-        WebServerSoftware::OpenResty => "openresty".to_string(),
-        WebServerSoftware::Caddy => "caddy".to_string(),
-        WebServerSoftware::Traefik => "traefik".to_string(),
-        WebServerSoftware::Tomcat => "tomcat".to_string(),
-        WebServerSoftware::Other => "other".to_string(),
-    }
-}
 
 // ── Model ↔ DTO ──
 
@@ -139,14 +41,14 @@ fn to_response(s: &Server) -> ServerResponse {
         location: s.location.clone(),
         isp_provider_id: s.isp_provider_id,
         data_center_id: s.data_center_id,
-        hosting_type: s.hosting_type.as_ref().map(to_hosting_type_string),
+        hosting_type: s.hosting_type.clone(),
         is_dual_line: s.is_dual_line,
         lease_start_date: s.lease_start_date,
         lease_end_date: s.lease_end_date,
         price: s.price.map(|p| p.to_string()),
         price_currency: s.price_currency.clone(),
-        server_type: s.server_type.as_ref().map(to_server_type_string),
-        role_tags: s.role_tags.iter().map(to_server_role_string).collect(),
+        server_type: s.server_type.clone(),
+        role_tags: s.role_tags.clone(),
         is_database_server: s.is_database_server,
         cpu: s.cpu.clone(),
         memory_gb: s.memory_gb,
@@ -159,10 +61,10 @@ fn to_response(s: &Server) -> ServerResponse {
         brand: s.brand.clone(),
         warranty_info: s.warranty_info.clone(),
         operating_system: s.operating_system.clone(),
-        web_server_type: s.web_server_type.iter().map(to_web_server_string).collect(),
+        web_server_type: s.web_server_type.clone(),
         server_provider_id: s.server_provider_id,
         software_provider_id: s.software_provider_id,
-        status: to_status_string(&s.status),
+        status: s.status.clone(),
         offline_time: s.offline_time,
         offline_reason: s.offline_reason.clone(),
         remarks: s.remarks.clone(),
@@ -171,29 +73,31 @@ fn to_response(s: &Server) -> ServerResponse {
     }
 }
 
+/// 归一化可选字符串：空串/纯空白 → None（避免与数据库 UNIQUE 约束冲突）
+fn opt_nonempty(v: Option<String>) -> Option<String> {
+    v.map(|s| s.trim().to_string()).filter(|s| !s.is_empty())
+}
+
 fn build_server_from_create(body: CreateServerRequest) -> Server {
     let now = Utc::now();
     Server {
         id: Uuid::new_v4(),
-        asset_code: body.asset_code,
+        asset_code: opt_nonempty(body.asset_code),
         name: body.name,
         primary_ip: body.primary_ip,
         location: body.location,
         isp_provider_id: body.isp_provider_id,
         data_center_id: body.data_center_id,
-        hosting_type: body.hosting_type.as_deref().map(parse_hosting_type),
+        hosting_type: body.hosting_type,
         is_dual_line: body.is_dual_line.unwrap_or(false),
         lease_start_date: body.lease_start_date,
         lease_end_date: body.lease_end_date,
         price: body.price.and_then(|p| p.parse::<Decimal>().ok()),
         price_currency: body.price_currency.unwrap_or_else(|| "CNY".to_string()),
-        server_type: body.server_type.as_deref().map(parse_server_type),
+        server_type: body.server_type,
         role_tags: body
             .role_tags
-            .unwrap_or_default()
-            .iter()
-            .map(|s| parse_server_role(s))
-            .collect(),
+            .unwrap_or_default(),
         is_database_server: body.is_database_server.unwrap_or(false),
         cpu: body.cpu,
         memory_gb: body.memory_gb,
@@ -208,17 +112,13 @@ fn build_server_from_create(body: CreateServerRequest) -> Server {
         operating_system: body.operating_system,
         web_server_type: body
             .web_server_type
-            .unwrap_or_default()
-            .iter()
-            .map(|s| parse_web_server_software(s))
-            .collect(),
+            .unwrap_or_default(),
         server_provider_id: body.server_provider_id,
         software_provider_id: body.software_provider_id,
         status: body
             .status
-            .as_deref()
-            .map(parse_status)
-            .unwrap_or(ServerStatus::Active),
+            
+            .unwrap_or_else(|| "active".to_string()),
         offline_time: body.offline_time,
         offline_reason: body.offline_reason,
         remarks: body.remarks,
@@ -350,7 +250,7 @@ pub async fn update_server(
     let before_value = serde_json::to_value(to_response(&existing)).unwrap_or(serde_json::json!({}));
     let server = Server {
         id: existing.id,
-        asset_code: body.asset_code.or(existing.asset_code),
+        asset_code: opt_nonempty(body.asset_code).or(existing.asset_code),
         name: body.name.unwrap_or(existing.name),
         primary_ip: body.primary_ip.or(existing.primary_ip),
         location: body.location.or(existing.location),
@@ -358,8 +258,7 @@ pub async fn update_server(
         data_center_id: body.data_center_id.or(existing.data_center_id),
         hosting_type: body
             .hosting_type
-            .as_deref()
-            .map(parse_hosting_type)
+            
             .or(existing.hosting_type),
         is_dual_line: body.is_dual_line.unwrap_or(existing.is_dual_line),
         lease_start_date: body.lease_start_date.or(existing.lease_start_date),
@@ -371,12 +270,10 @@ pub async fn update_server(
         price_currency: body.price_currency.unwrap_or(existing.price_currency),
         server_type: body
             .server_type
-            .as_deref()
-            .map(parse_server_type)
+            
             .or(existing.server_type),
         role_tags: body
             .role_tags
-            .map(|tags| tags.iter().map(|s| parse_server_role(s)).collect())
             .unwrap_or(existing.role_tags),
         is_database_server: body.is_database_server.unwrap_or(existing.is_database_server),
         cpu: body.cpu.or(existing.cpu),
@@ -392,14 +289,12 @@ pub async fn update_server(
         operating_system: body.operating_system.or(existing.operating_system),
         web_server_type: body
             .web_server_type
-            .map(|types| types.iter().map(|s| parse_web_server_software(s)).collect())
             .unwrap_or(existing.web_server_type),
         server_provider_id: body.server_provider_id.or(existing.server_provider_id),
         software_provider_id: body.software_provider_id.or(existing.software_provider_id),
         status: body
             .status
-            .as_deref()
-            .map(parse_status)
+            
             .unwrap_or(existing.status),
         offline_time: body.offline_time.or(existing.offline_time),
         offline_reason: body.offline_reason.or(existing.offline_reason),

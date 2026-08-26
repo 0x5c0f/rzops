@@ -73,7 +73,7 @@
       <FormSelect
         label="状态"
         bind:value={form.status}
-        options={commonStatusOptions}
+        options={$commonStatusOptions}
       />
 
       <div class="space-y-2 md:col-span-2 lg:col-span-3">

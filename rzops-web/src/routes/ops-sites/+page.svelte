@@ -16,9 +16,9 @@
   let query = $state<ListOpsSitesQuery>({ limit: 20, offset: 0 });
   let offset = $derived(query.offset ?? 0);
   let limit = $derived(query.limit ?? 20);
-  let siteStatusMap = $derived(Object.fromEntries(siteStatusOptions.map(o => [o.value, o.label])));
-  let serviceTargetMap = $derived(Object.fromEntries(serviceTargetOptions.map(o => [o.value, o.label])));
-  let importanceMap = $derived(Object.fromEntries(importanceOptions.map(o => [o.value, o.label])));
+  let siteStatusMap = $derived(Object.fromEntries($siteStatusOptions.map(o => [o.value, o.label])));
+  let serviceTargetMap = $derived(Object.fromEntries($serviceTargetOptions.map(o => [o.value, o.label])));
+  let importanceMap = $derived(Object.fromEntries($importanceOptions.map(o => [o.value, o.label])));
 
   const columns = $derived([
     { key: 'name', label: '名称' },

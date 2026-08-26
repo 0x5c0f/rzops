@@ -3,7 +3,6 @@ use chrono::{DateTime, Utc};
 use sqlx::{Pool, Postgres, Row};
 use uuid::Uuid;
 
-use rzops_domain::enums::Protocol;
 use rzops_domain::models::server_port::ServerPort;
 use rzops_domain::ports::server_port_repository::{ServerPortFilter, ServerPortRepository};
 
@@ -17,31 +16,14 @@ impl PgServerPortRepository {
     }
 }
 
-fn parse_protocol(s: &str) -> Protocol {
-    match s {
-        "tcp" => Protocol::Tcp,
-        "udp" => Protocol::Udp,
-        "http" => Protocol::Http,
-        "https" => Protocol::Https,
-        _ => Protocol::Tcp,
-    }
-}
 
-fn protocol_to_string(p: &Protocol) -> String {
-    match p {
-        Protocol::Tcp => "tcp".to_string(),
-        Protocol::Udp => "udp".to_string(),
-        Protocol::Http => "http".to_string(),
-        Protocol::Https => "https".to_string(),
-    }
-}
 
 fn row_to_server_port(row: &sqlx::postgres::PgRow) -> ServerPort {
     let protocol_str: String = row.get("protocol");
     ServerPort {
         id: row.get("id"),
         server_id: row.get("server_id"),
-        protocol: parse_protocol(&protocol_str),
+        protocol: protocol_str,
         port: row.get("port"),
         service_name: row.get("service_name"),
         access_scope: row.get("access_scope"),
@@ -123,7 +105,7 @@ impl ServerPortRepository for PgServerPortRepository {
         )
         .bind(port.id)
         .bind(port.server_id)
-        .bind(protocol_to_string(&port.protocol))
+        .bind(port.protocol.clone())
         .bind(port.port)
         .bind(&port.service_name)
         .bind(&port.access_scope)
@@ -146,7 +128,7 @@ impl ServerPortRepository for PgServerPortRepository {
                          access_scope, is_enabled, description, created_at, updated_at"#,
         )
         .bind(id)
-        .bind(protocol_to_string(&port.protocol))
+        .bind(port.protocol.clone())
         .bind(port.port)
         .bind(&port.service_name)
         .bind(&port.access_scope)

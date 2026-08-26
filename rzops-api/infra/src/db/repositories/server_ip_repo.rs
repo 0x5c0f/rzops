@@ -3,7 +3,6 @@ use chrono::{DateTime, Utc};
 use sqlx::{Pool, Postgres, Row};
 use uuid::Uuid;
 
-use rzops_domain::enums::IpStatus;
 use rzops_domain::models::server_ip::ServerIP;
 use rzops_domain::ports::server_ip_repository::{ServerIpFilter, ServerIpRepository};
 
@@ -17,22 +16,7 @@ impl PgServerIpRepository {
     }
 }
 
-fn parse_ip_status(s: &str) -> IpStatus {
-    match s {
-        "enabled" => IpStatus::Enabled,
-        "disabled" => IpStatus::Disabled,
-        "reserved" => IpStatus::Reserved,
-        _ => IpStatus::Enabled,
-    }
-}
 
-fn ip_status_to_string(s: &IpStatus) -> String {
-    match s {
-        IpStatus::Enabled => "enabled".to_string(),
-        IpStatus::Disabled => "disabled".to_string(),
-        IpStatus::Reserved => "reserved".to_string(),
-    }
-}
 
 fn row_to_server_ip(row: &sqlx::postgres::PgRow) -> ServerIP {
     let status_str: String = row.get("status");
@@ -44,7 +28,7 @@ fn row_to_server_ip(row: &sqlx::postgres::PgRow) -> ServerIP {
         is_primary: row.get("is_primary"),
         isp_provider_id: row.get("isp_provider_id"),
         description: row.get("description"),
-        status: parse_ip_status(&status_str),
+        status: status_str,
         created_at: row.get::<DateTime<Utc>, _>("created_at"),
         updated_at: row.get::<DateTime<Utc>, _>("updated_at"),
     }
@@ -126,7 +110,7 @@ impl ServerIpRepository for PgServerIpRepository {
         .bind(ip.is_primary)
         .bind(ip.isp_provider_id)
         .bind(&ip.description)
-        .bind(ip_status_to_string(&ip.status))
+        .bind(ip.status.clone())
         .bind(ip.created_at)
         .bind(ip.updated_at)
         .fetch_one(&self.pool)
@@ -149,7 +133,7 @@ impl ServerIpRepository for PgServerIpRepository {
         .bind(ip.is_primary)
         .bind(ip.isp_provider_id)
         .bind(&ip.description)
-        .bind(ip_status_to_string(&ip.status))
+        .bind(ip.status.clone())
         .bind(ip.updated_at)
         .fetch_optional(&self.pool)
         .await?;

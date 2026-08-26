@@ -112,7 +112,7 @@
             </div>
             <div class="flex justify-between">
               <dt class="text-muted-foreground">状态</dt>
-              <dd>{getOptionLabel(commonStatusOptions, serverIp.status)}</dd>
+              <dd>{getOptionLabel($commonStatusOptions, serverIp.status)}</dd>
             </div>
             <div class="flex justify-between">
               <dt class="text-muted-foreground">描述</dt>

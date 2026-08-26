@@ -9,7 +9,6 @@ use axum::{
 use chrono::Utc;
 use uuid::Uuid;
 
-use rzops_domain::enums::{CommonStatus, LineType};
 use rzops_domain::models::data_center::DataCenter;
 use rzops_domain::ports::datacenter_repository::{DataCenterFilter, DataCenterRepository};
 
@@ -29,40 +28,15 @@ fn to_response(dc: &DataCenter) -> DataCenterResponse {
         country: dc.country.clone(),
         province: dc.province.clone(),
         city: dc.city.clone(),
-        line_type: dc.line_type.as_ref().map(|lt| match lt {
-            LineType::SingleLine => "single_line".to_string(),
-            LineType::DualLine => "dual_line".to_string(),
-            LineType::MultiLine => "multi_line".to_string(),
-            LineType::Other => "other".to_string(),
-        }),
+        line_type: dc.line_type.clone(),
         description: dc.description.clone(),
-        status: match dc.status {
-            CommonStatus::Active => "active".to_string(),
-            CommonStatus::Inactive => "inactive".to_string(),
-            CommonStatus::Archived => "archived".to_string(),
-        },
+        status: dc.status.clone(),
         created_at: dc.created_at,
         updated_at: dc.updated_at,
     }
 }
 
-fn parse_status(s: &str) -> CommonStatus {
-    match s {
-        "active" => CommonStatus::Active,
-        "inactive" => CommonStatus::Inactive,
-        "archived" => CommonStatus::Archived,
-        _ => CommonStatus::Active,
-    }
-}
 
-fn parse_line_type(s: &str) -> LineType {
-    match s {
-        "single_line" => LineType::SingleLine,
-        "dual_line" => LineType::DualLine,
-        "multi_line" => LineType::MultiLine,
-        _ => LineType::Other,
-    }
-}
 
 /// GET /data-centers/:id
 #[utoipa::path(get, path = "/api/v1/data-centers/{id}", params(("id" = uuid::Uuid, Path)), responses((status = 200, body = DataCenterResponse), (status = 404, body = ErrorResponse)), tag = "DataCenter", security(("bearer_auth" = [])))]
@@ -147,13 +121,12 @@ pub async fn create_data_center(
         country: body.country,
         province: body.province,
         city: body.city,
-        line_type: body.line_type.as_deref().map(parse_line_type),
+        line_type: body.line_type,
         description: body.description,
         status: body
             .status
-            .as_deref()
-            .map(parse_status)
-            .unwrap_or(CommonStatus::Active),
+            
+            .unwrap_or_else(|| "active".to_string()),
         created_at: now,
         updated_at: now,
     };
@@ -220,14 +193,12 @@ pub async fn update_data_center(
         city: body.city.or(existing.city),
         line_type: body
             .line_type
-            .as_deref()
-            .map(parse_line_type)
+            
             .or(existing.line_type),
         description: body.description.or(existing.description),
         status: body
             .status
-            .as_deref()
-            .map(parse_status)
+            
             .unwrap_or(existing.status),
         created_at: existing.created_at,
         updated_at: Utc::now(),

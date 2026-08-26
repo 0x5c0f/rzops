@@ -82,11 +82,11 @@
             </div>
             <div class="flex justify-between">
               <dt class="text-muted-foreground">服务目标</dt>
-              <dd>{getOptionLabel(serviceTargetOptions, site.service_target)}</dd>
+              <dd>{getOptionLabel($serviceTargetOptions, site.service_target)}</dd>
             </div>
             <div class="flex justify-between">
               <dt class="text-muted-foreground">重要性</dt>
-              <dd>{getOptionLabel(importanceOptions, site.importance)}</dd>
+              <dd>{getOptionLabel($importanceOptions, site.importance)}</dd>
             </div>
             <div class="flex justify-between">
               <dt class="text-muted-foreground">上线时间</dt>

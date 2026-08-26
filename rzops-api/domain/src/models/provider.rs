@@ -1,7 +1,6 @@
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
-use crate::enums::CommonStatus;
 
 /// Provider entity — maps to cmdb_provider.
 #[derive(Debug, Clone)]
@@ -17,7 +16,7 @@ pub struct Provider {
     pub website: Option<String>,
     pub country: Option<String>,
     pub description: Option<String>,
-    pub status: CommonStatus,
+    pub status: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }

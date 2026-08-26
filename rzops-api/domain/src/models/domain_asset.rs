@@ -2,7 +2,6 @@ use chrono::{DateTime, NaiveDate, Utc};
 use rust_decimal::Decimal;
 use uuid::Uuid;
 
-use crate::enums::DomainPrivacyStatus;
 
 /// Domain entity — maps to cmdb_domain.
 /// Named `DomainAsset` to avoid collision with Rust's `domain` keyword.
@@ -19,7 +18,7 @@ pub struct DomainAsset {
     pub account_credential_id: Option<Uuid>,
     pub platform_phone: Option<String>,
     pub domain_email: Option<String>,
-    pub privacy_status: Option<DomainPrivacyStatus>,
+    pub privacy_status: Option<String>,
     pub is_enabled: bool,
     pub remarks: Option<String>,
     pub created_at: DateTime<Utc>,

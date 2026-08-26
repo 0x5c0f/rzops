@@ -59,14 +59,14 @@
       <FormSelect
         label="类型 *"
         bind:value={form.credential_type}
-        options={credentialTypeOptions}
+        options={$credentialTypeOptions}
         required
       />
 
       <FormSelect
         label="状态"
         bind:value={form.status}
-        options={commonStatusOptions}
+        options={$commonStatusOptions}
       />
 
       <div class="space-y-2">

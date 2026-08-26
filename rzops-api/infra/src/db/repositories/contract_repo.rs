@@ -3,18 +3,15 @@ use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use sqlx::{Pool, Postgres, Row};
 use uuid::Uuid;
-use rzops_domain::enums::ContractStatus;
 use rzops_domain::models::contract::Contract;
 use rzops_domain::ports::contract_repository::{ContractFilter, ContractRepository};
 
 pub struct PgContractRepository { pool: Pool<Postgres> }
 impl PgContractRepository { pub fn new(pool: Pool<Postgres>) -> Self { Self { pool } } }
 
-fn parse_status(s: &str) -> ContractStatus { match s { "draft" => ContractStatus::Draft, "active" => ContractStatus::Active, "expiring" => ContractStatus::Expiring, "expired" => ContractStatus::Expired, "archived" => ContractStatus::Archived, _ => ContractStatus::Draft } }
-fn status_to_string(s: &ContractStatus) -> String { match s { ContractStatus::Draft => "draft", ContractStatus::Active => "active", ContractStatus::Expiring => "expiring", ContractStatus::Expired => "expired", ContractStatus::Archived => "archived" }.to_string() }
 
 fn row_to_entity(row: &sqlx::postgres::PgRow) -> Contract {
-    Contract { id: row.get("id"), name: row.get("name"), provider_id: row.get("provider_id"), subject_type: row.get("subject_type"), subject_id: row.get("subject_id"), contract_no: row.get("contract_no"), start_date: row.get("start_date"), end_date: row.get("end_date"), amount: row.get::<Option<Decimal>, _>("amount"), currency: row.get("currency"), status: parse_status(&row.get::<String, _>("status")), remarks: row.get("remarks"), created_at: row.get::<DateTime<Utc>, _>("created_at"), updated_at: row.get::<DateTime<Utc>, _>("updated_at") }
+    Contract { id: row.get("id"), name: row.get("name"), provider_id: row.get("provider_id"), subject_type: row.get("subject_type"), subject_id: row.get("subject_id"), contract_no: row.get("contract_no"), start_date: row.get("start_date"), end_date: row.get("end_date"), amount: row.get::<Option<Decimal>, _>("amount"), currency: row.get("currency"), status: row.get::<String, _>("status"), remarks: row.get("remarks"), created_at: row.get::<DateTime<Utc>, _>("created_at"), updated_at: row.get::<DateTime<Utc>, _>("updated_at") }
 }
 
 const COLS: &str = "id, name, provider_id, subject_type, subject_id, contract_no, start_date, end_date, amount, currency, status::text, remarks, created_at, updated_at";
@@ -53,12 +50,12 @@ impl ContractRepository for PgContractRepository {
     }
     async fn create(&self, e: &Contract) -> Result<Contract, sqlx::Error> {
         Ok(row_to_entity(&sqlx::query(&format!("INSERT INTO cmdb_contract (id,name,provider_id,subject_type,subject_id,contract_no,start_date,end_date,amount,currency,status,remarks,created_at,updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING {}", COLS))
-            .bind(e.id).bind(&e.name).bind(e.provider_id).bind(&e.subject_type).bind(e.subject_id).bind(&e.contract_no).bind(e.start_date).bind(e.end_date).bind(e.amount).bind(&e.currency).bind(status_to_string(&e.status)).bind(&e.remarks).bind(e.created_at).bind(e.updated_at)
+            .bind(e.id).bind(&e.name).bind(e.provider_id).bind(&e.subject_type).bind(e.subject_id).bind(&e.contract_no).bind(e.start_date).bind(e.end_date).bind(e.amount).bind(&e.currency).bind(e.status.clone()).bind(&e.remarks).bind(e.created_at).bind(e.updated_at)
             .fetch_one(&self.pool).await?))
     }
     async fn update(&self, id: Uuid, e: &Contract) -> Result<Option<Contract>, sqlx::Error> {
         Ok(sqlx::query(&format!("UPDATE cmdb_contract SET name=$2,provider_id=$3,subject_type=$4,subject_id=$5,contract_no=$6,start_date=$7,end_date=$8,amount=$9,currency=$10,status=$11,remarks=$12,updated_at=$13 WHERE id=$1 RETURNING {}", COLS))
-            .bind(id).bind(&e.name).bind(e.provider_id).bind(&e.subject_type).bind(e.subject_id).bind(&e.contract_no).bind(e.start_date).bind(e.end_date).bind(e.amount).bind(&e.currency).bind(status_to_string(&e.status)).bind(&e.remarks).bind(e.updated_at)
+            .bind(id).bind(&e.name).bind(e.provider_id).bind(&e.subject_type).bind(e.subject_id).bind(&e.contract_no).bind(e.start_date).bind(e.end_date).bind(e.amount).bind(&e.currency).bind(e.status.clone()).bind(&e.remarks).bind(e.updated_at)
             .fetch_optional(&self.pool).await?.map(|r| row_to_entity(&r)))
     }
     async fn delete(&self, id: Uuid) -> Result<bool, sqlx::Error> {

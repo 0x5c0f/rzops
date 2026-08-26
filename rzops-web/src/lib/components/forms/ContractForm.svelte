@@ -76,7 +76,7 @@
       <FormSelect
         label="状态"
         bind:value={form.status}
-        options={contractStatusOptions}
+        options={$contractStatusOptions}
       />
 
       <div class="space-y-2">

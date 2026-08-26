@@ -115,15 +115,15 @@
             </div>
             <div class="flex justify-between">
               <dt class="text-muted-foreground">服务器类型</dt>
-              <dd>{getOptionLabel(serverTypeOptions, server.server_type)}</dd>
+              <dd>{getOptionLabel($serverTypeOptions, server.server_type)}</dd>
             </div>
             <div class="flex justify-between">
               <dt class="text-muted-foreground">托管类型</dt>
-              <dd>{getOptionLabel(hostingTypeOptions, server.hosting_type)}</dd>
+              <dd>{getOptionLabel($hostingTypeOptions, server.hosting_type)}</dd>
             </div>
             <div class="flex justify-between">
               <dt class="text-muted-foreground">架构</dt>
-              <dd>{getOptionLabel(architectureOptions, server.architecture)}</dd>
+              <dd>{getOptionLabel($architectureOptions, server.architecture)}</dd>
             </div>
             <div class="flex justify-between">
               <dt class="text-muted-foreground">操作系统</dt>
@@ -198,11 +198,11 @@
             </div>
             <div class="flex justify-between">
               <dt class="text-muted-foreground">角色标签</dt>
-              <dd>{getOptionLabels(serverRoleOptions, server.role_tags).join(', ') || '-'}</dd>
+              <dd>{getOptionLabels($serverRoleOptions, server.role_tags).join(', ') || '-'}</dd>
             </div>
             <div class="flex justify-between">
               <dt class="text-muted-foreground">Web服务器</dt>
-              <dd>{getOptionLabels(webServerSoftwareOptions, server.web_server_type).join(', ') || '-'}</dd>
+              <dd>{getOptionLabels($webServerSoftwareOptions, server.web_server_type).join(', ') || '-'}</dd>
             </div>
           </dl>
         </Card.Content>
@@ -233,7 +233,7 @@
             </div>
             <div class="flex justify-between">
               <dt class="text-muted-foreground">RAID</dt>
-              <dd>{server.is_raid ? `是 (${getOptionLabel(raidLevelOptions, server.raid_level)})` : '否'}</dd>
+              <dd>{server.is_raid ? `是 (${getOptionLabel($raidLevelOptions, server.raid_level)})` : '否'}</dd>
             </div>
             <div class="flex justify-between">
               <dt class="text-muted-foreground">保修信息</dt>

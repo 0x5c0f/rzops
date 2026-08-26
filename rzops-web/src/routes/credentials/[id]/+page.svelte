@@ -77,7 +77,7 @@
             </div>
             <div class="flex justify-between">
               <dt class="text-muted-foreground">类型</dt>
-              <dd>{getOptionLabel(credentialTypeOptions, credential.credential_type)}</dd>
+              <dd>{getOptionLabel($credentialTypeOptions, credential.credential_type)}</dd>
             </div>
             <div class="flex justify-between">
               <dt class="text-muted-foreground">用户名</dt>

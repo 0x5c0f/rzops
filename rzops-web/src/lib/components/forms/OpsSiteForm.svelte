@@ -82,7 +82,7 @@
       <FormSelect
         label="状态"
         bind:value={form.status}
-        options={siteStatusOptions}
+        options={$siteStatusOptions}
         required
       />
 
@@ -94,14 +94,14 @@
       <FormSelect
         label="服务目标"
         bind:value={form.service_target}
-        options={serviceTargetOptions}
+        options={$serviceTargetOptions}
         placeholder="选择服务目标"
       />
 
       <FormSelect
         label="重要性"
         bind:value={form.importance}
-        options={importanceOptions}
+        options={$importanceOptions}
         placeholder="选择重要性"
       />
 

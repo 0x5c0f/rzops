@@ -23,6 +23,9 @@ async fn main() -> Result<(), anyhow::Error> {
     // Seed initial admin user
     seeder::seed_admin_user(&pool).await?;
 
+    // Seed data dictionary (cmdb_dict)
+    seeder::seed_dicts(&pool).await?;
+
     let state = rzops_server::AppState::new(
         pool,
         settings.jwt.secret.as_bytes(),

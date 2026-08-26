@@ -4,6 +4,7 @@
   import { onMount } from 'svelte';
   import { auth } from '$lib/stores/auth';
   import { authApi } from '$lib/api/auth';
+  import { loadAllDicts } from '$lib/utils/enum-options';
   import Sidebar from '$lib/components/layout/Sidebar.svelte';
   import Header from '$lib/components/layout/Header.svelte';
   import '../app.css';
@@ -14,6 +15,8 @@
   let initialized = $state(false);
 
   onMount(async () => {
+    // 预加载数据字典选项（幂等，浏览器端执行）
+    loadAllDicts();
     // Skip auth check for login page
     if ($page.url.pathname === '/login') {
       loading = false;

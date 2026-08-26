@@ -21,8 +21,8 @@
   let dataCenterMap = $state<Record<string, string>>({});
   let providerMap = $state<Record<string, string>>({});
 
-  let serverTypeMap = $derived(Object.fromEntries(serverTypeOptions.map(o => [o.value, o.label])));
-  let serverStatusMap = $derived(Object.fromEntries(serverStatusOptions.map(o => [o.value, o.label])));
+  let serverTypeMap = $derived(Object.fromEntries($serverTypeOptions.map(o => [o.value, o.label])));
+  let serverStatusMap = $derived(Object.fromEntries($serverStatusOptions.map(o => [o.value, o.label])));
 
   const columns = $derived([
     { key: 'name', label: '名称' },

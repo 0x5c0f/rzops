@@ -116,20 +116,20 @@
       <FormSelect
         label="服务器类型"
         bind:value={form.server_type}
-        options={serverTypeOptions}
+        options={$serverTypeOptions}
         placeholder="选择服务器类型"
       />
 
       <FormSelect
         label="状态"
         bind:value={form.status}
-        options={serverStatusOptions}
+        options={$serverStatusOptions}
       />
 
       <FormSelect
         label="架构"
         bind:value={form.architecture}
-        options={architectureOptions}
+        options={$architectureOptions}
         placeholder="选择架构"
       />
 
@@ -166,7 +166,7 @@
       <FormSelect
         label="托管类型"
         bind:value={form.hosting_type}
-        options={hostingTypeOptions}
+        options={$hostingTypeOptions}
         placeholder="选择托管类型"
       />
 
@@ -233,7 +233,7 @@
         <FormSelect
           label="RAID级别"
           bind:value={form.raid_level}
-          options={raidLevelOptions}
+          options={$raidLevelOptions}
           placeholder="选择RAID级别"
         />
       {/if}
@@ -246,14 +246,14 @@
       <FormMultiSelect
         label="角色标签"
         bind:value={form.role_tags}
-        options={serverRoleOptions}
+        options={$serverRoleOptions}
         placeholder="选择角色"
       />
 
       <FormMultiSelect
         label="Web服务器软件"
         bind:value={form.web_server_type}
-        options={webServerSoftwareOptions}
+        options={$webServerSoftwareOptions}
         placeholder="选择Web服务器"
       />
     </Card.Content>

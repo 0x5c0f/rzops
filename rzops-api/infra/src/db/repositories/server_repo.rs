@@ -4,7 +4,6 @@ use rust_decimal::Decimal;
 use sqlx::{Pool, Postgres, Row};
 use uuid::Uuid;
 
-use rzops_domain::enums::{HostingType, ServerRole, ServerStatus, ServerType, WebServerSoftware};
 use rzops_domain::models::server::Server;
 use rzops_domain::ports::server_repository::{ServerFilter, ServerRepository};
 
@@ -19,151 +18,22 @@ impl PgServerRepository {
     }
 }
 
-// ── Enum serialization helpers ──
+// ── JSONB ↔ Vec<String> helpers ──
 
-fn parse_server_status(s: &str) -> ServerStatus {
-    match s {
-        "active" => ServerStatus::Active,
-        "retired" => ServerStatus::Retired,
-        _ => ServerStatus::Active,
-    }
-}
-
-fn server_status_to_string(s: &ServerStatus) -> String {
-    match s {
-        ServerStatus::Active => "active".to_string(),
-        ServerStatus::Retired => "retired".to_string(),
-    }
-}
-
-fn parse_hosting_type(s: &str) -> HostingType {
-    match s {
-        "colocation" => HostingType::Colocation,
-        "rental" => HostingType::Rental,
-        "cloud" => HostingType::Cloud,
-        "self_owned" => HostingType::SelfOwned,
-        _ => HostingType::Other,
-    }
-}
-
-fn hosting_type_to_string(ht: &HostingType) -> String {
-    match ht {
-        HostingType::Colocation => "colocation".to_string(),
-        HostingType::Rental => "rental".to_string(),
-        HostingType::Cloud => "cloud".to_string(),
-        HostingType::SelfOwned => "self_owned".to_string(),
-        HostingType::Other => "other".to_string(),
-    }
-}
-
-fn parse_server_type(s: &str) -> ServerType {
-    match s {
-        "physical" => ServerType::Physical,
-        "virtual" => ServerType::Virtual,
-        "cloud" => ServerType::Cloud,
-        "container" => ServerType::Container,
-        _ => ServerType::Other,
-    }
-}
-
-fn server_type_to_string(st: &ServerType) -> String {
-    match st {
-        ServerType::Physical => "physical".to_string(),
-        ServerType::Virtual => "virtual".to_string(),
-        ServerType::Cloud => "cloud".to_string(),
-        ServerType::Container => "container".to_string(),
-        ServerType::Other => "other".to_string(),
-    }
-}
-
-fn parse_server_role(s: &str) -> ServerRole {
-    match s {
-        "web" => ServerRole::Web,
-        "db" => ServerRole::Db,
-        "cache" => ServerRole::Cache,
-        "worker" => ServerRole::Worker,
-        "file" => ServerRole::File,
-        "monitor" => ServerRole::Monitor,
-        "backup" => ServerRole::Backup,
-        _ => ServerRole::Other,
-    }
-}
-
-fn server_role_to_string(r: &ServerRole) -> String {
-    match r {
-        ServerRole::Web => "web".to_string(),
-        ServerRole::Db => "db".to_string(),
-        ServerRole::Cache => "cache".to_string(),
-        ServerRole::Worker => "worker".to_string(),
-        ServerRole::File => "file".to_string(),
-        ServerRole::Monitor => "monitor".to_string(),
-        ServerRole::Backup => "backup".to_string(),
-        ServerRole::Other => "other".to_string(),
-    }
-}
-
-fn parse_web_server_software(s: &str) -> WebServerSoftware {
-    match s {
-        "nginx" => WebServerSoftware::Nginx,
-        "apache" => WebServerSoftware::Apache,
-        "iis" => WebServerSoftware::Iis,
-        "openresty" => WebServerSoftware::OpenResty,
-        "caddy" => WebServerSoftware::Caddy,
-        "traefik" => WebServerSoftware::Traefik,
-        "tomcat" => WebServerSoftware::Tomcat,
-        _ => WebServerSoftware::Other,
-    }
-}
-
-fn web_server_software_to_string(w: &WebServerSoftware) -> String {
-    match w {
-        WebServerSoftware::Nginx => "nginx".to_string(),
-        WebServerSoftware::Apache => "apache".to_string(),
-        WebServerSoftware::Iis => "iis".to_string(),
-        WebServerSoftware::OpenResty => "openresty".to_string(),
-        WebServerSoftware::Caddy => "caddy".to_string(),
-        WebServerSoftware::Traefik => "traefik".to_string(),
-        WebServerSoftware::Tomcat => "tomcat".to_string(),
-        WebServerSoftware::Other => "other".to_string(),
-    }
-}
-
-// ── JSONB ↔ Vec helpers ──
-
-fn json_to_server_roles(val: serde_json::Value) -> Vec<ServerRole> {
+fn json_to_strings(val: serde_json::Value) -> Vec<String> {
     match val {
         serde_json::Value::Array(arr) => arr
             .iter()
-            .filter_map(|v| v.as_str().map(parse_server_role))
+            .filter_map(|v| v.as_str().map(|s| s.to_string()))
             .collect(),
         _ => Vec::new(),
     }
 }
 
-fn json_to_web_server_types(val: serde_json::Value) -> Vec<WebServerSoftware> {
-    match val {
-        serde_json::Value::Array(arr) => arr
-            .iter()
-            .filter_map(|v| v.as_str().map(parse_web_server_software))
-            .collect(),
-        _ => Vec::new(),
-    }
-}
-
-fn roles_to_json(roles: &[ServerRole]) -> serde_json::Value {
+fn strings_to_json(vals: &[String]) -> serde_json::Value {
     serde_json::Value::Array(
-        roles
-            .iter()
-            .map(|r| serde_json::Value::String(server_role_to_string(r)))
-            .collect(),
-    )
-}
-
-fn web_types_to_json(types: &[WebServerSoftware]) -> serde_json::Value {
-    serde_json::Value::Array(
-        types
-            .iter()
-            .map(|w| serde_json::Value::String(web_server_software_to_string(w)))
+        vals.iter()
+            .map(|s| serde_json::Value::String(s.clone()))
             .collect(),
     )
 }
@@ -186,14 +56,14 @@ fn row_to_server(row: &sqlx::postgres::PgRow) -> Server {
         location: row.get("location"),
         isp_provider_id: row.get("isp_provider_id"),
         data_center_id: row.get("data_center_id"),
-        hosting_type: hosting_type_str.map(|s| parse_hosting_type(&s)),
+        hosting_type: hosting_type_str,
         is_dual_line: row.get("is_dual_line"),
         lease_start_date: row.get("lease_start_date"),
         lease_end_date: row.get("lease_end_date"),
         price: price_val,
         price_currency: row.get("price_currency"),
-        server_type: server_type_str.map(|s| parse_server_type(&s)),
-        role_tags: json_to_server_roles(role_tags_json),
+        server_type: server_type_str,
+        role_tags: json_to_strings(role_tags_json),
         is_database_server: row.get("is_database_server"),
         cpu: row.get("cpu"),
         memory_gb: row.get("memory_gb"),
@@ -206,10 +76,10 @@ fn row_to_server(row: &sqlx::postgres::PgRow) -> Server {
         brand: row.get("brand"),
         warranty_info: row.get("warranty_info"),
         operating_system: row.get("operating_system"),
-        web_server_type: json_to_web_server_types(web_server_type_json),
+        web_server_type: json_to_strings(web_server_type_json),
         server_provider_id: row.get("server_provider_id"),
         software_provider_id: row.get("software_provider_id"),
-        status: parse_server_status(&status_str),
+        status: status_str,
         offline_time: row.get("offline_time"),
         offline_reason: row.get("offline_reason"),
         remarks: row.get("remarks"),
@@ -343,14 +213,14 @@ impl ServerRepository for PgServerRepository {
         .bind(&server.location)
         .bind(server.isp_provider_id)
         .bind(server.data_center_id)
-        .bind(server.hosting_type.as_ref().map(hosting_type_to_string))
+        .bind(server.hosting_type.clone())
         .bind(server.is_dual_line)
         .bind(server.lease_start_date)
         .bind(server.lease_end_date)
         .bind(server.price)
         .bind(&server.price_currency)
-        .bind(server.server_type.as_ref().map(server_type_to_string))
-        .bind(roles_to_json(&server.role_tags))
+        .bind(server.server_type.clone())
+        .bind(strings_to_json(&server.role_tags))
         .bind(server.is_database_server)
         .bind(&server.cpu)
         .bind(server.memory_gb)
@@ -363,10 +233,10 @@ impl ServerRepository for PgServerRepository {
         .bind(&server.brand)
         .bind(&server.warranty_info)
         .bind(&server.operating_system)
-        .bind(web_types_to_json(&server.web_server_type))
+        .bind(strings_to_json(&server.web_server_type))
         .bind(server.server_provider_id)
         .bind(server.software_provider_id)
-        .bind(server_status_to_string(&server.status))
+        .bind(server.status.clone())
         .bind(server.offline_time)
         .bind(&server.offline_reason)
         .bind(&server.remarks)
@@ -402,14 +272,14 @@ impl ServerRepository for PgServerRepository {
         .bind(&server.location)
         .bind(server.isp_provider_id)
         .bind(server.data_center_id)
-        .bind(server.hosting_type.as_ref().map(hosting_type_to_string))
+        .bind(server.hosting_type.clone())
         .bind(server.is_dual_line)
         .bind(server.lease_start_date)
         .bind(server.lease_end_date)
         .bind(server.price)
         .bind(&server.price_currency)
-        .bind(server.server_type.as_ref().map(server_type_to_string))
-        .bind(roles_to_json(&server.role_tags))
+        .bind(server.server_type.clone())
+        .bind(strings_to_json(&server.role_tags))
         .bind(server.is_database_server)
         .bind(&server.cpu)
         .bind(server.memory_gb)
@@ -422,10 +292,10 @@ impl ServerRepository for PgServerRepository {
         .bind(&server.brand)
         .bind(&server.warranty_info)
         .bind(&server.operating_system)
-        .bind(web_types_to_json(&server.web_server_type))
+        .bind(strings_to_json(&server.web_server_type))
         .bind(server.server_provider_id)
         .bind(server.software_provider_id)
-        .bind(server_status_to_string(&server.status))
+        .bind(server.status.clone())
         .bind(server.offline_time)
         .bind(&server.offline_reason)
         .bind(&server.remarks)

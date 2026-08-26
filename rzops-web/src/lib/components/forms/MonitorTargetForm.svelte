@@ -58,14 +58,14 @@
       <FormSelect
         label="监控类型"
         bind:value={form.monitor_type}
-        options={monitorTypeOptions}
+        options={$monitorTypeOptions}
         placeholder="选择监控类型"
       />
 
       <FormSelect
         label="状态"
         bind:value={form.status}
-        options={commonStatusOptions}
+        options={$commonStatusOptions}
       />
 
       <div class="space-y-2">

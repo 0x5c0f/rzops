@@ -2,21 +2,16 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use sqlx::{Pool, Postgres, Row};
 use uuid::Uuid;
-use rzops_domain::enums::{MonitorType, ReservedStatus};
 use rzops_domain::models::monitor_target::MonitorTarget;
 use rzops_domain::ports::monitor_target_repository::{MonitorTargetFilter, MonitorTargetRepository};
 
 pub struct PgMonitorTargetRepository { pool: Pool<Postgres> }
 impl PgMonitorTargetRepository { pub fn new(pool: Pool<Postgres>) -> Self { Self { pool } } }
 
-fn parse_monitor_type(s: &str) -> MonitorType { match s { "ping" => MonitorType::Ping, "http" => MonitorType::Http, "tcp" => MonitorType::Tcp, "tls" => MonitorType::Tls, _ => MonitorType::Custom } }
-fn monitor_type_to_string(t: &MonitorType) -> String { match t { MonitorType::Ping => "ping", MonitorType::Http => "http", MonitorType::Tcp => "tcp", MonitorType::Tls => "tls", MonitorType::Custom => "custom" }.to_string() }
-fn parse_status(s: &str) -> ReservedStatus { match s { "draft" => ReservedStatus::Draft, "active" => ReservedStatus::Active, "inactive" => ReservedStatus::Inactive, "archived" => ReservedStatus::Archived, _ => ReservedStatus::Draft } }
-fn status_to_string(s: &ReservedStatus) -> String { match s { ReservedStatus::Draft => "draft", ReservedStatus::Active => "active", ReservedStatus::Inactive => "inactive", ReservedStatus::Archived => "archived" }.to_string() }
 
 fn row_to_entity(row: &sqlx::postgres::PgRow) -> MonitorTarget {
     let mt_str: Option<String> = row.get("monitor_type");
-    MonitorTarget { id: row.get("id"), name: row.get("name"), target_type: row.get("target_type"), target_id: row.get("target_id"), monitor_type: mt_str.map(|s| parse_monitor_type(&s)), endpoint: row.get("endpoint"), interval_seconds: row.get("interval_seconds"), status: parse_status(&row.get::<String, _>("status")), remarks: row.get("remarks"), created_at: row.get::<DateTime<Utc>, _>("created_at"), updated_at: row.get::<DateTime<Utc>, _>("updated_at") }
+    MonitorTarget { id: row.get("id"), name: row.get("name"), target_type: row.get("target_type"), target_id: row.get("target_id"), monitor_type: mt_str, endpoint: row.get("endpoint"), interval_seconds: row.get("interval_seconds"), status: row.get::<String, _>("status"), remarks: row.get("remarks"), created_at: row.get::<DateTime<Utc>, _>("created_at"), updated_at: row.get::<DateTime<Utc>, _>("updated_at") }
 }
 
 const COLS: &str = "id, name, target_type, target_id, monitor_type::text, endpoint, interval_seconds, status::text, remarks, created_at, updated_at";
@@ -55,12 +50,12 @@ impl MonitorTargetRepository for PgMonitorTargetRepository {
     }
     async fn create(&self, e: &MonitorTarget) -> Result<MonitorTarget, sqlx::Error> {
         Ok(row_to_entity(&sqlx::query(&format!("INSERT INTO cmdb_monitor_target (id,name,target_type,target_id,monitor_type,endpoint,interval_seconds,status,remarks,created_at,updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING {}", COLS))
-            .bind(e.id).bind(&e.name).bind(&e.target_type).bind(e.target_id).bind(e.monitor_type.as_ref().map(monitor_type_to_string)).bind(&e.endpoint).bind(e.interval_seconds).bind(status_to_string(&e.status)).bind(&e.remarks).bind(e.created_at).bind(e.updated_at)
+            .bind(e.id).bind(&e.name).bind(&e.target_type).bind(e.target_id).bind(e.monitor_type.clone()).bind(&e.endpoint).bind(e.interval_seconds).bind(e.status.clone()).bind(&e.remarks).bind(e.created_at).bind(e.updated_at)
             .fetch_one(&self.pool).await?))
     }
     async fn update(&self, id: Uuid, e: &MonitorTarget) -> Result<Option<MonitorTarget>, sqlx::Error> {
         Ok(sqlx::query(&format!("UPDATE cmdb_monitor_target SET name=$2,target_type=$3,target_id=$4,monitor_type=$5,endpoint=$6,interval_seconds=$7,status=$8,remarks=$9,updated_at=$10 WHERE id=$1 RETURNING {}", COLS))
-            .bind(id).bind(&e.name).bind(&e.target_type).bind(e.target_id).bind(e.monitor_type.as_ref().map(monitor_type_to_string)).bind(&e.endpoint).bind(e.interval_seconds).bind(status_to_string(&e.status)).bind(&e.remarks).bind(e.updated_at)
+            .bind(id).bind(&e.name).bind(&e.target_type).bind(e.target_id).bind(e.monitor_type.clone()).bind(&e.endpoint).bind(e.interval_seconds).bind(e.status.clone()).bind(&e.remarks).bind(e.updated_at)
             .fetch_optional(&self.pool).await?.map(|r| row_to_entity(&r)))
     }
     async fn delete(&self, id: Uuid) -> Result<bool, sqlx::Error> {

@@ -20,7 +20,7 @@
   let limit = $derived(query.limit ?? 20);
   let providerMap = $state<Record<string, string>>({});
 
-  let statusMap = $derived(Object.fromEntries(contractStatusOptions.map(o => [o.value, o.label])));
+  let statusMap = $derived(Object.fromEntries($contractStatusOptions.map(o => [o.value, o.label])));
 
   const columns = $derived([
     { key: 'name', label: '名称' },

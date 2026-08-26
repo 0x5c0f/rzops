@@ -3,7 +3,6 @@ use chrono::{DateTime, Utc};
 use sqlx::{Pool, Postgres, Row};
 use uuid::Uuid;
 
-use rzops_domain::enums::{CertificateStatus, CertificateType};
 use rzops_domain::models::certificate::Certificate;
 use rzops_domain::ports::certificate_repository::{CertificateFilter, CertificateRepository};
 
@@ -17,31 +16,8 @@ impl PgCertificateRepository {
     }
 }
 
-fn parse_cert_status(s: &str) -> CertificateStatus {
-    match s {
-        "active" => CertificateStatus::Active,
-        "expired" => CertificateStatus::Expired,
-        "archived" => CertificateStatus::Archived,
-        _ => CertificateStatus::Active,
-    }
-}
 
-fn cert_status_to_string(s: &CertificateStatus) -> String {
-    match s {
-        CertificateStatus::Active => "active".to_string(),
-        CertificateStatus::Expired => "expired".to_string(),
-        CertificateStatus::Archived => "archived".to_string(),
-    }
-}
 
-fn parse_cert_type(s: &str) -> CertificateType {
-    match s {
-        "single" => CertificateType::Single,
-        "multi_domain" => CertificateType::MultiDomain,
-        "wildcard" => CertificateType::Wildcard,
-        _ => CertificateType::Other,
-    }
-}
 
 fn row_to_certificate(row: &sqlx::postgres::PgRow) -> Certificate {
     let status_str: String = row.get("status");
@@ -52,8 +28,8 @@ fn row_to_certificate(row: &sqlx::postgres::PgRow) -> Certificate {
         provider_id: row.get("provider_id"),
         lease_start_date: row.get("lease_start_date"),
         lease_end_date: row.get("lease_end_date"),
-        certificate_type: type_str.map(|s| parse_cert_type(&s)),
-        status: parse_cert_status(&status_str),
+        certificate_type: type_str,
+        status: status_str,
         private_key_credential_id: row.get("private_key_credential_id"),
         remarks: row.get("remarks"),
         created_at: row.get::<DateTime<Utc>, _>("created_at"),
@@ -121,13 +97,8 @@ impl CertificateRepository for PgCertificateRepository {
                          remarks, created_at, updated_at"#,
         )
         .bind(c.id).bind(&c.name).bind(c.provider_id).bind(c.lease_start_date)
-        .bind(c.lease_end_date).bind(c.certificate_type.as_ref().map(|t| match t {
-            CertificateType::Single => "single".to_string(),
-            CertificateType::MultiDomain => "multi_domain".to_string(),
-            CertificateType::Wildcard => "wildcard".to_string(),
-            CertificateType::Other => "other".to_string(),
-        }))
-        .bind(cert_status_to_string(&c.status))
+        .bind(c.lease_end_date).bind(c.certificate_type.clone())
+        .bind(c.status.clone())
         .bind(c.private_key_credential_id).bind(&c.remarks).bind(c.created_at).bind(c.updated_at)
         .fetch_one(&self.pool).await?;
         Ok(row_to_certificate(&row))
@@ -145,13 +116,8 @@ impl CertificateRepository for PgCertificateRepository {
                          remarks, created_at, updated_at"#,
         )
         .bind(id).bind(&c.name).bind(c.provider_id).bind(c.lease_start_date)
-        .bind(c.lease_end_date).bind(c.certificate_type.as_ref().map(|t| match t {
-            CertificateType::Single => "single".to_string(),
-            CertificateType::MultiDomain => "multi_domain".to_string(),
-            CertificateType::Wildcard => "wildcard".to_string(),
-            CertificateType::Other => "other".to_string(),
-        }))
-        .bind(cert_status_to_string(&c.status))
+        .bind(c.lease_end_date).bind(c.certificate_type.clone())
+        .bind(c.status.clone())
         .bind(c.private_key_credential_id).bind(&c.remarks).bind(c.updated_at)
         .fetch_optional(&self.pool).await?;
         Ok(row.map(|r| row_to_certificate(&r)))

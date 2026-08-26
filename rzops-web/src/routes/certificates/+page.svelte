@@ -18,8 +18,8 @@
   let limit = $derived(query.limit ?? 20);
   let providerMap = $state<Record<string, string>>({});
 
-  let certificateTypeMap = $derived(Object.fromEntries(certificateTypeOptions.map(o => [o.value, o.label])));
-  let certificateStatusMap = $derived(Object.fromEntries(certificateStatusOptions.map(o => [o.value, o.label])));
+  let certificateTypeMap = $derived(Object.fromEntries($certificateTypeOptions.map(o => [o.value, o.label])));
+  let certificateStatusMap = $derived(Object.fromEntries($certificateStatusOptions.map(o => [o.value, o.label])));
 
   const columns = $derived([
     { key: 'name', label: '名称' },

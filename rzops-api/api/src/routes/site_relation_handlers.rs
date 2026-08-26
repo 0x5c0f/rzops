@@ -1,7 +1,6 @@
 use axum::{extract::{Extension, Path, State}, http::StatusCode, response::IntoResponse, Json};
 use chrono::Utc;
 use uuid::Uuid;
-use rzops_domain::enums::{SiteDatabaseUsage, SiteServerRole};
 use rzops_domain::models::ops_site_relation::{OpsSiteServer, OpsSiteDatabase, OpsSiteDomain};
 use crate::dto::provider_dto::ErrorResponse;
 use crate::dto::site_relation_dto::*;
@@ -9,21 +8,17 @@ use crate::routes::SiteRelationState;
 use crate::auth_extractor::AuthUser;
 use crate::change_log::{record_change, ChangeLogState};
 
-fn parse_role(s:&str)->SiteServerRole{match s{"web"=>SiteServerRole::Web,"api"=>SiteServerRole::Api,"worker"=>SiteServerRole::Worker,"static"=>SiteServerRole::Static,_=>SiteServerRole::Other}}
-fn role_to_string(r:&SiteServerRole)->String{match r{SiteServerRole::Web=>"web",SiteServerRole::Api=>"api",SiteServerRole::Worker=>"worker",SiteServerRole::Static=>"static",SiteServerRole::Other=>"other"}.to_string()}
-fn parse_usage(s:&str)->SiteDatabaseUsage{match s{"primary"=>SiteDatabaseUsage::Primary,"replica"=>SiteDatabaseUsage::Replica,"analytics"=>SiteDatabaseUsage::Analytics,"archive"=>SiteDatabaseUsage::Archive,_=>SiteDatabaseUsage::Other}}
-fn usage_to_string(u:&SiteDatabaseUsage)->String{match u{SiteDatabaseUsage::Primary=>"primary",SiteDatabaseUsage::Replica=>"replica",SiteDatabaseUsage::Analytics=>"analytics",SiteDatabaseUsage::Archive=>"archive",SiteDatabaseUsage::Other=>"other"}.to_string()}
 
 // Site-Server
 #[utoipa::path(get, path = "/api/v1/site-relations/site-servers/{site_id}", params(("site_id" = uuid::Uuid, Path)), responses((status = 200, body = [SiteServerRelationResponse]), (status = 500, body = ErrorResponse)), tag = "SiteRelation", security(("bearer_auth" = [])))]
-pub async fn list_site_servers(_auth:AuthUser,State(st):State<SiteRelationState>,Path(site_id):Path<Uuid>)->impl IntoResponse{match st.site_server.find_by_site(site_id).await{Ok(v)=>(StatusCode::OK,Json(v.iter().map(|e|SiteServerRelationResponse{id:e.id,site_id:e.site_id,server_id:e.server_id,deploy_role:e.deploy_role.as_ref().map(role_to_string),is_primary:e.is_primary,created_at:e.created_at}).collect::<Vec<_>>())).into_response(),Err(e)=>(StatusCode::INTERNAL_SERVER_ERROR,Json(ErrorResponse{error:e.to_string()})).into_response()}}
+pub async fn list_site_servers(_auth:AuthUser,State(st):State<SiteRelationState>,Path(site_id):Path<Uuid>)->impl IntoResponse{match st.site_server.find_by_site(site_id).await{Ok(v)=>(StatusCode::OK,Json(v.iter().map(|e|SiteServerRelationResponse{id:e.id,site_id:e.site_id,server_id:e.server_id,deploy_role:e.deploy_role.clone(),is_primary:e.is_primary,created_at:e.created_at}).collect::<Vec<_>>())).into_response(),Err(e)=>(StatusCode::INTERNAL_SERVER_ERROR,Json(ErrorResponse{error:e.to_string()})).into_response()}}
 #[utoipa::path(post, path = "/api/v1/site-relations/site-servers", request_body = CreateSiteServerRelationRequest, responses((status = 201, body = SiteServerRelationResponse), (status = 500, body = ErrorResponse)), tag = "SiteRelation", security(("bearer_auth" = [])))]
 pub async fn create_site_server(auth:AuthUser,State(st):State<SiteRelationState>,Extension(change_log):Extension<ChangeLogState>,Json(b):Json<CreateSiteServerRelationRequest>)->impl IntoResponse{
-    let e=OpsSiteServer{id:Uuid::new_v4(),site_id:b.site_id,server_id:b.server_id,deploy_role:b.deploy_role.as_deref().map(parse_role),is_primary:b.is_primary.unwrap_or(false),created_at:Utc::now()};
+    let e=OpsSiteServer{id:Uuid::new_v4(),site_id:b.site_id,server_id:b.server_id,deploy_role:b.deploy_role,is_primary:b.is_primary.unwrap_or(false),created_at:Utc::now()};
     match st.site_server.create(&e).await{
         Ok(c)=>{
             record_change(&change_log,&auth,rzops_domain::enums::ChangeType::Bind,"site_server",Some(c.id),serde_json::json!(null),serde_json::json!({"site_id":c.site_id,"server_id":c.server_id}),None).await;
-            (StatusCode::CREATED,Json(SiteServerRelationResponse{id:c.id,site_id:c.site_id,server_id:c.server_id,deploy_role:c.deploy_role.as_ref().map(role_to_string),is_primary:c.is_primary,created_at:c.created_at})).into_response()
+            (StatusCode::CREATED,Json(SiteServerRelationResponse{id:c.id,site_id:c.site_id,server_id:c.server_id,deploy_role:c.deploy_role.clone(),is_primary:c.is_primary,created_at:c.created_at})).into_response()
         }
         Err(e)=>(StatusCode::INTERNAL_SERVER_ERROR,Json(ErrorResponse{error:e.to_string()})).into_response()}
 }
@@ -39,14 +34,14 @@ pub async fn delete_site_server(auth:AuthUser,State(st):State<SiteRelationState>
 
 // Site-Database
 #[utoipa::path(get, path = "/api/v1/site-relations/site-databases/{site_id}", params(("site_id" = uuid::Uuid, Path)), responses((status = 200, body = [SiteDatabaseRelationResponse]), (status = 500, body = ErrorResponse)), tag = "SiteRelation", security(("bearer_auth" = [])))]
-pub async fn list_site_databases(_auth:AuthUser,State(st):State<SiteRelationState>,Path(site_id):Path<Uuid>)->impl IntoResponse{match st.site_database.find_by_site(site_id).await{Ok(v)=>(StatusCode::OK,Json(v.iter().map(|e|SiteDatabaseRelationResponse{id:e.id,site_id:e.site_id,database_instance_id:e.database_instance_id,usage_type:e.usage_type.as_ref().map(usage_to_string),is_primary:e.is_primary,created_at:e.created_at}).collect::<Vec<_>>())).into_response(),Err(e)=>(StatusCode::INTERNAL_SERVER_ERROR,Json(ErrorResponse{error:e.to_string()})).into_response()}}
+pub async fn list_site_databases(_auth:AuthUser,State(st):State<SiteRelationState>,Path(site_id):Path<Uuid>)->impl IntoResponse{match st.site_database.find_by_site(site_id).await{Ok(v)=>(StatusCode::OK,Json(v.iter().map(|e|SiteDatabaseRelationResponse{id:e.id,site_id:e.site_id,database_instance_id:e.database_instance_id,usage_type:e.usage_type.clone(),is_primary:e.is_primary,created_at:e.created_at}).collect::<Vec<_>>())).into_response(),Err(e)=>(StatusCode::INTERNAL_SERVER_ERROR,Json(ErrorResponse{error:e.to_string()})).into_response()}}
 #[utoipa::path(post, path = "/api/v1/site-relations/site-databases", request_body = CreateSiteDatabaseRelationRequest, responses((status = 201, body = SiteDatabaseRelationResponse), (status = 500, body = ErrorResponse)), tag = "SiteRelation", security(("bearer_auth" = [])))]
 pub async fn create_site_database(auth:AuthUser,State(st):State<SiteRelationState>,Extension(change_log):Extension<ChangeLogState>,Json(b):Json<CreateSiteDatabaseRelationRequest>)->impl IntoResponse{
-    let e=OpsSiteDatabase{id:Uuid::new_v4(),site_id:b.site_id,database_instance_id:b.database_instance_id,usage_type:b.usage_type.as_deref().map(parse_usage),is_primary:b.is_primary.unwrap_or(false),created_at:Utc::now()};
+    let e=OpsSiteDatabase{id:Uuid::new_v4(),site_id:b.site_id,database_instance_id:b.database_instance_id,usage_type:b.usage_type,is_primary:b.is_primary.unwrap_or(false),created_at:Utc::now()};
     match st.site_database.create(&e).await{
         Ok(c)=>{
             record_change(&change_log,&auth,rzops_domain::enums::ChangeType::Bind,"site_database",Some(c.id),serde_json::json!(null),serde_json::json!({"site_id":c.site_id,"database_instance_id":c.database_instance_id}),None).await;
-            (StatusCode::CREATED,Json(SiteDatabaseRelationResponse{id:c.id,site_id:c.site_id,database_instance_id:c.database_instance_id,usage_type:c.usage_type.as_ref().map(usage_to_string),is_primary:c.is_primary,created_at:c.created_at})).into_response()
+            (StatusCode::CREATED,Json(SiteDatabaseRelationResponse{id:c.id,site_id:c.site_id,database_instance_id:c.database_instance_id,usage_type:c.usage_type.clone(),is_primary:c.is_primary,created_at:c.created_at})).into_response()
         }
         Err(e)=>(StatusCode::INTERNAL_SERVER_ERROR,Json(ErrorResponse{error:e.to_string()})).into_response()}
 }

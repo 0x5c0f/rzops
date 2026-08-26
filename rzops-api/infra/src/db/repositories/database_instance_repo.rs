@@ -3,7 +3,6 @@ use chrono::{DateTime, Utc};
 use sqlx::{Pool, Postgres, Row};
 use uuid::Uuid;
 
-use rzops_domain::enums::{DatabaseStatus, DatabaseType, Importance};
 use rzops_domain::models::database_instance::DatabaseInstance;
 use rzops_domain::ports::database_instance_repository::{DatabaseInstanceFilter, DatabaseInstanceRepository};
 
@@ -17,54 +16,10 @@ impl PgDatabaseInstanceRepository {
     }
 }
 
-fn parse_db_status(s: &str) -> DatabaseStatus {
-    match s {
-        "active" => DatabaseStatus::Active,
-        "retired" => DatabaseStatus::Retired,
-        _ => DatabaseStatus::Active,
-    }
-}
 
-fn db_status_to_string(s: &DatabaseStatus) -> String {
-    match s {
-        DatabaseStatus::Active => "active".to_string(),
-        DatabaseStatus::Retired => "retired".to_string(),
-    }
-}
 
-fn parse_db_type(s: &str) -> DatabaseType {
-    match s {
-        "mysql" => DatabaseType::Mysql,
-        "postgresql" => DatabaseType::Postgresql,
-        "sqlserver" => DatabaseType::Sqlserver,
-        "oracle" => DatabaseType::Oracle,
-        "redis" => DatabaseType::Redis,
-        "mongodb" => DatabaseType::Mongodb,
-        _ => DatabaseType::Other,
-    }
-}
 
-fn db_type_to_string(t: &DatabaseType) -> String {
-    match t {
-        DatabaseType::Mysql => "mysql".to_string(),
-        DatabaseType::Postgresql => "postgresql".to_string(),
-        DatabaseType::Sqlserver => "sqlserver".to_string(),
-        DatabaseType::Oracle => "oracle".to_string(),
-        DatabaseType::Redis => "redis".to_string(),
-        DatabaseType::Mongodb => "mongodb".to_string(),
-        DatabaseType::Other => "other".to_string(),
-    }
-}
 
-fn parse_importance(s: &str) -> Importance {
-    match s {
-        "critical" => Importance::Critical,
-        "high" => Importance::High,
-        "medium" => Importance::Medium,
-        "low" => Importance::Low,
-        _ => Importance::Medium,
-    }
-}
 
 fn row_to_database_instance(row: &sqlx::postgres::PgRow) -> DatabaseInstance {
     let status_str: String = row.get("status");
@@ -74,12 +29,12 @@ fn row_to_database_instance(row: &sqlx::postgres::PgRow) -> DatabaseInstance {
         id: row.get("id"),
         server_id: row.get("server_id"),
         name: row.get("name"),
-        db_type: parse_db_type(&type_str),
+        db_type: type_str,
         description: row.get("description"),
-        status: parse_db_status(&status_str),
+        status: status_str,
         offline_time: row.get("offline_time"),
         is_self_installed: row.get("is_self_installed"),
-        importance: importance_str.map(|s| parse_importance(&s)),
+        importance: importance_str,
         is_ops_managed: row.get("is_ops_managed"),
         management_credential_id: row.get("management_credential_id"),
         backup_plan_id: row.get("backup_plan_id"),
@@ -148,14 +103,9 @@ impl DatabaseInstanceRepository for PgDatabaseInstanceRepository {
                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
                RETURNING {}"#, SELECT_COLS
         ))
-        .bind(db.id).bind(db.server_id).bind(&db.name).bind(db_type_to_string(&db.db_type))
-        .bind(&db.description).bind(db_status_to_string(&db.status)).bind(db.offline_time)
-        .bind(db.is_self_installed).bind(db.importance.as_ref().map(|i| match i {
-            Importance::Critical => "critical".to_string(),
-            Importance::High => "high".to_string(),
-            Importance::Medium => "medium".to_string(),
-            Importance::Low => "low".to_string(),
-        }))
+        .bind(db.id).bind(db.server_id).bind(&db.name).bind(db.db_type.clone())
+        .bind(&db.description).bind(db.status.clone()).bind(db.offline_time)
+        .bind(db.is_self_installed).bind(db.importance.clone())
         .bind(db.is_ops_managed).bind(db.management_credential_id).bind(db.backup_plan_id)
         .bind(db.monitor_target_id).bind(db.port).bind(&db.instance_name)
         .bind(db.created_at).bind(db.updated_at)
@@ -172,14 +122,9 @@ impl DatabaseInstanceRepository for PgDatabaseInstanceRepository {
                 port=$14, instance_name=$15, updated_at=$16
                WHERE id=$1 RETURNING {}"#, SELECT_COLS
         ))
-        .bind(id).bind(db.server_id).bind(&db.name).bind(db_type_to_string(&db.db_type))
-        .bind(&db.description).bind(db_status_to_string(&db.status)).bind(db.offline_time)
-        .bind(db.is_self_installed).bind(db.importance.as_ref().map(|i| match i {
-            Importance::Critical => "critical".to_string(),
-            Importance::High => "high".to_string(),
-            Importance::Medium => "medium".to_string(),
-            Importance::Low => "low".to_string(),
-        }))
+        .bind(id).bind(db.server_id).bind(&db.name).bind(db.db_type.clone())
+        .bind(&db.description).bind(db.status.clone()).bind(db.offline_time)
+        .bind(db.is_self_installed).bind(db.importance.clone())
         .bind(db.is_ops_managed).bind(db.management_credential_id).bind(db.backup_plan_id)
         .bind(db.monitor_target_id).bind(db.port).bind(&db.instance_name).bind(db.updated_at)
         .fetch_optional(&self.pool).await?;

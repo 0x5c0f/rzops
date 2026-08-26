@@ -17,8 +17,8 @@
   let offset = $derived(query.offset ?? 0);
   let limit = $derived(query.limit ?? 20);
   let serverMap = $state<Record<string, string>>({});
-  let ipTypeMap = $derived(Object.fromEntries(ipTypeOptions.map(o => [o.value, o.label])));
-  let ipStatusMap = $derived(Object.fromEntries(ipStatusOptions.map(o => [o.value, o.label])));
+  let ipTypeMap = $derived(Object.fromEntries($ipTypeOptions.map(o => [o.value, o.label])));
+  let ipStatusMap = $derived(Object.fromEntries($ipStatusOptions.map(o => [o.value, o.label])));
 
   const columns = $derived([
     { key: 'ip_address', label: 'IP地址' },
