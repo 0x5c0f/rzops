@@ -355,30 +355,32 @@
         <Card.Description>该服务器部署承载的站点（在站点详情页维护关联）</Card.Description>
       </Card.Header>
       <Card.Content>
-        {#if sites.length === 0}
-          <p class="text-sm text-muted-foreground">暂未关联站点</p>
-        {:else}
-          <Table.Root>
-            <Table.Header>
+        <Table.Root>
+          <Table.Header>
+            <Table.Row>
+              <Table.Head>站点</Table.Head>
+              <Table.Head>部署角色</Table.Head>
+              <Table.Head>主用</Table.Head>
+            </Table.Row>
+          </Table.Header>
+          <Table.Body>
+            {#each sites as s}
               <Table.Row>
-                <Table.Head>站点</Table.Head>
-                <Table.Head>部署角色</Table.Head>
-                <Table.Head>主用</Table.Head>
+                <Table.Cell>
+                  <a href="/ops-sites/{s.site_id}" class="text-primary hover:underline">{s.site_name}</a>
+                </Table.Cell>
+                <Table.Cell>{s.deploy_role || '-'}</Table.Cell>
+                <Table.Cell>{s.is_primary ? '是' : '-'}</Table.Cell>
               </Table.Row>
-            </Table.Header>
-            <Table.Body>
-              {#each sites as s}
-                <Table.Row>
-                  <Table.Cell>
-                    <a href="/ops-sites/{s.site_id}" class="text-primary hover:underline">{s.site_name}</a>
-                  </Table.Cell>
-                  <Table.Cell>{s.deploy_role || '-'}</Table.Cell>
-                  <Table.Cell>{s.is_primary ? '是' : '-'}</Table.Cell>
-                </Table.Row>
-              {/each}
-            </Table.Body>
-          </Table.Root>
-        {/if}
+            {:else}
+              <Table.Row>
+                <Table.Cell colspan={3} class="text-center text-muted-foreground">
+                  暂未关联站点
+                </Table.Cell>
+              </Table.Row>
+            {/each}
+          </Table.Body>
+        </Table.Root>
       </Card.Content>
     </Card.Root>
     <AttachmentSection targetType="server" targetId={server.id} />
