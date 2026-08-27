@@ -14,7 +14,6 @@ pub struct Provider {
     pub fax: Option<String>,
     pub address: Option<String>,
     pub website: Option<String>,
-    pub country: Option<String>,
     pub description: Option<String>,
     pub status: String,
     pub created_at: DateTime<Utc>,

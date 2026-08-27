@@ -6,7 +6,7 @@
   import * as Card from '$lib/ui/card';
   import FormSelect from '$lib/components/shared/FormSelect.svelte';
   import TextArea from '$lib/components/shared/TextArea.svelte';
-  import { commonStatusOptions } from '$lib/utils/enum-options';
+  import { commonStatusOptions, ipTypeOptions } from '$lib/utils/enum-options';
   import { getServerOptions, getProviderOptions } from '$lib/utils/entity-options';
   import { onMount } from 'svelte';
 
@@ -73,23 +73,24 @@
         </div>
       {:else}
         <FormSelect
-          label="服务器 *"
+          label="服务器"
           bind:value={form.server_id}
           options={serverOptions}
-          placeholder="选择服务器"
-          required
+          placeholder="选择服务器（可留空，如未绑定的EIP）"
         />
       {/if}
 
       <div class="space-y-2">
-        <Label for="ip_address">IP地址 *</Label>
+        <Label for="ip_address">IP地址 <span class="text-destructive">*</span></Label>
         <Input id="ip_address" bind:value={form.ip_address} required placeholder="如 192.168.1.10" />
       </div>
 
-      <div class="space-y-2">
-        <Label for="ip_type">IP类型</Label>
-        <Input id="ip_type" bind:value={form.ip_type} placeholder="公网 / 内网 / ..." />
-      </div>
+      <FormSelect
+        label="IP类型"
+        bind:value={form.ip_type}
+        options={$ipTypeOptions}
+        placeholder="选择类型"
+      />
 
       <FormSelect
         label="ISP供应商"

@@ -6,8 +6,9 @@
   import DomainForm from '$lib/components/forms/DomainForm.svelte';
 
   async function handleCreate(data: CreateDomainRequest) {
-    await domainsApi.create(data);
+    const res = await domainsApi.create(data);
     goto('/domains');
+    return res.id;
   }
 </script>
 

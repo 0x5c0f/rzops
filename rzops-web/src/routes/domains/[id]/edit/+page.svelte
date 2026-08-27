@@ -27,13 +27,11 @@
   function toForm(d: DomainResponse): CreateDomainRequest {
     return {
       domain_name: d.domain_name,
-      business_unit_id: d.business_unit_id ?? '',
-      company_id: d.company_id ?? '',
       expiry_date: d.expiry_date ?? '',
+      registered_date: d.registered_date ?? '',
       renewal_amount: d.renewal_amount ?? '',
       renewal_currency: d.renewal_currency ?? 'CNY',
       provider_id: d.provider_id ?? '',
-      account_credential_id: d.account_credential_id ?? '',
       platform_phone: d.platform_phone ?? '',
       domain_email: d.domain_email ?? '',
       privacy_status: d.privacy_status ?? '',
@@ -47,6 +45,7 @@
     if (!id) return;
     await domainsApi.update(id, data);
     goto(`/domains/${id}`);
+    return id;
   }
 </script>
 
@@ -68,6 +67,11 @@
   {:else if loadError || !domain}
     <p class="text-sm text-muted-foreground">加载失败，域名可能不存在。</p>
   {:else}
-    <DomainForm initial={toForm(domain)} submitLabel="保存" onSubmit={handleUpdate} />
+    <DomainForm
+      initial={toForm(domain)}
+      entityId={domain.id}
+      submitLabel="保存"
+      onSubmit={handleUpdate}
+    />
   {/if}
 </div>

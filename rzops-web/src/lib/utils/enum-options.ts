@@ -180,6 +180,31 @@ const FALLBACKS: Record<string, SelectOption[]> = {
     { label: '证书', value: 'certificate' },
     { label: '其他', value: 'other' },
   ],
+  currency: [
+    { label: '人民币 CNY', value: 'CNY' },
+    { label: '美元 USD', value: 'USD' },
+    { label: '港币 HKD', value: 'HKD' },
+    { label: '欧元 EUR', value: 'EUR' },
+    { label: '日元 JPY', value: 'JPY' },
+    { label: '英镑 GBP', value: 'GBP' },
+    { label: '新加坡元 SGD', value: 'SGD' },
+    { label: '澳元 AUD', value: 'AUD' },
+    { label: '离岸人民币 CNH', value: 'CNH' },
+  ],
+  country: [
+    { label: '中国', value: 'CN' },
+    { label: '美国', value: 'US' },
+    { label: '日本', value: 'JP' },
+    { label: '德国', value: 'DE' },
+    { label: '英国', value: 'GB' },
+    { label: '新加坡', value: 'SG' },
+    { label: '中国香港', value: 'HK' },
+    { label: '中国台湾', value: 'TW' },
+    { label: '韩国', value: 'KR' },
+    { label: '澳大利亚', value: 'AU' },
+    { label: '荷兰', value: 'NL' },
+    { label: '法国', value: 'FR' },
+  ],
   monitor_type: [
     { label: 'Ping', value: 'ping' },
     { label: 'HTTP', value: 'http' },
@@ -258,7 +283,8 @@ export const siteStatusOptions = createDictStore('site_status');
 export const serviceTargetOptions = createDictStore('service_target');
 export const codeRepoTypeOptions = createDictStore('code_repo_type');
 export const webFrameworkOptions = createDictStore('web_framework');
-export const credentialTypeOptions = createDictStore('credential_type');
+export const currencyOptions = createDictStore('currency');
+export const countryOptions = createDictStore('country');
 export const monitorTypeOptions = createDictStore('monitor_type');
 export const contractStatusOptions = createDictStore('contract_status');
 export const lineTypeOptions = createDictStore('line_type');
@@ -301,7 +327,8 @@ const STORE_MAP: Record<string, Writable<SelectOption[]>> = {
   service_target: serviceTargetOptions,
   code_repo_type: codeRepoTypeOptions,
   web_framework: webFrameworkOptions,
-  credential_type: credentialTypeOptions,
+  currency: currencyOptions,
+  country: countryOptions,
   monitor_type: monitorTypeOptions,
   contract_status: contractStatusOptions,
   line_type: lineTypeOptions,

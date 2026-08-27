@@ -11,7 +11,7 @@
   import * as Table from '$lib/ui/table';
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import StatusBadge from '$lib/components/shared/StatusBadge.svelte';
-  import { getOptionLabel, commonStatusOptions } from '$lib/utils/enum-options';
+  import { getOptionLabel, getOptionLabels, commonStatusOptions, lineTypeOptions } from '$lib/utils/enum-options';
   import { getProviderOptions } from '$lib/utils/entity-options';
   import { formatDate } from '$lib/utils/format';
   import { onMount } from 'svelte';
@@ -126,16 +126,8 @@
               <dd>{datacenter.country || '-'}</dd>
             </div>
             <div class="flex justify-between">
-              <dt class="text-muted-foreground">省份</dt>
-              <dd>{datacenter.province || '-'}</dd>
-            </div>
-            <div class="flex justify-between">
-              <dt class="text-muted-foreground">城市</dt>
-              <dd>{datacenter.city || '-'}</dd>
-            </div>
-            <div class="flex justify-between">
               <dt class="text-muted-foreground">线路类型</dt>
-              <dd>{datacenter.line_type || '-'}</dd>
+              <dd>{getOptionLabels($lineTypeOptions, datacenter.line_type).join(', ') || '-'}</dd>
             </div>
             <div class="flex justify-between">
               <dt class="text-muted-foreground">地址</dt>

@@ -9,7 +9,6 @@ export interface DatabaseInstanceResponse {
   is_self_installed: boolean | null;
   importance: string | null;
   is_ops_managed: boolean | null;
-  management_credential_id: string | null;
   backup_plan_id: string | null;
   monitor_target_id: string | null;
   port: number | null;
@@ -33,7 +32,6 @@ export interface CreateDatabaseInstanceRequest {
   is_self_installed?: boolean;
   importance?: string;
   is_ops_managed?: boolean;
-  management_credential_id?: string;
   backup_plan_id?: string;
   monitor_target_id?: string;
   port?: number;

@@ -8,7 +8,6 @@ export interface ProviderResponse {
   fax: string | null;
   address: string | null;
   website: string | null;
-  country: string | null;
   description: string | null;
   status: string;
   created_at: string;
@@ -29,7 +28,6 @@ export interface CreateProviderRequest {
   fax?: string;
   address?: string;
   website?: string;
-  country?: string;
   description?: string;
   status?: string;
 }

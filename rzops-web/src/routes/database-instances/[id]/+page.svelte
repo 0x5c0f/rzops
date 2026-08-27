@@ -11,7 +11,6 @@
   import { databaseStatusOptions, databaseTypeOptions, importanceOptions, getOptionLabel } from '$lib/utils/enum-options';
   import {
     getServerOptions,
-    getCredentialOptions,
     getBackupPlanOptions,
     getMonitorTargetOptions,
   } from '$lib/utils/entity-options';
@@ -21,7 +20,6 @@
   let instance = $state<DatabaseInstanceResponse | null>(null);
   let loading = $state(true);
   let serverMap = $state<Record<string, string>>({});
-  let credentialMap = $state<Record<string, string>>({});
   let backupPlanMap = $state<Record<string, string>>({});
   let monitorTargetMap = $state<Record<string, string>>({});
 
@@ -29,16 +27,14 @@
     const id = $page.params.id;
     if (!id) { goto('/database-instances'); return; }
     try {
-      const [inst, servers, credentials, backups, monitors] = await Promise.all([
+      const [inst, servers, backups, monitors] = await Promise.all([
         databaseInstancesApi.getById(id),
         getServerOptions(),
-        getCredentialOptions(),
         getBackupPlanOptions(),
         getMonitorTargetOptions(),
       ]);
       instance = inst;
       serverMap = Object.fromEntries(servers.map(o => [o.value, o.label]));
-      credentialMap = Object.fromEntries(credentials.map(o => [o.value, o.label]));
       backupPlanMap = Object.fromEntries(backups.map(o => [o.value, o.label]));
       monitorTargetMap = Object.fromEntries(monitors.map(o => [o.value, o.label]));
     } catch (err) {
@@ -137,18 +133,6 @@
         </Card.Header>
         <Card.Content>
           <dl class="grid gap-3 text-sm">
-            <div class="flex justify-between">
-              <dt class="text-muted-foreground">管理凭证</dt>
-              <dd>
-                {#if instance.management_credential_id}
-                  <a href="/credentials/{instance.management_credential_id}" class="text-primary hover:underline">
-                    {credentialMap[instance.management_credential_id] || instance.management_credential_id}
-                  </a>
-                {:else}
-                  -
-                {/if}
-              </dd>
-            </div>
             <div class="flex justify-between">
               <dt class="text-muted-foreground">备份计划</dt>
               <dd>

@@ -7,7 +7,6 @@ import { domainsApi } from '$lib/api/domains';
 import { certificatesApi } from '$lib/api/certificates';
 import { databaseInstancesApi } from '$lib/api/database-instances';
 import { opsSitesApi } from '$lib/api/ops-sites';
-import { credentialsApi } from '$lib/api/credentials';
 import { backupPlansApi } from '$lib/api/backup-plans';
 import { monitorTargetsApi } from '$lib/api/monitor-targets';
 import { contractsApi } from '$lib/api/contracts';
@@ -38,7 +37,6 @@ const META: Record<string, ResourceMeta> = {
   certificate: { api: certificatesApi.getById, labelField: 'name', detailPath: (id) => `/certificates/${id}`, zh: '证书' },
   database_instance: { api: databaseInstancesApi.getById, labelField: 'name', detailPath: (id) => `/database-instances/${id}`, zh: '数据库实例' },
   ops_site: { api: opsSitesApi.getById, labelField: 'name', detailPath: (id) => `/ops-sites/${id}`, zh: '站点' },
-  credential: { api: credentialsApi.getById, labelField: 'name', detailPath: (id) => `/credentials/${id}`, zh: '凭据' },
   backup_plan: { api: backupPlansApi.getById, labelField: 'name', detailPath: (id) => `/backup-plans/${id}`, zh: '备份计划' },
   monitor_target: { api: monitorTargetsApi.getById, labelField: 'name', detailPath: (id) => `/monitor-targets/${id}`, zh: '监控目标' },
   contract: { api: contractsApi.getById, labelField: 'name', detailPath: (id) => `/contracts/${id}`, zh: '合同' },

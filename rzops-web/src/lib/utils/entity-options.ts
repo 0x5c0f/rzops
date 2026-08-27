@@ -9,7 +9,6 @@ import { serversApi } from '$lib/api/servers';
 import { databaseInstancesApi } from '$lib/api/database-instances';
 import { domainsApi } from '$lib/api/domains';
 import { certificatesApi } from '$lib/api/certificates';
-import { credentialsApi } from '$lib/api/credentials';
 import { opsSitesApi } from '$lib/api/ops-sites';
 import { backupPlansApi } from '$lib/api/backup-plans';
 import { monitorTargetsApi } from '$lib/api/monitor-targets';
@@ -111,22 +110,6 @@ export async function getDomainOptions(): Promise<SelectOption[]> {
     }));
   } catch (err) {
     console.error('Failed to load domains:', err);
-    return [];
-  }
-}
-
-/**
- * 获取凭证选项
- */
-export async function getCredentialOptions(): Promise<SelectOption[]> {
-  try {
-    const res = await credentialsApi.list({ per_page: 200 });
-    return res.data.map(item => ({
-      label: item.name,
-      value: item.id,
-    }));
-  } catch (err) {
-    console.error('Failed to load credentials:', err);
     return [];
   }
 }

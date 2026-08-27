@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { CreateBackupPlanRequest } from '$lib/types/backup_plan';
+import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.svelte';
   import { Button } from '$lib/ui/button';
   import { Input } from '$lib/ui/input';
   import { Label } from '$lib/ui/label';
@@ -10,15 +11,17 @@
 
   let {
     initial = {} as CreateBackupPlanRequest,
+    entityId = '',
     submitLabel = '保存',
     onSubmit,
   }: {
     initial?: CreateBackupPlanRequest;
     submitLabel?: string;
-    onSubmit: (data: CreateBackupPlanRequest) => Promise<void>;
+    onSubmit: (data: CreateBackupPlanRequest) => Promise<string | void>;
   } = $props();
 
   let saving = $state(false);
+  let attachmentRef = $state<{ uploadAll: (id: string) => Promise<void> } | null>(null);
 
   let form = $state<CreateBackupPlanRequest>(createInitial(initial));
 
@@ -35,7 +38,8 @@
   async function handleSave() {
     saving = true;
     try {
-      await onSubmit(form);
+      const id = await onSubmit(form);
+      if (id) await attachmentRef?.uploadAll(id);
     } catch (err) {
       console.error('Failed to save backup plan:', err);
     } finally {
@@ -51,7 +55,7 @@
     </Card.Header>
     <Card.Content class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       <div class="space-y-2">
-        <Label for="name">名称 *</Label>
+        <Label for="name">名称 <span class="text-destructive">*</span></Label>
         <Input id="name" bind:value={form.name} required />
       </div>
 
@@ -82,6 +86,8 @@
       </div>
     </Card.Content>
   </Card.Root>
+
+    <AttachmentFormSection bind:this={attachmentRef} targetType="backup_plan" targetId={entityId} />
 
   <div class="flex justify-end gap-2 pb-4">
     <Button variant="outline" onclick={() => history.back()}>取消</Button>

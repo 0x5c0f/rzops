@@ -1,6 +1,6 @@
 export interface ServerIpResponse {
   id: string;
-  server_id: string;
+  server_id: string | null;
   ip_address: string;
   ip_type: string | null;
   is_primary: boolean;
@@ -17,7 +17,7 @@ export interface ServerIpListResponse {
 }
 
 export interface CreateServerIpRequest {
-  server_id: string;
+  server_id?: string;
   ip_address: string;
   ip_type?: string;
   is_primary?: boolean;

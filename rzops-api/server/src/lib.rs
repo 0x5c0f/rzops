@@ -25,7 +25,6 @@ pub struct AppState {
     pub certificate_repo: Arc<dyn certificate_repository::CertificateRepository>,
     pub database_instance_repo: Arc<dyn database_instance_repository::DatabaseInstanceRepository>,
     pub ops_site_repo: Arc<dyn ops_site_repository::OpsSiteRepository>,
-    pub credential_repo: Arc<dyn credential_repository::CredentialRepository>,
     pub backup_plan_repo: Arc<dyn backup_plan_repository::BackupPlanRepository>,
     pub monitor_target_repo: Arc<dyn monitor_target_repository::MonitorTargetRepository>,
     pub contract_repo: Arc<dyn contract_repository::ContractRepository>,
@@ -56,7 +55,6 @@ impl AppState {
             certificate_repo: Arc::new(PgCertificateRepository::new(pool.clone())),
             database_instance_repo: Arc::new(PgDatabaseInstanceRepository::new(pool.clone())),
             ops_site_repo: Arc::new(PgOpsSiteRepository::new(pool.clone())),
-            credential_repo: Arc::new(PgCredentialRepository::new(pool.clone())),
             backup_plan_repo: Arc::new(PgBackupPlanRepository::new(pool.clone())),
             monitor_target_repo: Arc::new(PgMonitorTargetRepository::new(pool.clone())),
             contract_repo: Arc::new(PgContractRepository::new(pool.clone())),
@@ -110,7 +108,6 @@ pub fn create_router(state: AppState) -> Router {
         .nest("/api/v1/certificates", rzops_api::certificate_routes(state.certificate_repo.clone()))
         .nest("/api/v1/database-instances", rzops_api::database_instance_routes(state.database_instance_repo.clone()))
         .nest("/api/v1/ops-sites", rzops_api::ops_site_routes(state.ops_site_repo.clone()))
-        .nest("/api/v1/credentials", rzops_api::credential_routes(state.credential_repo.clone()))
         .nest("/api/v1/backup-plans", rzops_api::backup_plan_routes(state.backup_plan_repo.clone()))
         .nest("/api/v1/monitor-targets", rzops_api::monitor_target_routes(state.monitor_target_repo.clone()))
         .nest("/api/v1/contracts", rzops_api::contract_routes(state.contract_repo.clone()))

@@ -6,8 +6,9 @@
   import DataCenterForm from '$lib/components/forms/DataCenterForm.svelte';
 
   async function handleCreate(data: CreateDataCenterRequest) {
-    await datacentersApi.create(data);
+    const res = await datacentersApi.create(data);
     goto('/datacenters');
+    return res.id;
   }
 </script>
 

@@ -67,12 +67,6 @@ use utoipa::OpenApi;
         crate::routes::ops_site_handlers::create_ops_site,
         crate::routes::ops_site_handlers::update_ops_site,
         crate::routes::ops_site_handlers::delete_ops_site,
-        // Credential
-        crate::routes::credential_handlers::get_credential,
-        crate::routes::credential_handlers::list_credentials,
-        crate::routes::credential_handlers::create_credential,
-        crate::routes::credential_handlers::update_credential,
-        crate::routes::credential_handlers::delete_credential,
         // BackupPlan
         crate::routes::backup_plan_handlers::get_backup_plan,
         crate::routes::backup_plan_handlers::list_backup_plans,
@@ -177,12 +171,6 @@ use utoipa::OpenApi;
         crate::dto::ops_site_dto::ListOpsSitesQuery,
         crate::dto::ops_site_dto::OpsSiteResponse,
         crate::dto::ops_site_dto::OpsSiteListResponse,
-        // Credential
-        crate::dto::credential_dto::CreateCredentialRequest,
-        crate::dto::credential_dto::UpdateCredentialRequest,
-        crate::dto::credential_dto::ListCredentialsQuery,
-        crate::dto::credential_dto::CredentialResponse,
-        crate::dto::credential_dto::CredentialListResponse,
         // BackupPlan
         crate::dto::backup_plan_dto::CreateBackupPlanRequest,
         crate::dto::backup_plan_dto::UpdateBackupPlanRequest,

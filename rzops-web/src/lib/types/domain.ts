@@ -1,13 +1,11 @@
 export interface DomainResponse {
   id: string;
   domain_name: string;
-  business_unit_id: string | null;
-  company_id: string | null;
   expiry_date: string | null;
+  registered_date: string | null;
   renewal_amount: string | null;
   renewal_currency: string | null;
   provider_id: string | null;
-  account_credential_id: string | null;
   platform_phone: string | null;
   domain_email: string | null;
   privacy_status: string | null;
@@ -24,13 +22,11 @@ export interface DomainListResponse {
 
 export interface CreateDomainRequest {
   domain_name: string;
-  business_unit_id?: string;
-  company_id?: string;
   expiry_date?: string;
+  registered_date?: string;
   renewal_amount?: string;
   renewal_currency?: string;
   provider_id?: string;
-  account_credential_id?: string;
   platform_phone?: string;
   domain_email?: string;
   privacy_status?: string;

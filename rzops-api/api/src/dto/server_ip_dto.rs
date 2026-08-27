@@ -5,7 +5,7 @@ use uuid::Uuid;
 /// Request body for creating a server IP.
 #[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct CreateServerIpRequest {
-    pub server_id: Uuid,
+    pub server_id: Option<Uuid>,
     pub ip_address: String,
     pub ip_type: Option<String>,
     pub is_primary: Option<bool>,
@@ -39,7 +39,7 @@ pub struct ListServerIpsQuery {
 #[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct ServerIpResponse {
     pub id: Uuid,
-    pub server_id: Uuid,
+    pub server_id: Option<Uuid>,
     pub ip_address: String,
     pub ip_type: String,
     pub is_primary: bool,

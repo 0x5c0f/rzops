@@ -24,13 +24,11 @@ fn row_to_domain(row: &sqlx::postgres::PgRow) -> DomainAsset {
     DomainAsset {
         id: row.get("id"),
         domain_name: row.get("domain_name"),
-        business_unit_id: row.get("business_unit_id"),
-        company_id: row.get("company_id"),
+        registered_date: row.get("registered_date"),
         expiry_date: row.get("expiry_date"),
         renewal_amount: row.get::<Option<Decimal>, _>("renewal_amount"),
         renewal_currency: row.get("renewal_currency"),
         provider_id: row.get("provider_id"),
-        account_credential_id: row.get("account_credential_id"),
         platform_phone: row.get("platform_phone"),
         domain_email: row.get("domain_email"),
         privacy_status: privacy_str,
@@ -41,8 +39,8 @@ fn row_to_domain(row: &sqlx::postgres::PgRow) -> DomainAsset {
     }
 }
 
-const SELECT_COLS: &str = r#"id, domain_name, business_unit_id, company_id, expiry_date,
-    renewal_amount, renewal_currency, provider_id, account_credential_id,
+const SELECT_COLS: &str = r#"id, domain_name, registered_date, expiry_date,
+    renewal_amount, renewal_currency, provider_id,
     platform_phone, domain_email, privacy_status::text, is_enabled, remarks,
     created_at, updated_at"#;
 
@@ -94,15 +92,15 @@ impl DomainRepository for PgDomainRepository {
     async fn create(&self, d: &DomainAsset) -> Result<DomainAsset, sqlx::Error> {
         let row = sqlx::query(&format!(
             r#"INSERT INTO cmdb_domain
-               (id, domain_name, business_unit_id, company_id, expiry_date, renewal_amount,
-                renewal_currency, provider_id, account_credential_id, platform_phone, domain_email,
+               (id, domain_name, registered_date, expiry_date, renewal_amount,
+                renewal_currency, provider_id, platform_phone, domain_email,
                 privacy_status, is_enabled, remarks, created_at, updated_at)
-               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
+               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
                RETURNING {}"#, SELECT_COLS
         ))
-        .bind(d.id).bind(&d.domain_name).bind(d.business_unit_id).bind(d.company_id)
-        .bind(d.expiry_date).bind(d.renewal_amount).bind(&d.renewal_currency)
-        .bind(d.provider_id).bind(d.account_credential_id).bind(&d.platform_phone)
+        .bind(d.id).bind(&d.domain_name).bind(d.registered_date).bind(d.expiry_date)
+        .bind(d.renewal_amount).bind(&d.renewal_currency)
+        .bind(d.provider_id).bind(&d.platform_phone)
         .bind(&d.domain_email)
         .bind(d.privacy_status.clone())
         .bind(d.is_enabled).bind(&d.remarks).bind(d.created_at).bind(d.updated_at)
@@ -113,15 +111,15 @@ impl DomainRepository for PgDomainRepository {
     async fn update(&self, id: Uuid, d: &DomainAsset) -> Result<Option<DomainAsset>, sqlx::Error> {
         let row = sqlx::query(&format!(
             r#"UPDATE cmdb_domain SET
-                domain_name=$2, business_unit_id=$3, company_id=$4, expiry_date=$5,
-                renewal_amount=$6, renewal_currency=$7, provider_id=$8, account_credential_id=$9,
-                platform_phone=$10, domain_email=$11, privacy_status=$12, is_enabled=$13,
-                remarks=$14, updated_at=$15
+                domain_name=$2, registered_date=$3, expiry_date=$4,
+                renewal_amount=$5, renewal_currency=$6, provider_id=$7,
+                platform_phone=$8, domain_email=$9, privacy_status=$10, is_enabled=$11,
+                remarks=$12, updated_at=$13
                WHERE id=$1 RETURNING {}"#, SELECT_COLS
         ))
-        .bind(id).bind(&d.domain_name).bind(d.business_unit_id).bind(d.company_id)
-        .bind(d.expiry_date).bind(d.renewal_amount).bind(&d.renewal_currency)
-        .bind(d.provider_id).bind(d.account_credential_id).bind(&d.platform_phone)
+        .bind(id).bind(&d.domain_name).bind(d.registered_date).bind(d.expiry_date)
+        .bind(d.renewal_amount).bind(&d.renewal_currency)
+        .bind(d.provider_id).bind(&d.platform_phone)
         .bind(&d.domain_email)
         .bind(d.privacy_status.clone())
         .bind(d.is_enabled).bind(&d.remarks).bind(d.updated_at)

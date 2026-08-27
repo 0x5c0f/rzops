@@ -6,8 +6,9 @@
   import MonitorTargetForm from '$lib/components/forms/MonitorTargetForm.svelte';
 
   async function handleCreate(data: CreateMonitorTargetRequest) {
-    await monitorTargetsApi.create(data);
+    const res = await monitorTargetsApi.create(data);
     goto('/monitor-targets');
+    return res.id;
   }
 </script>
 

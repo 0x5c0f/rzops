@@ -6,8 +6,9 @@
   import OpsSiteForm from '$lib/components/forms/OpsSiteForm.svelte';
 
   async function handleCreate(data: CreateOpsSiteRequest) {
-    await opsSitesApi.create(data);
+    const res = await opsSitesApi.create(data);
     goto('/ops-sites');
+    return res.id;
   }
 </script>
 

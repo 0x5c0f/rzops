@@ -34,7 +34,6 @@
       is_self_installed: d.is_self_installed ?? false,
       importance: d.importance ?? '',
       is_ops_managed: d.is_ops_managed ?? false,
-      management_credential_id: d.management_credential_id ?? '',
       backup_plan_id: d.backup_plan_id ?? '',
       monitor_target_id: d.monitor_target_id ?? '',
       port: d.port ?? undefined,
@@ -47,6 +46,7 @@
     if (!id) return;
     await databaseInstancesApi.update(id, data);
     goto(`/database-instances/${id}`);
+    return id;
   }
 </script>
 
@@ -68,6 +68,11 @@
   {:else if loadError || !instance}
     <p class="text-sm text-muted-foreground">加载失败，数据库实例可能不存在。</p>
   {:else}
-    <DatabaseInstanceForm initial={toForm(instance)} submitLabel="保存" onSubmit={handleUpdate} />
+    <DatabaseInstanceForm
+      initial={toForm(instance)}
+      entityId={instance.id}
+      submitLabel="保存"
+      onSubmit={handleUpdate}
+    />
   {/if}
 </div>

@@ -110,22 +110,10 @@
 
       <Card.Root>
         <Card.Header>
-          <Card.Title>关联信息</Card.Title>
+          <Card.Title>联系信息</Card.Title>
         </Card.Header>
         <Card.Content>
           <dl class="grid gap-3 text-sm">
-            <div class="flex justify-between">
-              <dt class="text-muted-foreground">业务单元ID</dt>
-              <dd class="font-mono">{domain.business_unit_id || '-'}</dd>
-            </div>
-            <div class="flex justify-between">
-              <dt class="text-muted-foreground">公司ID</dt>
-              <dd class="font-mono">{domain.company_id || '-'}</dd>
-            </div>
-            <div class="flex justify-between">
-              <dt class="text-muted-foreground">账户凭证ID</dt>
-              <dd class="font-mono">{domain.account_credential_id || '-'}</dd>
-            </div>
             <div class="flex justify-between">
               <dt class="text-muted-foreground">平台电话</dt>
               <dd>{domain.platform_phone || '-'}</dd>

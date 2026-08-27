@@ -6,7 +6,7 @@ use uuid::Uuid;
 #[derive(Debug, Clone)]
 pub struct ServerIP {
     pub id: Uuid,
-    pub server_id: Uuid,
+    pub server_id: Option<Uuid>,
     pub ip_address: String,
     pub ip_type: String,
     pub is_primary: bool,

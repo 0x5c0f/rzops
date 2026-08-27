@@ -40,7 +40,6 @@
       lease_end_date: c.lease_end_date ?? '',
       certificate_type: c.certificate_type ?? '',
       status: c.status ?? 'active',
-      private_key_credential_id: c.private_key_credential_id ?? '',
       remarks: c.remarks ?? '',
     };
   }
@@ -83,6 +82,7 @@
     <CertificateForm
       initial={toForm(cert)}
       initialDomains={domains.map(toDomainDraft)}
+      entityId={cert.id}
       submitLabel="保存"
       onSubmit={handleUpdate}
     />

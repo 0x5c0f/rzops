@@ -21,7 +21,7 @@ fn to_response(p: &Provider) -> ProviderResponse {
         id: p.id, name: p.name.clone(), provider_types: p.provider_types.clone(),
         contact_name: p.contact_name.clone(), contact_phone: p.contact_phone.clone(),
         contact_qq: p.contact_qq.clone(), fax: p.fax.clone(), address: p.address.clone(),
-        website: p.website.clone(), country: p.country.clone(), description: p.description.clone(),
+        website: p.website.clone(), description: p.description.clone(),
         status: p.status.clone(),
         created_at: p.created_at, updated_at: p.updated_at,
     }
@@ -39,12 +39,12 @@ pub async fn get_provider(_auth: AuthUser, State(repo): State<Arc<dyn ProviderRe
 }
 
 /// GET /providers 鈥?List providers with pagination and filtering.
-#[utoipa::path(get, path = "/api/v1/providers", params(("status" = Option<String>, Query), ("country" = Option<String>, Query), ("q" = Option<String>, Query), ("page" = Option<i64>, Query), ("per_page" = Option<i64>, Query)), responses((status = 200, body = ProviderListResponse)), tag = "Provider")]
+#[utoipa::path(get, path = "/api/v1/providers", params(("status" = Option<String>, Query), ("q" = Option<String>, Query), ("page" = Option<i64>, Query), ("per_page" = Option<i64>, Query)), responses((status = 200, body = ProviderListResponse)), tag = "Provider")]
 pub async fn list_providers(_auth: AuthUser, State(repo): State<Arc<dyn ProviderRepository>>, Query(query): Query<ListProvidersQuery>) -> impl IntoResponse {
     let page = query.page.unwrap_or(1).max(1);
     let per_page = query.per_page.unwrap_or(20).min(100);
     let offset = (page - 1) * per_page;
-    let filter = ProviderFilter { status: query.status, country: query.country, q: query.q, limit: Some(per_page), offset: Some(offset) };
+    let filter = ProviderFilter { status: query.status, q: query.q, limit: Some(per_page), offset: Some(offset) };
     match repo.find_all(filter.clone()).await {
         Ok(providers) => {
             let count = repo.count(filter).await.unwrap_or(0);
@@ -62,7 +62,7 @@ pub async fn create_provider(auth: AuthUser, State(repo): State<Arc<dyn Provider
     let provider = Provider {
         id: Uuid::new_v4(), name: body.name, provider_types: body.provider_types,
         contact_name: body.contact_name, contact_phone: body.contact_phone, contact_qq: body.contact_qq,
-        fax: body.fax, address: body.address, website: body.website, country: body.country,
+        fax: body.fax, address: body.address, website: body.website,
         description: body.description,
         status: body.status.unwrap_or_else(|| "active".to_string()),
         created_at: now, updated_at: now,
@@ -91,7 +91,7 @@ pub async fn update_provider(auth: AuthUser, State(repo): State<Arc<dyn Provider
         contact_name: body.contact_name.or(existing.contact_name), contact_phone: body.contact_phone.or(existing.contact_phone),
         contact_qq: body.contact_qq.or(existing.contact_qq), fax: body.fax.or(existing.fax),
         address: body.address.or(existing.address), website: body.website.or(existing.website),
-        country: body.country.or(existing.country), description: body.description.or(existing.description),
+        description: body.description.or(existing.description),
         status: body.status.unwrap_or(existing.status),
         created_at: existing.created_at, updated_at: Utc::now(),
     };

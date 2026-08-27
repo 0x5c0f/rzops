@@ -91,10 +91,6 @@
               <dd>{getOptionLabels($providerTypeOptions, provider.provider_types).join(', ') || '-'}</dd>
             </div>
             <div class="flex justify-between">
-              <dt class="text-muted-foreground">国家</dt>
-              <dd>{provider.country || '-'}</dd>
-            </div>
-            <div class="flex justify-between">
               <dt class="text-muted-foreground">地址</dt>
               <dd>{provider.address || '-'}</dd>
             </div>

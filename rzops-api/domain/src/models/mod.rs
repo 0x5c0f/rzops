@@ -11,7 +11,6 @@ pub mod certificate_domain;
 pub mod database_instance;
 pub mod ops_site;
 pub mod ops_site_relation;
-pub mod credential;
 pub mod backup_plan;
 pub mod monitor_target;
 pub mod contract;

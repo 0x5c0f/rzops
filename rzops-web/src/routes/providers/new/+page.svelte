@@ -6,8 +6,9 @@
   import ProviderForm from '$lib/components/forms/ProviderForm.svelte';
 
   async function handleCreate(data: CreateProviderRequest) {
-    await providersApi.create(data);
+    const res = await providersApi.create(data);
     goto('/providers');
+    return res.id;
   }
 </script>
 

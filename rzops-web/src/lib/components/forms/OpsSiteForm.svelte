@@ -1,26 +1,30 @@
 <script lang="ts">
   import type { CreateOpsSiteRequest } from '$lib/types/ops_site';
+import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.svelte';
   import { Button } from '$lib/ui/button';
   import { Input } from '$lib/ui/input';
   import { Label } from '$lib/ui/label';
   import * as Card from '$lib/ui/card';
   import FormSelect from '$lib/components/shared/FormSelect.svelte';
+  import DateField from '$lib/components/shared/DateField.svelte';
   import TextArea from '$lib/components/shared/TextArea.svelte';
-  import { siteStatusOptions, importanceOptions, serviceTargetOptions } from '$lib/utils/enum-options';
+  import { siteStatusOptions, importanceOptions, serviceTargetOptions, codeRepoTypeOptions } from '$lib/utils/enum-options';
   import { getBackupPlanOptions, getMonitorTargetOptions } from '$lib/utils/entity-options';
   import { onMount } from 'svelte';
 
   let {
     initial = {} as CreateOpsSiteRequest,
+    entityId = '',
     submitLabel = '保存',
     onSubmit,
   }: {
     initial?: CreateOpsSiteRequest;
     submitLabel?: string;
-    onSubmit: (data: CreateOpsSiteRequest) => Promise<void>;
+    onSubmit: (data: CreateOpsSiteRequest) => Promise<string | void>;
   } = $props();
 
   let saving = $state(false);
+  let attachmentRef = $state<{ uploadAll: (id: string) => Promise<void> } | null>(null);
   let backupPlanOptions = $state<{ label: string; value: string }[]>([]);
   let monitorTargetOptions = $state<{ label: string; value: string }[]>([]);
 
@@ -40,12 +44,15 @@
       function_summary: '',
       remarks: '',
       status: 'active',
-      is_internal_system: false,
-      uses_cdn: false,
       is_test_site: false,
       ...structuredClone(initial ?? {}),
     };
   }
+
+  // 是否处于下线状态（临时/永久下线时才需要填写下线时间与原因）
+  let isOffline = $derived(
+    form.status === 'temporary_offline' || form.status === 'permanent_offline',
+  );
 
   onMount(async () => {
     const [backups, monitors] = await Promise.all([
@@ -59,7 +66,8 @@
   async function handleSave() {
     saving = true;
     try {
-      await onSubmit(form);
+      const id = await onSubmit(form);
+      if (id) await attachmentRef?.uploadAll(id);
     } catch (err) {
       console.error('Failed to save ops site:', err);
     } finally {
@@ -75,7 +83,7 @@
     </Card.Header>
     <Card.Content class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       <div class="space-y-2">
-        <Label for="name">名称 *</Label>
+        <Label for="name">名称 <span class="text-destructive">*</span></Label>
         <Input id="name" bind:value={form.name} required />
       </div>
 
@@ -87,8 +95,8 @@
       />
 
       <div class="space-y-2">
-        <Label for="url">URL</Label>
-        <Input id="url" bind:value={form.url} placeholder="https://..." />
+        <Label for="url">URL <span class="text-destructive">*</span></Label>
+        <Input id="url" bind:value={form.url} required placeholder="https://..." />
       </div>
 
       <FormSelect
@@ -120,10 +128,12 @@
         <Input id="web_framework" bind:value={form.web_framework} />
       </div>
 
-      <div class="space-y-2">
-        <Label for="code_repo_type">代码仓库类型</Label>
-        <Input id="code_repo_type" bind:value={form.code_repo_type} />
-      </div>
+      <FormSelect
+        label="代码仓库类型"
+        bind:value={form.code_repo_type}
+        options={$codeRepoTypeOptions}
+        placeholder="选择仓库类型"
+      />
 
       <div class="space-y-2">
         <Label for="code_repo_url">代码仓库地址</Label>
@@ -146,18 +156,23 @@
 
       <div class="flex items-center gap-4 pt-6">
         <div class="flex items-center gap-2">
-          <input id="is_internal_system" type="checkbox" bind:checked={form.is_internal_system} class="h-4 w-4 rounded border-gray-300" />
-          <Label for="is_internal_system">内部系统</Label>
-        </div>
-        <div class="flex items-center gap-2">
-          <input id="uses_cdn" type="checkbox" bind:checked={form.uses_cdn} class="h-4 w-4 rounded border-gray-300" />
-          <Label for="uses_cdn">使用 CDN</Label>
-        </div>
-        <div class="flex items-center gap-2">
           <input id="is_test_site" type="checkbox" bind:checked={form.is_test_site} class="h-4 w-4 rounded border-gray-300" />
           <Label for="is_test_site">测试站点</Label>
         </div>
       </div>
+
+      {#if isOffline}
+        <DateField
+          id="offline_time"
+          label="下线时间"
+          bind:value={form.offline_time}
+        />
+
+        <div class="space-y-2">
+          <Label for="offline_reason">下线原因</Label>
+          <Input id="offline_reason" bind:value={form.offline_reason} placeholder="说明下线原因" />
+        </div>
+      {/if}
 
       <div class="space-y-2 md:col-span-2 lg:col-span-3">
         <Label for="function_summary">功能概述</Label>
@@ -170,6 +185,8 @@
       </div>
     </Card.Content>
   </Card.Root>
+
+    <AttachmentFormSection bind:this={attachmentRef} targetType="site" targetId={entityId} />
 
   <div class="flex justify-end gap-2 pb-4">
     <Button variant="outline" onclick={() => history.back()}>取消</Button>

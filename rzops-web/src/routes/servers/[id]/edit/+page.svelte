@@ -4,9 +4,11 @@
   import { serversApi } from '$lib/api/servers';
   import { serverIpsApi } from '$lib/api/server-ips';
   import { serverPortsApi } from '$lib/api/server-ports';
+  import { databaseInstancesApi } from '$lib/api/database-instances';
   import type { CreateServerRequest, ServerResponse } from '$lib/types/server';
   import type { ServerIpResponse } from '$lib/types/server_ip';
   import type { ServerPortResponse } from '$lib/types/server_port';
+  import type { DatabaseInstanceResponse } from '$lib/types/database_instance';
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import ServerForm from '$lib/components/forms/ServerForm.svelte';
   import { onMount } from 'svelte';
@@ -14,6 +16,7 @@
   let server = $state<ServerResponse | null>(null);
   let ips = $state<ServerIpResponse[]>([]);
   let ports = $state<ServerPortResponse[]>([]);
+  let dbInstances = $state<DatabaseInstanceResponse[]>([]);
   let loading = $state(true);
   let loadError = $state(false);
 
@@ -21,14 +24,16 @@
     const id = $page.params.id;
     if (!id) { goto('/servers'); return; }
     try {
-      const [serverData, ipData, portData] = await Promise.all([
+      const [serverData, ipData, portData, dbData] = await Promise.all([
         serversApi.getById(id),
         serverIpsApi.list({ server_id: id, per_page: 100 }),
         serverPortsApi.list({ server_id: id, per_page: 100 }),
+        databaseInstancesApi.list({ server_id: id, per_page: 100 }),
       ]);
       server = serverData;
       ips = ipData.data;
       ports = portData.data;
+      dbInstances = dbData.data;
     } catch (err) {
       console.error('Failed to load server:', err);
       loadError = true;
@@ -99,6 +104,18 @@
     };
   }
 
+  function toDbDraft(d: DatabaseInstanceResponse) {
+    return {
+      id: d.id,
+      name: d.name,
+      db_type: d.db_type,
+      port: d.port != null ? String(d.port) : '',
+      instance_name: d.instance_name ?? '',
+      importance: d.importance ?? '',
+      description: d.description ?? '',
+    };
+  }
+
   async function handleUpdate(data: CreateServerRequest) {
     const id = $page.params.id;
     if (!id) return;
@@ -129,6 +146,8 @@
       initial={toForm(server)}
       initialIps={ips.map(toIpDraft)}
       initialPorts={ports.map(toPortDraft)}
+      initialDbInstances={dbInstances.map(toDbDraft)}
+      entityId={server.id}
       submitLabel="保存"
       onSubmit={handleUpdate}
     />

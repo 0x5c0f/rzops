@@ -62,7 +62,7 @@
     </Card.Header>
     <Card.Content class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       <div class="space-y-2">
-        <Label for="name">名称 *</Label>
+        <Label for="name">名称 <span class="text-destructive">*</span></Label>
         <Input id="name" bind:value={form.name} required />
       </div>
 

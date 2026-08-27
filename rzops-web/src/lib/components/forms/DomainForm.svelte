@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { CreateDomainRequest } from '$lib/types/domain';
+import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.svelte';
   import { Button } from '$lib/ui/button';
   import { Input } from '$lib/ui/input';
   import { Label } from '$lib/ui/label';
@@ -8,19 +9,22 @@
   import DateField from '$lib/components/shared/DateField.svelte';
   import TextArea from '$lib/components/shared/TextArea.svelte';
   import { getProviderOptions } from '$lib/utils/entity-options';
+  import { currencyOptions, domainPrivacyStatusOptions } from '$lib/utils/enum-options';
   import { onMount } from 'svelte';
 
   let {
     initial = {} as CreateDomainRequest,
+    entityId = '',
     submitLabel = '保存',
     onSubmit,
   }: {
     initial?: CreateDomainRequest;
     submitLabel?: string;
-    onSubmit: (data: CreateDomainRequest) => Promise<void>;
+    onSubmit: (data: CreateDomainRequest) => Promise<string | void>;
   } = $props();
 
   let saving = $state(false);
+  let attachmentRef = $state<{ uploadAll: (id: string) => Promise<void> } | null>(null);
   let providerOptions = $state<{ label: string; value: string }[]>([]);
 
   let form = $state<CreateDomainRequest>(createInitial(initial));
@@ -30,6 +34,7 @@
       domain_name: '',
       is_enabled: true,
       renewal_currency: 'CNY',
+      registered_date: '',
       ...structuredClone(initial ?? {}),
     };
   }
@@ -41,7 +46,8 @@
   async function handleSave() {
     saving = true;
     try {
-      await onSubmit(form);
+      const id = await onSubmit(form);
+      if (id) await attachmentRef?.uploadAll(id);
     } catch (err) {
       console.error('Failed to save domain:', err);
     } finally {
@@ -57,7 +63,7 @@
     </Card.Header>
     <Card.Content class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       <div class="space-y-2">
-        <Label for="domain_name">域名 *</Label>
+        <Label for="domain_name">域名 <span class="text-destructive">*</span></Label>
         <Input id="domain_name" bind:value={form.domain_name} required placeholder="example.com" />
       </div>
 
@@ -66,6 +72,12 @@
         bind:value={form.provider_id}
         options={providerOptions}
         placeholder="选择注册商"
+      />
+
+      <DateField
+        id="registered_date"
+        label="注册日期"
+        bind:value={form.registered_date}
       />
 
       <DateField
@@ -80,36 +92,16 @@
         <Input id="renewal_amount" bind:value={form.renewal_amount} />
       </div>
 
-      <div class="space-y-2">
-        <Label for="renewal_currency">续费币种</Label>
-        <Input id="renewal_currency" bind:value={form.renewal_currency} placeholder="CNY / USD / ..." />
-      </div>
+      <FormSelect
+        label="续费币种"
+        bind:value={form.renewal_currency}
+        options={$currencyOptions}
+        placeholder="选择币种"
+      />
 
       <div class="flex items-center gap-2 pt-6">
         <input type="checkbox" id="is_enabled" bind:checked={form.is_enabled} class="h-4 w-4" />
         <Label for="is_enabled">启用</Label>
-      </div>
-    </Card.Content>
-  </Card.Root>
-
-  <Card.Root>
-    <Card.Header>
-      <Card.Title>关联信息</Card.Title>
-    </Card.Header>
-    <Card.Content class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-      <div class="space-y-2">
-        <Label for="business_unit_id">业务单元ID</Label>
-        <Input id="business_unit_id" bind:value={form.business_unit_id} />
-      </div>
-
-      <div class="space-y-2">
-        <Label for="company_id">公司ID</Label>
-        <Input id="company_id" bind:value={form.company_id} />
-      </div>
-
-      <div class="space-y-2">
-        <Label for="account_credential_id">账户凭证ID</Label>
-        <Input id="account_credential_id" bind:value={form.account_credential_id} />
       </div>
 
       <div class="space-y-2">
@@ -122,10 +114,12 @@
         <Input id="domain_email" bind:value={form.domain_email} />
       </div>
 
-      <div class="space-y-2">
-        <Label for="privacy_status">隐私状态</Label>
-        <Input id="privacy_status" bind:value={form.privacy_status} placeholder="public / private" />
-      </div>
+      <FormSelect
+        label="隐私状态"
+        bind:value={form.privacy_status}
+        options={$domainPrivacyStatusOptions}
+        placeholder="选择隐私状态"
+      />
     </Card.Content>
   </Card.Root>
 
@@ -140,6 +134,8 @@
       </div>
     </Card.Content>
   </Card.Root>
+
+    <AttachmentFormSection bind:this={attachmentRef} targetType="domain" targetId={entityId} />
 
   <div class="flex justify-end gap-2 pb-4">
     <Button variant="outline" onclick={() => history.back()}>取消</Button>

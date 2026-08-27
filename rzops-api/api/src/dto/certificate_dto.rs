@@ -10,7 +10,6 @@ pub struct CreateCertificateRequest {
     pub lease_end_date: Option<NaiveDate>,
     pub certificate_type: Option<String>,
     pub status: Option<String>,
-    pub private_key_credential_id: Option<Uuid>,
     pub remarks: Option<String>,
 }
 
@@ -22,7 +21,6 @@ pub struct UpdateCertificateRequest {
     pub lease_end_date: Option<NaiveDate>,
     pub certificate_type: Option<String>,
     pub status: Option<String>,
-    pub private_key_credential_id: Option<Uuid>,
     pub remarks: Option<String>,
 }
 
@@ -43,7 +41,6 @@ pub struct CertificateResponse {
     pub lease_end_date: Option<NaiveDate>,
     pub certificate_type: Option<String>,
     pub status: String,
-    pub private_key_credential_id: Option<Uuid>,
     pub remarks: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,

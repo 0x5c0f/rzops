@@ -41,6 +41,7 @@
     if (!id) return;
     await backupPlansApi.update(id, data);
     goto(`/backup-plans/${id}`);
+    return id;
   }
 </script>
 
@@ -62,6 +63,11 @@
   {:else if loadError || !plan}
     <p class="text-sm text-muted-foreground">加载失败，备份计划可能不存在。</p>
   {:else}
-    <BackupPlanForm initial={toForm(plan)} submitLabel="保存" onSubmit={handleUpdate} />
+    <BackupPlanForm
+      initial={toForm(plan)}
+      entityId={plan.id}
+      submitLabel="保存"
+      onSubmit={handleUpdate}
+    />
   {/if}
 </div>

@@ -6,8 +6,9 @@
   import DatabaseInstanceForm from '$lib/components/forms/DatabaseInstanceForm.svelte';
 
   async function handleCreate(data: CreateDatabaseInstanceRequest) {
-    await databaseInstancesApi.create(data);
+    const res = await databaseInstancesApi.create(data);
     goto('/database-instances');
+    return res.id;
   }
 </script>
 

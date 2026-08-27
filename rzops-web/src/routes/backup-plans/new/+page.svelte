@@ -6,8 +6,9 @@
   import BackupPlanForm from '$lib/components/forms/BackupPlanForm.svelte';
 
   async function handleCreate(data: CreateBackupPlanRequest) {
-    await backupPlansApi.create(data);
+    const res = await backupPlansApi.create(data);
     goto('/backup-plans');
+    return res.id;
   }
 </script>
 

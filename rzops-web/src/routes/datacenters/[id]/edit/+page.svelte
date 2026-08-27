@@ -31,9 +31,7 @@
       phone: d.phone ?? '',
       address: d.address ?? '',
       country: d.country ?? '',
-      province: d.province ?? '',
-      city: d.city ?? '',
-      line_type: d.line_type ?? '',
+      line_type: d.line_type ?? [],
       description: d.description ?? '',
       status: d.status ?? 'active',
     };
@@ -44,6 +42,7 @@
     if (!id) return;
     await datacentersApi.update(id, data);
     goto(`/datacenters/${id}`);
+    return id;
   }
 </script>
 
@@ -65,6 +64,11 @@
   {:else if loadError || !dc}
     <p class="text-sm text-muted-foreground">加载失败，数据中心可能不存在。</p>
   {:else}
-    <DataCenterForm initial={toForm(dc)} submitLabel="保存" onSubmit={handleUpdate} />
+    <DataCenterForm
+      initial={toForm(dc)}
+      entityId={dc.id}
+      submitLabel="保存"
+      onSubmit={handleUpdate}
+    />
   {/if}
 </div>

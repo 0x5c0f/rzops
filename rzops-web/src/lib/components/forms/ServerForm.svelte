@@ -21,9 +21,14 @@
     webServerSoftwareOptions,
     ipTypeOptions,
     protocolOptions,
+    currencyOptions,
+    databaseTypeOptions,
+    importanceOptions,
   } from '$lib/utils/enum-options';
   import { serverIpsApi } from '$lib/api/server-ips';
   import { serverPortsApi } from '$lib/api/server-ports';
+  import { databaseInstancesApi } from '$lib/api/database-instances';
+  import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.svelte';
   import { getProviderOptions, getDataCenterOptions } from '$lib/utils/entity-options';
   import { onMount } from 'svelte';
 
@@ -45,17 +50,30 @@
     is_enabled: boolean;
     description: string;
   }
+  interface DbDraft {
+    id?: string;
+    name: string;
+    db_type: string;
+    port: string;
+    instance_name: string;
+    importance: string;
+    description: string;
+  }
 
   let {
     initial = {} as CreateServerRequest,
     initialIps = [] as IpDraft[],
     initialPorts = [] as PortDraft[],
+    initialDbInstances = [] as DbDraft[],
+    entityId = '',
     submitLabel = '保存',
     onSubmit,
   }: {
     initial?: CreateServerRequest;
     initialIps?: IpDraft[];
     initialPorts?: PortDraft[];
+    initialDbInstances?: DbDraft[];
+    entityId?: string;
     submitLabel?: string;
     onSubmit: (data: CreateServerRequest) => Promise<string | void>;
   } = $props();
@@ -63,11 +81,15 @@
   let saving = $state(false);
   let providerOptions = $state<{ label: string; value: string }[]>([]);
   let dataCenterOptions = $state<{ label: string; value: string }[]>([]);
+  let attachmentRef = $state<{ uploadAll: (id: string) => Promise<void> } | null>(null);
 
   // 默认值为空字符串，确保编辑时清空字段能正确提交（后端部分更新语义）
   let form = $state<CreateServerRequest>(createInitial(initial));
   let ips = $state<IpDraft[]>(initialIps.length ? structuredClone(initialIps) : []);
   let ports = $state<PortDraft[]>(initialPorts.length ? structuredClone(initialPorts) : []);
+  let dbInstances = $state<DbDraft[]>(
+    initialDbInstances.length ? structuredClone(initialDbInstances) : [],
+  );
 
   function createInitial(initial?: CreateServerRequest): CreateServerRequest {
     return {
@@ -101,6 +123,9 @@
   function emptyPort(): PortDraft {
     return { protocol: 'tcp', port: '', service_name: '', access_scope: '', is_enabled: true, description: '' };
   }
+  function emptyDb(): DbDraft {
+    return { name: '', db_type: '', port: '', instance_name: '', importance: '', description: '' };
+  }
 
   function addIpRow() {
     ips = [...ips, emptyIp()];
@@ -113,6 +138,12 @@
   }
   function removePortRow(index: number) {
     ports = ports.filter((_, i) => i !== index);
+  }
+  function addDbRow() {
+    dbInstances = [...dbInstances, emptyDb()];
+  }
+  function removeDbRow(index: number) {
+    dbInstances = dbInstances.filter((_, i) => i !== index);
   }
 
   // 主 IP 同步策略（保证编辑时主 IP 稳定、尊重用户显式勾选）：
@@ -204,6 +235,31 @@
     }
   }
 
+  // 数据库实例增量同步（仅当勾选"数据库服务器"时维护）
+  async function syncDbInstances(serverId: string) {
+    for (const db of initialDbInstances) {
+      if (db.id && !dbInstances.some(r => r.id === db.id)) {
+        await databaseInstancesApi.delete(db.id);
+      }
+    }
+    for (const row of dbInstances) {
+      const payload = {
+        name: row.name.trim(),
+        db_type: row.db_type,
+        port: row.port ? Number(row.port) : undefined,
+        instance_name: row.instance_name || undefined,
+        importance: row.importance || undefined,
+        description: row.description || undefined,
+        status: 'active',
+      };
+      if (row.id) {
+        await databaseInstancesApi.update(row.id, payload);
+      } else {
+        await databaseInstancesApi.create({ server_id: serverId, ...payload });
+      }
+    }
+  }
+
   async function handleSave() {
     if (
       form.lease_start_date &&
@@ -214,6 +270,11 @@
       return;
     }
     if (!validateRows()) return;
+    // 校验数据库实例行
+    if (dbInstances.some(r => !r.name.trim() || !r.db_type)) {
+      alert('数据库实例的实例名和类型为必填，请填写完整或删除空行');
+      return;
+    }
     syncPrimaryIp();
     saving = true;
     try {
@@ -221,6 +282,8 @@
       if (serverId) {
         await syncIps(serverId);
         await syncPorts(serverId);
+        await syncDbInstances(serverId);
+        await attachmentRef?.uploadAll(serverId);
         goto(`/servers/${serverId}`);
       }
     } catch (err) {
@@ -250,7 +313,7 @@
     </Card.Header>
     <Card.Content class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       <div class="space-y-2">
-        <Label for="name">名称 *</Label>
+        <Label for="name">名称 <span class="text-destructive">*</span></Label>
         <Input id="name" bind:value={form.name} required />
       </div>
 
@@ -293,6 +356,20 @@
         <Label for="operating_system">操作系统</Label>
         <Input id="operating_system" bind:value={form.operating_system} />
       </div>
+
+      <FormMultiSelect
+        label="角色标签"
+        bind:value={form.role_tags}
+        options={$serverRoleOptions}
+        placeholder="选择角色"
+      />
+
+      <FormMultiSelect
+        label="Web服务器软件"
+        bind:value={form.web_server_type}
+        options={$webServerSoftwareOptions}
+        placeholder="选择Web服务器"
+      />
     </Card.Content>
   </Card.Root>
 
@@ -306,7 +383,7 @@
       {#each ips as ip, i}
         <div class="grid gap-3 rounded-lg border p-3 md:grid-cols-12">
           <div class="space-y-1 md:col-span-3">
-            <Label>IP 地址 *</Label>
+            <Label>IP 地址 <span class="text-destructive">*</span></Label>
             <Input bind:value={ip.ip_address} placeholder="192.168.1.10" />
           </div>
           <div class="space-y-1 md:col-span-3">
@@ -362,11 +439,11 @@
             />
           </div>
           <div class="space-y-1 md:col-span-2">
-            <Label>端口 *</Label>
+            <Label>端口 <span class="text-destructive">*</span></Label>
             <Input type="number" bind:value={port.port} placeholder="80" min={1} max={65535} />
           </div>
           <div class="space-y-1 md:col-span-3">
-            <Label>服务名 *</Label>
+            <Label>服务名 <span class="text-destructive">*</span></Label>
             <Input bind:value={port.service_name} placeholder="nginx" />
           </div>
           <div class="space-y-1 md:col-span-2">
@@ -471,35 +548,72 @@
         <Label for="is_raid">RAID</Label>
       </div>
 
-      {#if form.is_raid}
-        <FormSelect
-          label="RAID级别"
-          bind:value={form.raid_level}
-          options={$raidLevelOptions}
-          placeholder="选择RAID级别"
-        />
-      {/if}
+      <FormSelect
+        label="RAID级别"
+        bind:value={form.raid_level}
+        options={$raidLevelOptions}
+        placeholder="选择RAID级别"
+        disabled={!form.is_raid}
+      />
 
       <div class="flex items-center gap-2 pt-6">
         <input type="checkbox" id="is_database_server" bind:checked={form.is_database_server} class="h-4 w-4" />
         <Label for="is_database_server">数据库服务器</Label>
       </div>
-
-      <FormMultiSelect
-        label="角色标签"
-        bind:value={form.role_tags}
-        options={$serverRoleOptions}
-        placeholder="选择角色"
-      />
-
-      <FormMultiSelect
-        label="Web服务器软件"
-        bind:value={form.web_server_type}
-        options={$webServerSoftwareOptions}
-        placeholder="选择Web服务器"
-      />
     </Card.Content>
   </Card.Root>
+
+  <!-- 数据库实例（勾选"数据库服务器"后维护，便于在此直接关联） -->
+  {#if form.is_database_server}
+    <Card.Root>
+      <Card.Header>
+        <Card.Title>数据库实例</Card.Title>
+        <p class="text-sm text-muted-foreground">勾选了"数据库服务器"，可在此直接维护本服务器承载的数据库实例（也可在"数据库实例"菜单中维护）</p>
+      </Card.Header>
+      <Card.Content class="space-y-3">
+        {#each dbInstances as db, i}
+          <div class="grid gap-3 rounded-lg border p-3 md:grid-cols-12">
+            <div class="space-y-1 md:col-span-3">
+              <Label>实例名 <span class="text-destructive">*</span></Label>
+              <Input bind:value={db.name} placeholder="mysql-master" />
+            </div>
+            <div class="space-y-1 md:col-span-2">
+              <FormSelect
+                label="数据库类型 *"
+                bind:value={db.db_type}
+                options={$databaseTypeOptions}
+                placeholder="选择类型"
+              />
+            </div>
+            <div class="space-y-1 md:col-span-2">
+              <Label>端口</Label>
+              <Input type="number" bind:value={db.port} placeholder="3306" min={1} max={65535} />
+            </div>
+            <div class="space-y-1 md:col-span-2">
+              <Label>内部实例名</Label>
+              <Input bind:value={db.instance_name} placeholder="如：PROD-DB-01" />
+            </div>
+            <div class="space-y-1 md:col-span-2">
+              <FormSelect
+                label="重要性"
+                bind:value={db.importance}
+                options={$importanceOptions}
+                placeholder="选择重要性"
+              />
+            </div>
+            <div class="flex items-end justify-end md:col-span-1">
+              <Button variant="ghost" size="sm" type="button" onclick={() => removeDbRow(i)}>删除</Button>
+            </div>
+            <div class="space-y-1 md:col-span-12">
+              <Label>描述</Label>
+              <Input bind:value={db.description} placeholder="用途说明" />
+            </div>
+          </div>
+        {/each}
+        <Button variant="outline" size="sm" type="button" onclick={addDbRow}>+ 添加数据库实例</Button>
+      </Card.Content>
+    </Card.Root>
+  {/if}
 
   <!-- 租赁信息 -->
   <Card.Root>
@@ -526,10 +640,12 @@
         <Input id="price" type="number" step="0.01" bind:value={form.price} />
       </div>
 
-      <div class="space-y-2">
-        <Label for="price_currency">币种</Label>
-        <Input id="price_currency" bind:value={form.price_currency} placeholder="CNY" />
-      </div>
+      <FormSelect
+        label="币种"
+        bind:value={form.price_currency}
+        options={$currencyOptions}
+        placeholder="选择币种"
+      />
 
       <div class="space-y-2">
         <Label for="warranty_info">保修信息</Label>
@@ -550,6 +666,8 @@
       </div>
     </Card.Content>
   </Card.Root>
+
+  <AttachmentFormSection bind:this={attachmentRef} targetType="server" targetId={entityId} />
 
   <div class="flex justify-end gap-2 pb-4">
     <Button variant="outline" onclick={() => history.back()}>取消</Button>

@@ -1,26 +1,30 @@
 <script lang="ts">
   import type { CreateDataCenterRequest } from '$lib/types/datacenter';
+import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.svelte';
   import { Button } from '$lib/ui/button';
   import { Input } from '$lib/ui/input';
   import { Label } from '$lib/ui/label';
   import * as Card from '$lib/ui/card';
   import FormSelect from '$lib/components/shared/FormSelect.svelte';
+  import FormMultiSelect from '$lib/components/shared/FormMultiSelect.svelte';
   import TextArea from '$lib/components/shared/TextArea.svelte';
   import { getProviderOptions } from '$lib/utils/entity-options';
-  import { commonStatusOptions } from '$lib/utils/enum-options';
+  import { commonStatusOptions, countryOptions, lineTypeOptions } from '$lib/utils/enum-options';
   import { onMount } from 'svelte';
 
   let {
     initial = {} as CreateDataCenterRequest,
+    entityId = '',
     submitLabel = '保存',
     onSubmit,
   }: {
     initial?: CreateDataCenterRequest;
     submitLabel?: string;
-    onSubmit: (data: CreateDataCenterRequest) => Promise<void>;
+    onSubmit: (data: CreateDataCenterRequest) => Promise<string | void>;
   } = $props();
 
   let saving = $state(false);
+  let attachmentRef = $state<{ uploadAll: (id: string) => Promise<void> } | null>(null);
   let providerOptions = $state<{ label: string; value: string }[]>([]);
 
   let form = $state<CreateDataCenterRequest>(createInitial(initial));
@@ -40,7 +44,8 @@
   async function handleSave() {
     saving = true;
     try {
-      await onSubmit(form);
+      const id = await onSubmit(form);
+      if (id) await attachmentRef?.uploadAll(id);
     } catch (err) {
       console.error('Failed to save datacenter:', err);
     } finally {
@@ -56,7 +61,7 @@
     </Card.Header>
     <Card.Content class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       <div class="space-y-2">
-        <Label for="name">名称 *</Label>
+        <Label for="name">名称 <span class="text-destructive">*</span></Label>
         <Input id="name" bind:value={form.name} required />
       </div>
 
@@ -78,25 +83,19 @@
         <Input id="phone" bind:value={form.phone} />
       </div>
 
-      <div class="space-y-2">
-        <Label for="country">国家</Label>
-        <Input id="country" bind:value={form.country} />
-      </div>
+      <FormSelect
+        label="国家"
+        bind:value={form.country}
+        options={$countryOptions}
+        placeholder="选择国家"
+      />
 
-      <div class="space-y-2">
-        <Label for="province">省份</Label>
-        <Input id="province" bind:value={form.province} />
-      </div>
-
-      <div class="space-y-2">
-        <Label for="city">城市</Label>
-        <Input id="city" bind:value={form.city} />
-      </div>
-
-      <div class="space-y-2">
-        <Label for="line_type">线路类型</Label>
-        <Input id="line_type" bind:value={form.line_type} placeholder="电信 / 联通 / BGP" />
-      </div>
+      <FormMultiSelect
+        label="线路类型"
+        bind:value={form.line_type}
+        options={$lineTypeOptions}
+        placeholder="选择线路类型"
+      />
 
       <div class="space-y-2">
         <Label for="address">地址</Label>
@@ -109,6 +108,8 @@
       </div>
     </Card.Content>
   </Card.Root>
+
+    <AttachmentFormSection bind:this={attachmentRef} targetType="data_center" targetId={entityId} />
 
   <div class="flex justify-end gap-2 pb-4">
     <Button variant="outline" onclick={() => history.back()}>取消</Button>

@@ -30,7 +30,6 @@ fn row_to_certificate(row: &sqlx::postgres::PgRow) -> Certificate {
         lease_end_date: row.get("lease_end_date"),
         certificate_type: type_str,
         status: status_str,
-        private_key_credential_id: row.get("private_key_credential_id"),
         remarks: row.get("remarks"),
         created_at: row.get::<DateTime<Utc>, _>("created_at"),
         updated_at: row.get::<DateTime<Utc>, _>("updated_at"),
@@ -42,7 +41,7 @@ impl CertificateRepository for PgCertificateRepository {
     async fn find_by_id(&self, id: Uuid) -> Result<Option<Certificate>, sqlx::Error> {
         let row = sqlx::query(
             r#"SELECT id, name, provider_id, lease_start_date, lease_end_date,
-                      certificate_type::text, status::text, private_key_credential_id,
+                      certificate_type::text, status::text,
                       remarks, created_at, updated_at
                FROM cmdb_certificate WHERE id = $1"#,
         )
@@ -53,7 +52,7 @@ impl CertificateRepository for PgCertificateRepository {
     async fn find_all(&self, filter: CertificateFilter) -> Result<Vec<Certificate>, sqlx::Error> {
         let mut sql = String::from(
             r#"SELECT id, name, provider_id, lease_start_date, lease_end_date,
-                      certificate_type::text, status::text, private_key_credential_id,
+                      certificate_type::text, status::text,
                       remarks, created_at, updated_at
                FROM cmdb_certificate WHERE 1=1"#,
         );
@@ -90,16 +89,16 @@ impl CertificateRepository for PgCertificateRepository {
         let row = sqlx::query(
             r#"INSERT INTO cmdb_certificate
                (id, name, provider_id, lease_start_date, lease_end_date, certificate_type,
-                status, private_key_credential_id, remarks, created_at, updated_at)
-               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+                status, remarks, created_at, updated_at)
+               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
                RETURNING id, name, provider_id, lease_start_date, lease_end_date,
-                         certificate_type::text, status::text, private_key_credential_id,
+                         certificate_type::text, status::text,
                          remarks, created_at, updated_at"#,
         )
         .bind(c.id).bind(&c.name).bind(c.provider_id).bind(c.lease_start_date)
         .bind(c.lease_end_date).bind(c.certificate_type.clone())
         .bind(c.status.clone())
-        .bind(c.private_key_credential_id).bind(&c.remarks).bind(c.created_at).bind(c.updated_at)
+        .bind(&c.remarks).bind(c.created_at).bind(c.updated_at)
         .fetch_one(&self.pool).await?;
         Ok(row_to_certificate(&row))
     }
@@ -108,17 +107,17 @@ impl CertificateRepository for PgCertificateRepository {
         let row = sqlx::query(
             r#"UPDATE cmdb_certificate SET
                 name=$2, provider_id=$3, lease_start_date=$4, lease_end_date=$5,
-                certificate_type=$6, status=$7, private_key_credential_id=$8,
-                remarks=$9, updated_at=$10
+                certificate_type=$6, status=$7,
+                remarks=$8, updated_at=$9
                WHERE id=$1
                RETURNING id, name, provider_id, lease_start_date, lease_end_date,
-                         certificate_type::text, status::text, private_key_credential_id,
+                         certificate_type::text, status::text,
                          remarks, created_at, updated_at"#,
         )
         .bind(id).bind(&c.name).bind(c.provider_id).bind(c.lease_start_date)
         .bind(c.lease_end_date).bind(c.certificate_type.clone())
         .bind(c.status.clone())
-        .bind(c.private_key_credential_id).bind(&c.remarks).bind(c.updated_at)
+        .bind(&c.remarks).bind(c.updated_at)
         .fetch_optional(&self.pool).await?;
         Ok(row.map(|r| row_to_certificate(&r)))
     }

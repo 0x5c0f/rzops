@@ -6,7 +6,6 @@ export interface CertificateResponse {
   lease_end_date: string | null;
   certificate_type: string | null;
   status: string;
-  private_key_credential_id: string | null;
   remarks: string | null;
   created_at: string;
   updated_at: string;
@@ -24,7 +23,6 @@ export interface CreateCertificateRequest {
   lease_end_date?: string;
   certificate_type?: string;
   status?: string;
-  private_key_credential_id?: string;
   remarks?: string;
 }
 

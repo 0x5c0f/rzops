@@ -7,6 +7,7 @@
   import FormSelect from '$lib/components/shared/FormSelect.svelte';
   import TextArea from '$lib/components/shared/TextArea.svelte';
   import { getServerOptions } from '$lib/utils/entity-options';
+  import { protocolOptions } from '$lib/utils/enum-options';
   import { onMount } from 'svelte';
 
   let {
@@ -75,18 +76,21 @@
         />
       {/if}
 
-      <div class="space-y-2">
-        <Label for="protocol">协议 *</Label>
-        <Input id="protocol" bind:value={form.protocol} placeholder="TCP / UDP / ..." required />
-      </div>
+      <FormSelect
+        label="协议 *"
+        bind:value={form.protocol}
+        options={$protocolOptions}
+        placeholder="选择协议"
+        required
+      />
 
       <div class="space-y-2">
-        <Label for="port">端口 *</Label>
+        <Label for="port">端口 <span class="text-destructive">*</span></Label>
         <Input id="port" type="number" bind:value={form.port} required />
       </div>
 
       <div class="space-y-2">
-        <Label for="service_name">服务名称 *</Label>
+        <Label for="service_name">服务名称 <span class="text-destructive">*</span></Label>
         <Input id="service_name" bind:value={form.service_name} placeholder="如 nginx / mysql" required />
       </div>
 

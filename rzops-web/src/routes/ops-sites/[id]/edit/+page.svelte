@@ -51,6 +51,7 @@
     if (!id) return;
     await opsSitesApi.update(id, data);
     goto(`/ops-sites/${id}`);
+    return id;
   }
 </script>
 
@@ -72,6 +73,11 @@
   {:else if loadError || !site}
     <p class="text-sm text-muted-foreground">加载失败，站点可能不存在。</p>
   {:else}
-    <OpsSiteForm initial={toForm(site)} submitLabel="保存" onSubmit={handleUpdate} />
+    <OpsSiteForm
+      initial={toForm(site)}
+      entityId={site.id}
+      submitLabel="保存"
+      onSubmit={handleUpdate}
+    />
   {/if}
 </div>

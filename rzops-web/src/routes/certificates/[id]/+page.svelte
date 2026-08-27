@@ -12,7 +12,7 @@
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import StatusBadge from '$lib/components/shared/StatusBadge.svelte';
   import { certificateStatusOptions, certificateTypeOptions, getOptionLabel } from '$lib/utils/enum-options';
-  import { getProviderOptions, getCredentialOptions, getDomainOptions } from '$lib/utils/entity-options';
+  import { getProviderOptions, getDomainOptions } from '$lib/utils/entity-options';
   import { formatDate } from '$lib/utils/format';
   import { onMount } from 'svelte';
 
@@ -20,23 +20,20 @@
   let domains = $state<CertificateDomainResponse[]>([]);
   let loading = $state(true);
   let providerMap = $state<Record<string, string>>({});
-  let credentialMap = $state<Record<string, string>>({});
   let domainMap = $state<Record<string, string>>({});
 
   onMount(async () => {
     const id = $page.params.id;
     if (!id) { goto('/certificates'); return; }
     try {
-      const [cert, providers, credentials, domainList, domainsData] = await Promise.all([
+      const [cert, providers, domainList, domainsData] = await Promise.all([
         certificatesApi.getById(id),
         getProviderOptions(),
-        getCredentialOptions(),
         getDomainOptions(),
         certificateDomainsApi.list({ certificate_id: id, per_page: 100 }),
       ]);
       certificate = cert;
       providerMap = Object.fromEntries(providers.map(o => [o.value, o.label]));
-      credentialMap = Object.fromEntries(credentials.map(o => [o.value, o.label]));
       domainMap = Object.fromEntries(domainList.map(o => [o.value, o.label]));
       domains = domainsData.data;
     } catch (err) {
@@ -120,18 +117,6 @@
             <div class="flex justify-between">
               <dt class="text-muted-foreground">到期日期</dt>
               <dd>{formatDate(certificate.lease_end_date)}</dd>
-            </div>
-            <div class="flex justify-between">
-              <dt class="text-muted-foreground">密钥凭证</dt>
-              <dd>
-                {#if certificate.private_key_credential_id}
-                  <a href="/credentials/{certificate.private_key_credential_id}" class="text-primary hover:underline">
-                    {credentialMap[certificate.private_key_credential_id] || certificate.private_key_credential_id}
-                  </a>
-                {:else}
-                  -
-                {/if}
-              </dd>
             </div>
             <div class="flex justify-between">
               <dt class="text-muted-foreground">备注</dt>

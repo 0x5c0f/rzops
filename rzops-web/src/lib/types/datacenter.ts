@@ -5,9 +5,7 @@ export interface DataCenterResponse {
   phone: string | null;
   address: string | null;
   country: string | null;
-  province: string | null;
-  city: string | null;
-  line_type: string | null;
+  line_type: string[] | null;
   description: string | null;
   status: string;
   created_at: string;
@@ -25,9 +23,7 @@ export interface CreateDataCenterRequest {
   phone?: string;
   address?: string;
   country?: string;
-  province?: string;
-  city?: string;
-  line_type?: string;
+  line_type?: string[];
   description?: string;
   status?: string;
 }

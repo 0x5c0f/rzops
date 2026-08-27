@@ -63,7 +63,6 @@
     {
       label: '运维',
       items: [
-        { href: '/credentials', label: '凭据' },
         { href: '/backup-plans', label: '备份计划' },
         { href: '/monitor-targets', label: '监控目标' },
       ],

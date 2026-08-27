@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { CreateDatabaseInstanceRequest } from '$lib/types/database_instance';
+import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.svelte';
   import { Button } from '$lib/ui/button';
   import { Input } from '$lib/ui/input';
   import { Label } from '$lib/ui/label';
@@ -9,7 +10,6 @@
   import { databaseStatusOptions, databaseTypeOptions, importanceOptions } from '$lib/utils/enum-options';
   import {
     getServerOptions,
-    getCredentialOptions,
     getBackupPlanOptions,
     getMonitorTargetOptions,
   } from '$lib/utils/entity-options';
@@ -17,17 +17,18 @@
 
   let {
     initial = {} as CreateDatabaseInstanceRequest,
+    entityId = '',
     submitLabel = '保存',
     onSubmit,
   }: {
     initial?: CreateDatabaseInstanceRequest;
     submitLabel?: string;
-    onSubmit: (data: CreateDatabaseInstanceRequest) => Promise<void>;
+    onSubmit: (data: CreateDatabaseInstanceRequest) => Promise<string | void>;
   } = $props();
 
   let saving = $state(false);
+  let attachmentRef = $state<{ uploadAll: (id: string) => Promise<void> } | null>(null);
   let serverOptions = $state<{ label: string; value: string }[]>([]);
-  let credentialOptions = $state<{ label: string; value: string }[]>([]);
   let backupPlanOptions = $state<{ label: string; value: string }[]>([]);
   let monitorTargetOptions = $state<{ label: string; value: string }[]>([]);
 
@@ -46,14 +47,12 @@
   }
 
   onMount(async () => {
-    const [servers, credentials, backups, monitors] = await Promise.all([
+    const [servers, backups, monitors] = await Promise.all([
       getServerOptions(),
-      getCredentialOptions(),
       getBackupPlanOptions(),
       getMonitorTargetOptions(),
     ]);
     serverOptions = servers;
-    credentialOptions = credentials;
     backupPlanOptions = backups;
     monitorTargetOptions = monitors;
   });
@@ -61,7 +60,8 @@
   async function handleSave() {
     saving = true;
     try {
-      await onSubmit(form);
+      const id = await onSubmit(form);
+      if (id) await attachmentRef?.uploadAll(id);
     } catch (err) {
       console.error('Failed to save database instance:', err);
     } finally {
@@ -77,7 +77,7 @@
     </Card.Header>
     <Card.Content class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       <div class="space-y-2">
-        <Label for="name">名称 *</Label>
+        <Label for="name">名称 <span class="text-destructive">*</span></Label>
         <Input id="name" bind:value={form.name} required />
       </div>
 
@@ -120,13 +120,6 @@
       </div>
 
       <FormSelect
-        label="管理凭证"
-        bind:value={form.management_credential_id}
-        options={credentialOptions}
-        placeholder="选择管理凭证"
-      />
-
-      <FormSelect
         label="备份计划"
         bind:value={form.backup_plan_id}
         options={backupPlanOptions}
@@ -157,6 +150,8 @@
       </div>
     </Card.Content>
   </Card.Root>
+
+    <AttachmentFormSection bind:this={attachmentRef} targetType="database" targetId={entityId} />
 
   <div class="flex justify-end gap-2 pb-4">
     <Button variant="outline" onclick={() => history.back()}>取消</Button>

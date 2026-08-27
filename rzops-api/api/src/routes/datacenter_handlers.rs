@@ -26,8 +26,6 @@ fn to_response(dc: &DataCenter) -> DataCenterResponse {
         phone: dc.phone.clone(),
         address: dc.address.clone(),
         country: dc.country.clone(),
-        province: dc.province.clone(),
-        city: dc.city.clone(),
         line_type: dc.line_type.clone(),
         description: dc.description.clone(),
         status: dc.status.clone(),
@@ -119,8 +117,6 @@ pub async fn create_data_center(
         phone: body.phone,
         address: body.address,
         country: body.country,
-        province: body.province,
-        city: body.city,
         line_type: body.line_type,
         description: body.description,
         status: body
@@ -189,8 +185,6 @@ pub async fn update_data_center(
         phone: body.phone.or(existing.phone),
         address: body.address.or(existing.address),
         country: body.country.or(existing.country),
-        province: body.province.or(existing.province),
-        city: body.city.or(existing.city),
         line_type: body
             .line_type
             

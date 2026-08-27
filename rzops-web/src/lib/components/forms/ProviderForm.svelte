@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { CreateProviderRequest } from '$lib/types/provider';
+import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.svelte';
   import { Button } from '$lib/ui/button';
   import { Input } from '$lib/ui/input';
   import { Label } from '$lib/ui/label';
@@ -11,15 +12,17 @@
 
   let {
     initial = {} as CreateProviderRequest,
+    entityId = '',
     submitLabel = '保存',
     onSubmit,
   }: {
     initial?: CreateProviderRequest;
     submitLabel?: string;
-    onSubmit: (data: CreateProviderRequest) => Promise<void>;
+    onSubmit: (data: CreateProviderRequest) => Promise<string | void>;
   } = $props();
 
   let saving = $state(false);
+  let attachmentRef = $state<{ uploadAll: (id: string) => Promise<void> } | null>(null);
 
   let form = $state<CreateProviderRequest>(createInitial(initial));
 
@@ -35,7 +38,8 @@
   async function handleSave() {
     saving = true;
     try {
-      await onSubmit(form);
+      const id = await onSubmit(form);
+      if (id) await attachmentRef?.uploadAll(id);
     } catch (err) {
       console.error('Failed to save provider:', err);
     } finally {
@@ -51,7 +55,7 @@
     </Card.Header>
     <Card.Content class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       <div class="space-y-2">
-        <Label for="name">名称 *</Label>
+        <Label for="name">名称 <span class="text-destructive">*</span></Label>
         <Input id="name" bind:value={form.name} required />
       </div>
 
@@ -94,11 +98,6 @@
       </div>
 
       <div class="space-y-2">
-        <Label for="country">国家</Label>
-        <Input id="country" bind:value={form.country} />
-      </div>
-
-      <div class="space-y-2">
         <Label for="address">地址</Label>
         <Input id="address" bind:value={form.address} />
       </div>
@@ -109,6 +108,8 @@
       </div>
     </Card.Content>
   </Card.Root>
+
+    <AttachmentFormSection bind:this={attachmentRef} targetType="provider" targetId={entityId} />
 
   <div class="flex justify-end gap-2 pb-4">
     <Button variant="outline" onclick={() => history.back()}>取消</Button>

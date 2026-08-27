@@ -13,7 +13,6 @@ pub struct CreateProviderRequest {
     pub fax: Option<String>,
     pub address: Option<String>,
     pub website: Option<String>,
-    pub country: Option<String>,
     pub description: Option<String>,
     pub status: Option<String>,
 }
@@ -29,7 +28,6 @@ pub struct UpdateProviderRequest {
     pub fax: Option<String>,
     pub address: Option<String>,
     pub website: Option<String>,
-    pub country: Option<String>,
     pub description: Option<String>,
     pub status: Option<String>,
 }
@@ -38,7 +36,6 @@ pub struct UpdateProviderRequest {
 #[derive(Debug, Deserialize, utoipa::ToSchema, utoipa::IntoParams)]
 pub struct ListProvidersQuery {
     pub status: Option<String>,
-    pub country: Option<String>,
     pub q: Option<String>,
     pub page: Option<i64>,
     pub per_page: Option<i64>,
@@ -56,7 +53,6 @@ pub struct ProviderResponse {
     pub fax: Option<String>,
     pub address: Option<String>,
     pub website: Option<String>,
-    pub country: Option<String>,
     pub description: Option<String>,
     pub status: String,
     pub created_at: DateTime<Utc>,

@@ -34,7 +34,6 @@
       fax: p.fax ?? '',
       address: p.address ?? '',
       website: p.website ?? '',
-      country: p.country ?? '',
       description: p.description ?? '',
       status: p.status ?? 'active',
     };
@@ -45,6 +44,7 @@
     if (!id) return;
     await providersApi.update(id, data);
     goto(`/providers/${id}`);
+    return id;
   }
 </script>
 
@@ -66,6 +66,11 @@
   {:else if loadError || !provider}
     <p class="text-sm text-muted-foreground">加载失败，供应商可能不存在。</p>
   {:else}
-    <ProviderForm initial={toForm(provider)} submitLabel="保存" onSubmit={handleUpdate} />
+    <ProviderForm
+      initial={toForm(provider)}
+      entityId={provider.id}
+      submitLabel="保存"
+      onSubmit={handleUpdate}
+    />
   {/if}
 </div>

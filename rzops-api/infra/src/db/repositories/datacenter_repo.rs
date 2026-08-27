@@ -17,13 +17,18 @@ impl PgDataCenterRepository {
     }
 }
 
-
-
-
-
 fn row_to_datacenter(row: &sqlx::postgres::PgRow) -> DataCenter {
     let status_str: String = row.get("status");
-    let line_type_str: Option<String> = row.get("line_type");
+    // line_type 存储为 JSONB 字符串数组
+    let line_type_json: serde_json::Value = row.get("line_type");
+    let line_type: Option<Vec<String>> = match line_type_json {
+        serde_json::Value::Array(arr) => Some(
+            arr.into_iter()
+                .filter_map(|v| v.as_str().map(|s| s.to_string()))
+                .collect(),
+        ),
+        _ => None,
+    };
 
     DataCenter {
         id: row.get("id"),
@@ -32,9 +37,7 @@ fn row_to_datacenter(row: &sqlx::postgres::PgRow) -> DataCenter {
         phone: row.get("phone"),
         address: row.get("address"),
         country: row.get("country"),
-        province: row.get("province"),
-        city: row.get("city"),
-        line_type: line_type_str,
+        line_type,
         description: row.get("description"),
         status: status_str,
         created_at: row.get::<DateTime<Utc>, _>("created_at"),
@@ -46,8 +49,8 @@ fn row_to_datacenter(row: &sqlx::postgres::PgRow) -> DataCenter {
 impl DataCenterRepository for PgDataCenterRepository {
     async fn find_by_id(&self, id: Uuid) -> Result<Option<DataCenter>, sqlx::Error> {
         let row = sqlx::query(
-            r#"SELECT id, name, provider_id, phone, address, country, province, city,
-                      line_type::text, description, status::text, created_at, updated_at
+            r#"SELECT id, name, provider_id, phone, address, country,
+                      line_type, description, status::text, created_at, updated_at
                FROM cmdb_data_center WHERE id = $1"#,
         )
         .bind(id)
@@ -59,8 +62,8 @@ impl DataCenterRepository for PgDataCenterRepository {
 
     async fn find_all(&self, filter: DataCenterFilter) -> Result<Vec<DataCenter>, sqlx::Error> {
         let mut sql = String::from(
-            r#"SELECT id, name, provider_id, phone, address, country, province, city,
-                      line_type::text, description, status::text, created_at, updated_at
+            r#"SELECT id, name, provider_id, phone, address, country,
+                      line_type, description, status::text, created_at, updated_at
                FROM cmdb_data_center WHERE 1=1"#,
         );
         let mut binds: Vec<String> = Vec::new();
@@ -117,7 +120,6 @@ impl DataCenterRepository for PgDataCenterRepository {
         if let Some(ref q) = filter.q {
             sql.push_str(&format!(" AND name ILIKE ${}", idx));
             binds.push(format!("%{}%", q));
-            // idx += 1; // unused after last use
         }
 
         let mut query = sqlx::query(&sql);
@@ -132,11 +134,11 @@ impl DataCenterRepository for PgDataCenterRepository {
     async fn create(&self, dc: &DataCenter) -> Result<DataCenter, sqlx::Error> {
         let row = sqlx::query(
             r#"INSERT INTO cmdb_data_center
-               (id, name, provider_id, phone, address, country, province, city,
+               (id, name, provider_id, phone, address, country,
                 line_type, description, status, created_at, updated_at)
-               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-               RETURNING id, name, provider_id, phone, address, country, province, city,
-                         line_type::text, description, status::text, created_at, updated_at"#,
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+               RETURNING id, name, provider_id, phone, address, country,
+                         line_type, description, status::text, created_at, updated_at"#,
         )
         .bind(dc.id)
         .bind(&dc.name)
@@ -144,9 +146,7 @@ impl DataCenterRepository for PgDataCenterRepository {
         .bind(&dc.phone)
         .bind(&dc.address)
         .bind(&dc.country)
-        .bind(&dc.province)
-        .bind(&dc.city)
-        .bind(dc.line_type.clone())
+        .bind(serde_json::to_value(&dc.line_type).unwrap_or_else(|_| serde_json::json!([])))
         .bind(&dc.description)
         .bind(dc.status.clone())
         .bind(dc.created_at)
@@ -161,11 +161,11 @@ impl DataCenterRepository for PgDataCenterRepository {
         let row = sqlx::query(
             r#"UPDATE cmdb_data_center SET
                 name = $2, provider_id = $3, phone = $4, address = $5,
-                country = $6, province = $7, city = $8, line_type = $9,
-                description = $10, status = $11, updated_at = $12
+                country = $6, line_type = $7,
+                description = $8, status = $9, updated_at = $10
                WHERE id = $1
-               RETURNING id, name, provider_id, phone, address, country, province, city,
-                         line_type::text, description, status::text, created_at, updated_at"#,
+               RETURNING id, name, provider_id, phone, address, country,
+                         line_type, description, status::text, created_at, updated_at"#,
         )
         .bind(id)
         .bind(&dc.name)
@@ -173,9 +173,7 @@ impl DataCenterRepository for PgDataCenterRepository {
         .bind(&dc.phone)
         .bind(&dc.address)
         .bind(&dc.country)
-        .bind(&dc.province)
-        .bind(&dc.city)
-        .bind(dc.line_type.clone())
+        .bind(serde_json::to_value(&dc.line_type).unwrap_or_else(|_| serde_json::json!([])))
         .bind(&dc.description)
         .bind(dc.status.clone())
         .bind(dc.updated_at)

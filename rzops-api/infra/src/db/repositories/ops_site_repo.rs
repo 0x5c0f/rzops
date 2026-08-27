@@ -41,10 +41,8 @@ fn row_to_ops_site(row: &sqlx::postgres::PgRow) -> OpsSite {
         code_repo_type: crt_str,
         code_repo_url: row.get("code_repo_url"),
         purpose: row.get("purpose"),
-        is_internal_system: row.get("is_internal_system"),
         language_runtime: row.get("language_runtime"),
         web_framework: wf_str,
-        uses_cdn: row.get("uses_cdn"),
         is_test_site: row.get("is_test_site"),
         backup_plan_id: row.get("backup_plan_id"),
         last_backup_time: row.get("last_backup_time"),
@@ -61,8 +59,8 @@ fn row_to_ops_site(row: &sqlx::postgres::PgRow) -> OpsSite {
 
 const SELECT_COLS: &str = r#"id, name, url, business_unit_id, department_id,
     service_target::text, importance::text, online_time, code_repo_type::text,
-    code_repo_url, purpose, is_internal_system, language_runtime, web_framework::text,
-    uses_cdn, is_test_site, backup_plan_id, last_backup_time, monitor_target_id,
+    code_repo_url, purpose, language_runtime, web_framework::text,
+    is_test_site, backup_plan_id, last_backup_time, monitor_target_id,
     status::text, offline_time, offline_reason, function_summary, remarks,
     created_at, updated_at"#;
 
@@ -115,11 +113,11 @@ impl OpsSiteRepository for PgOpsSiteRepository {
         let row = sqlx::query(&format!(
             r#"INSERT INTO cmdb_ops_site
                (id, name, url, business_unit_id, department_id, service_target, importance,
-                online_time, code_repo_type, code_repo_url, purpose, is_internal_system,
-                language_runtime, web_framework, uses_cdn, is_test_site, backup_plan_id,
+                online_time, code_repo_type, code_repo_url, purpose,
+                language_runtime, web_framework, is_test_site, backup_plan_id,
                 last_backup_time, monitor_target_id, status, offline_time, offline_reason,
                 function_summary, remarks, created_at, updated_at)
-               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26)
+               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24)
                RETURNING {}"#, SELECT_COLS
         ))
         .bind(s.id).bind(&s.name).bind(&s.url).bind(s.business_unit_id).bind(s.department_id)
@@ -127,10 +125,10 @@ impl OpsSiteRepository for PgOpsSiteRepository {
         .bind(s.importance.clone())
         .bind(s.online_time)
         .bind(s.code_repo_type.clone())
-        .bind(&s.code_repo_url).bind(&s.purpose).bind(s.is_internal_system)
+        .bind(&s.code_repo_url).bind(&s.purpose)
         .bind(&s.language_runtime)
         .bind(s.web_framework.clone())
-        .bind(s.uses_cdn).bind(s.is_test_site).bind(s.backup_plan_id).bind(s.last_backup_time)
+        .bind(s.is_test_site).bind(s.backup_plan_id).bind(s.last_backup_time)
         .bind(s.monitor_target_id).bind(s.status.clone())
         .bind(s.offline_time).bind(&s.offline_reason).bind(&s.function_summary).bind(&s.remarks)
         .bind(s.created_at).bind(s.updated_at)
@@ -143,10 +141,10 @@ impl OpsSiteRepository for PgOpsSiteRepository {
             r#"UPDATE cmdb_ops_site SET
                 name=$2, url=$3, business_unit_id=$4, department_id=$5, service_target=$6,
                 importance=$7, online_time=$8, code_repo_type=$9, code_repo_url=$10,
-                purpose=$11, is_internal_system=$12, language_runtime=$13, web_framework=$14,
-                uses_cdn=$15, is_test_site=$16, backup_plan_id=$17, last_backup_time=$18,
-                monitor_target_id=$19, status=$20, offline_time=$21, offline_reason=$22,
-                function_summary=$23, remarks=$24, updated_at=$25
+                purpose=$11, language_runtime=$12, web_framework=$13,
+                is_test_site=$14, backup_plan_id=$15, last_backup_time=$16,
+                monitor_target_id=$17, status=$18, offline_time=$19, offline_reason=$20,
+                function_summary=$21, remarks=$22, updated_at=$23
                WHERE id=$1 RETURNING {}"#, SELECT_COLS
         ))
         .bind(id).bind(&s.name).bind(&s.url).bind(s.business_unit_id).bind(s.department_id)
@@ -154,10 +152,10 @@ impl OpsSiteRepository for PgOpsSiteRepository {
         .bind(s.importance.clone())
         .bind(s.online_time)
         .bind(s.code_repo_type.clone())
-        .bind(&s.code_repo_url).bind(&s.purpose).bind(s.is_internal_system)
+        .bind(&s.code_repo_url).bind(&s.purpose)
         .bind(&s.language_runtime)
         .bind(s.web_framework.clone())
-        .bind(s.uses_cdn).bind(s.is_test_site).bind(s.backup_plan_id).bind(s.last_backup_time)
+        .bind(s.is_test_site).bind(s.backup_plan_id).bind(s.last_backup_time)
         .bind(s.monitor_target_id).bind(s.status.clone())
         .bind(s.offline_time).bind(&s.offline_reason).bind(&s.function_summary).bind(&s.remarks)
         .bind(s.updated_at)

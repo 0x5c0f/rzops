@@ -43,6 +43,7 @@
     if (!id) return;
     await monitorTargetsApi.update(id, data);
     goto(`/monitor-targets/${id}`);
+    return id;
   }
 </script>
 
@@ -64,6 +65,11 @@
   {:else if loadError || !target}
     <p class="text-sm text-muted-foreground">加载失败，监控目标可能不存在。</p>
   {:else}
-    <MonitorTargetForm initial={toForm(target)} submitLabel="保存" onSubmit={handleUpdate} />
+    <MonitorTargetForm
+      initial={toForm(target)}
+      entityId={target.id}
+      submitLabel="保存"
+      onSubmit={handleUpdate}
+    />
   {/if}
 </div>

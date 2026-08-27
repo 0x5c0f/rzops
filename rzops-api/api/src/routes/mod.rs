@@ -9,7 +9,6 @@ pub mod domain_handlers;
 pub mod certificate_handlers;
 pub mod database_instance_handlers;
 pub mod ops_site_handlers;
-pub mod credential_handlers;
 pub mod backup_plan_handlers;
 pub mod monitor_target_handlers;
 pub mod contract_handlers;
@@ -34,7 +33,6 @@ use domain_handlers::*;
 use certificate_handlers::*;
 use database_instance_handlers::*;
 use ops_site_handlers::*;
-use credential_handlers::*;
 use backup_plan_handlers::*;
 use monitor_target_handlers::*;
 use contract_handlers::*;
@@ -91,10 +89,6 @@ pub fn database_instance_routes(repo: Arc<dyn database_instance_repository::Data
 pub fn ops_site_routes(repo: Arc<dyn ops_site_repository::OpsSiteRepository>) -> Router {
     Router::new().route("/", axum::routing::get(list_ops_sites).post(create_ops_site))
         .route("/{id}", axum::routing::get(get_ops_site).put(update_ops_site).delete(delete_ops_site)).with_state(repo)
-}
-pub fn credential_routes(repo: Arc<dyn credential_repository::CredentialRepository>) -> Router {
-    Router::new().route("/", axum::routing::get(list_credentials).post(create_credential))
-        .route("/{id}", axum::routing::get(get_credential).put(update_credential).delete(delete_credential)).with_state(repo)
 }
 pub fn backup_plan_routes(repo: Arc<dyn backup_plan_repository::BackupPlanRepository>) -> Router {
     Router::new().route("/", axum::routing::get(list_backup_plans).post(create_backup_plan))

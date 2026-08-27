@@ -42,7 +42,6 @@ fn row_to_provider(row: &PgRow) -> Result<Provider, sqlx::Error> {
         fax: row.get("fax"),
         address: row.get("address"),
         website: row.get("website"),
-        country: row.get("country"),
         description: row.get("description"),
         status,
         created_at: row.get("created_at"),
@@ -56,7 +55,7 @@ impl ProviderRepository for PgProviderRepository {
         let row = sqlx::query(
             r#"
             SELECT id, name, provider_types, contact_name, contact_phone, contact_qq,
-                   fax, address, website, country, description, status,
+                   fax, address, website, description, status,
                    created_at, updated_at
             FROM cmdb_provider
             WHERE id = $1
@@ -76,7 +75,7 @@ impl ProviderRepository for PgProviderRepository {
         let mut sql = String::from(
             r#"
             SELECT id, name, provider_types, contact_name, contact_phone, contact_qq,
-                   fax, address, website, country, description, status,
+                   fax, address, website, description, status,
                    created_at, updated_at
             FROM cmdb_provider
             WHERE 1=1
@@ -89,11 +88,6 @@ impl ProviderRepository for PgProviderRepository {
         if let Some(ref status) = filter.status {
             sql.push_str(&format!(" AND status = ${}", bind_idx));
             binds.push(status.clone());
-            bind_idx += 1;
-        }
-        if let Some(ref country) = filter.country {
-            sql.push_str(&format!(" AND country = ${}", bind_idx));
-            binds.push(country.clone());
             bind_idx += 1;
         }
         if let Some(ref q) = filter.q {
@@ -134,11 +128,6 @@ impl ProviderRepository for PgProviderRepository {
             binds.push(status.clone());
             bind_idx += 1;
         }
-        if let Some(ref country) = filter.country {
-            sql.push_str(&format!(" AND country = ${}", bind_idx));
-            binds.push(country.clone());
-            bind_idx += 1;
-        }
         if let Some(ref q) = filter.q {
             sql.push_str(&format!(" AND name ILIKE ${}", bind_idx));
             binds.push(format!("%{}%", q));
@@ -161,11 +150,11 @@ impl ProviderRepository for PgProviderRepository {
             r#"
             INSERT INTO cmdb_provider (
                 id, name, provider_types, contact_name, contact_phone, contact_qq,
-                fax, address, website, country, description, status,
+                fax, address, website, description, status,
                 created_at, updated_at
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
             RETURNING id, name, provider_types, contact_name, contact_phone, contact_qq,
-                      fax, address, website, country, description, status,
+                      fax, address, website, description, status,
                       created_at, updated_at
             "#,
         )
@@ -178,7 +167,6 @@ impl ProviderRepository for PgProviderRepository {
         .bind(&provider.fax)
         .bind(&provider.address)
         .bind(&provider.website)
-        .bind(&provider.country)
         .bind(&provider.description)
         .bind(status_str)
         .bind(provider.created_at)
@@ -203,13 +191,12 @@ impl ProviderRepository for PgProviderRepository {
                 fax = $7,
                 address = $8,
                 website = $9,
-                country = $10,
-                description = $11,
-                status = $12,
-                updated_at = $13
+                description = $10,
+                status = $11,
+                updated_at = $12
             WHERE id = $1
             RETURNING id, name, provider_types, contact_name, contact_phone, contact_qq,
-                      fax, address, website, country, description, status,
+                      fax, address, website, description, status,
                       created_at, updated_at
             "#,
         )
@@ -222,7 +209,6 @@ impl ProviderRepository for PgProviderRepository {
         .bind(&provider.fax)
         .bind(&provider.address)
         .bind(&provider.website)
-        .bind(&provider.country)
         .bind(&provider.description)
         .bind(status_str)
         .bind(Utc::now())

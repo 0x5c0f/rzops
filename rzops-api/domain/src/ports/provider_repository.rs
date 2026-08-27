@@ -7,7 +7,6 @@ use crate::models::provider::Provider;
 #[derive(Debug, Clone, Default)]
 pub struct ProviderFilter {
     pub status: Option<String>,
-    pub country: Option<String>,
     pub q: Option<String>, // search by name
     pub limit: Option<i64>,
     pub offset: Option<i64>,

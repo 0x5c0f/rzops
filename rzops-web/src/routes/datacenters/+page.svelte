@@ -9,7 +9,7 @@
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import { formatDate } from '$lib/utils/format';
   import { getProviderOptions } from '$lib/utils/entity-options';
-  import { commonStatusOptions } from '$lib/utils/enum-options';
+  import { commonStatusOptions, countryOptions } from '$lib/utils/enum-options';
   import { onMount } from 'svelte';
 
   let data = $state<DataCenterResponse[]>([]);
@@ -19,12 +19,13 @@
   let page = $derived(query.page ?? 1);
   let perPage = $derived(query.per_page ?? 20);
   let providerMap = $state<Record<string, string>>({});
+  let countryMap = $derived(Object.fromEntries($countryOptions.map(o => [o.value, o.label])));
 
   let commonStatusMap = $derived(Object.fromEntries($commonStatusOptions.map(o => [o.value, o.label])));
 
   const columns = $derived([
     { key: 'name', label: '名称' , link: (item: DataCenterResponse) => `/datacenters/${item.id}` },
-    { key: 'city', label: '城市' },
+    { key: 'country', label: '国家', valueMap: countryMap },
     { key: 'status', label: '状态', valueMap: commonStatusMap },
     { key: 'provider_id', label: '供应商', valueMap: providerMap },
     { key: 'created_at', label: '创建时间', render: (v: unknown) => formatDate(v as string) },

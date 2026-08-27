@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { CreateCertificateRequest } from '$lib/types/certificate';
+import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.svelte';
   import type { CertificateDomainResponse } from '$lib/types/certificate_domain';
   import { goto } from '$app/navigation';
   import { Button } from '$lib/ui/button';
@@ -10,7 +11,7 @@
   import DateField from '$lib/components/shared/DateField.svelte';
   import TextArea from '$lib/components/shared/TextArea.svelte';
   import { certificateStatusOptions, certificateTypeOptions } from '$lib/utils/enum-options';
-  import { getProviderOptions, getCredentialOptions, getDomainOptions } from '$lib/utils/entity-options';
+  import { getProviderOptions, getDomainOptions } from '$lib/utils/entity-options';
   import { certificateDomainsApi } from '$lib/api/certificate-domains';
   import { onMount } from 'svelte';
 
@@ -25,6 +26,7 @@
   let {
     initial = {} as CreateCertificateRequest,
     initialDomains = [] as DomainDraft[],
+    entityId = '',
     submitLabel = '保存',
     onSubmit,
   }: {
@@ -35,8 +37,8 @@
   } = $props();
 
   let saving = $state(false);
+  let attachmentRef = $state<{ uploadAll: (id: string) => Promise<void> } | null>(null);
   let providerOptions = $state<{ label: string; value: string }[]>([]);
-  let credentialOptions = $state<{ label: string; value: string }[]>([]);
   let domainOptions = $state<{ label: string; value: string }[]>([]);
 
   let form = $state<CreateCertificateRequest>(createInitial(initial));
@@ -52,13 +54,8 @@
   }
 
   onMount(async () => {
-    const [providers, credentials, domains] = await Promise.all([
-      getProviderOptions(),
-      getCredentialOptions(),
-      getDomainOptions(),
-    ]);
+    const [providers, domains] = await Promise.all([getProviderOptions(), getDomainOptions()]);
     providerOptions = providers;
-    credentialOptions = credentials;
     domainOptions = domains;
   });
 
@@ -110,6 +107,7 @@
     try {
       const certificateId = await onSubmit(form);
       if (certificateId) {
+        await attachmentRef?.uploadAll(certificateId);
         await syncDomains(certificateId);
         goto(`/certificates/${certificateId}`);
       }
@@ -139,7 +137,7 @@
     </Card.Header>
     <Card.Content class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       <div class="space-y-2">
-        <Label for="name">名称 *</Label>
+        <Label for="name">名称 <span class="text-destructive">*</span></Label>
         <Input id="name" bind:value={form.name} required />
       </div>
 
@@ -177,13 +175,6 @@
         min={form.lease_start_date || undefined}
       />
 
-      <FormSelect
-        label="密钥凭证"
-        bind:value={form.private_key_credential_id}
-        options={credentialOptions}
-        placeholder="选择密钥凭证"
-      />
-
       <div class="space-y-2 md:col-span-2 lg:col-span-3">
         <Label for="remarks">备注</Label>
         <TextArea id="remarks" bind:value={form.remarks} rows={3} />
@@ -201,7 +192,7 @@
       {#each domains as domain, i}
         <div class="grid gap-3 rounded-lg border p-3 md:grid-cols-12">
           <div class="space-y-1 md:col-span-4">
-            <Label>域名 / 模式 *</Label>
+            <Label>域名 / 模式 <span class="text-destructive">*</span></Label>
             <Input bind:value={domain.domain_pattern} placeholder="*.example.com" />
           </div>
           <div class="space-y-1 md:col-span-4">
@@ -226,6 +217,8 @@
       <Button variant="outline" size="sm" type="button" onclick={addDomainRow}>+ 添加域名</Button>
     </Card.Content>
   </Card.Root>
+
+    <AttachmentFormSection bind:this={attachmentRef} targetType="certificate" targetId={entityId} />
 
   <div class="flex justify-end gap-2 pb-4">
     <Button variant="outline" onclick={() => history.back()}>取消</Button>
