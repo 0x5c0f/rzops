@@ -8,7 +8,28 @@ import type {
   CreateSiteDomainRelationRequest,
 } from '$lib/types/site_relation';
 
+export interface SiteRefByServer {
+  site_id: string;
+  site_name: string;
+  deploy_role: string | null;
+  is_primary: boolean;
+}
+
+export interface SiteRefByDatabase {
+  site_id: string;
+  site_name: string;
+  usage_type: string | null;
+  is_primary: boolean;
+}
+
 export const siteRelationsApi = {
+  // 反向查询：某资源所属站点
+  listSitesByServer: (serverId: string) =>
+    api.get<SiteRefByServer[]>(`/api/v1/site-relations/servers/${serverId}/sites`),
+
+  listSitesByDatabase: (databaseInstanceId: string) =>
+    api.get<SiteRefByDatabase[]>(`/api/v1/site-relations/databases/${databaseInstanceId}/sites`),
+
   // Site-Server
   listServers: (siteId: string) =>
     api.get<SiteServerRelationResponse[]>(`/api/v1/site-relations/site-servers/${siteId}`),

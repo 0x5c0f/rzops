@@ -1,9 +1,5 @@
 <script lang="ts">
-  import { page } from '$app/stores';
-  import { goto } from '$app/navigation';
-  import { opsSitesApi } from '$lib/api/ops-sites';
   import { siteRelationsApi } from '$lib/api/site-relations';
-  import type { OpsSiteResponse } from '$lib/types/ops_site';
   import type {
     SiteServerRelationResponse,
     SiteDatabaseRelationResponse,
@@ -16,8 +12,6 @@
   import * as Table from '$lib/ui/table';
   import * as Tabs from '$lib/ui/tabs';
   import * as Dialog from '$lib/ui/dialog';
-  import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
-  import StatusBadge from '$lib/components/shared/StatusBadge.svelte';
   import FormSelect from '$lib/components/shared/FormSelect.svelte';
   import {
     getServerOptions,
@@ -26,7 +20,12 @@
   } from '$lib/utils/entity-options';
   import { onMount } from 'svelte';
 
-  let site = $state<OpsSiteResponse | null>(null);
+  let {
+    siteId,
+  }: {
+    siteId: string;
+  } = $props();
+
   let servers = $state<SiteServerRelationResponse[]>([]);
   let databases = $state<SiteDatabaseRelationResponse[]>([]);
   let domains = $state<SiteDomainRelationResponse[]>([]);
@@ -48,32 +47,30 @@
   let addIsPrimary = $state(false);
   let addSaving = $state(false);
 
+  async function loadAll() {
+    const [s, d, dom] = await Promise.all([
+      siteRelationsApi.listServers(siteId),
+      siteRelationsApi.listDatabases(siteId),
+      siteRelationsApi.listDomains(siteId),
+    ]);
+    servers = s;
+    databases = d;
+    domains = dom;
+  }
+
   onMount(async () => {
-    const siteId = $page.params.id ?? "";
-    if (!siteId) {
-      goto('/site-relations');
-      return;
-    }
     try {
-      const [siteData, serverRels, dbRels, domainRels, sOpts, dOpts, domOpts] = await Promise.all([
-        opsSitesApi.getById(siteId),
-        siteRelationsApi.listServers(siteId),
-        siteRelationsApi.listDatabases(siteId),
-        siteRelationsApi.listDomains(siteId),
+      const [sOpts, dOpts, domOpts] = await Promise.all([
         getServerOptions(),
         getDatabaseInstanceOptions(),
         getDomainOptions(),
       ]);
-      site = siteData;
-      servers = serverRels;
-      databases = dbRels;
-      domains = domainRels;
       serverOptions = sOpts;
       dbOptions = dOpts;
       domainOptions = domOpts;
+      await loadAll();
     } catch (err) {
       console.error('Failed to load site relations:', err);
-      goto('/site-relations');
     } finally {
       loading = false;
     }
@@ -88,42 +85,32 @@
   }
 
   async function handleAdd() {
-    if (!site) return;
     if (!addEntityId) return;
     addSaving = true;
     try {
       if (addType === 'server') {
         await siteRelationsApi.createServer({
-          site_id: site.id,
+          site_id: siteId,
           server_id: addEntityId,
           deploy_role: addRole || undefined,
           is_primary: addIsPrimary,
         });
       } else if (addType === 'database') {
         await siteRelationsApi.createDatabase({
-          site_id: site.id,
+          site_id: siteId,
           database_instance_id: addEntityId,
           usage_type: addRole || undefined,
           is_primary: addIsPrimary,
         });
       } else {
         await siteRelationsApi.createDomain({
-          site_id: site.id,
+          site_id: siteId,
           domain_id: addEntityId,
           is_primary: addIsPrimary,
         });
       }
       addDialogOpen = false;
-      // 刷新
-      const siteId = site.id;
-      const [s2, d2, dom2] = await Promise.all([
-        siteRelationsApi.listServers(siteId),
-        siteRelationsApi.listDatabases(siteId),
-        siteRelationsApi.listDomains(siteId),
-      ]);
-      servers = s2;
-      databases = d2;
-      domains = dom2;
+      await loadAll();
     } catch (err) {
       console.error('Failed to add relation:', err);
     } finally {
@@ -162,64 +149,34 @@
   }
 </script>
 
-<div class="space-y-4">
-  <Breadcrumb items={[
-    { label: '站点关联', href: '/site-relations' },
-    { label: site?.name || '详情' }
-  ]} />
+<Card.Root>
+  <Card.Header>
+    <Card.Title>关联资源</Card.Title>
+    <Card.Description>站点与服务器、数据库实例、域名的关联关系</Card.Description>
+  </Card.Header>
+  <Card.Content>
+    {#if loading}
+      <div class="py-6 text-center text-sm text-muted-foreground">加载中...</div>
+    {:else}
+      <Tabs.Root value={activeTab} onValueChange={(v: string) => activeTab = v}>
+        <Tabs.List>
+          <Tabs.Trigger value="servers">服务器 ({servers.length})</Tabs.Trigger>
+          <Tabs.Trigger value="databases">数据库 ({databases.length})</Tabs.Trigger>
+          <Tabs.Trigger value="domains">域名 ({domains.length})</Tabs.Trigger>
+        </Tabs.List>
 
-  {#if loading}
-    <div class="flex items-center justify-center py-12">
-      <div class="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-    </div>
-  {:else if site}
-    <div class="flex items-center justify-between">
-      <div class="flex items-center gap-2">
-        <h1 class="text-2xl font-semibold">{site.name}</h1>
-        <StatusBadge status={site.status} />
-      </div>
-    </div>
-
-    <Card.Root>
-      <Card.Content class="pt-6">
-        <div class="grid gap-4 md:grid-cols-3 text-sm">
-          <div>
-            <span class="text-muted-foreground">URL</span>
-            <p>{site.url || '-'}</p>
-          </div>
-          <div>
-            <span class="text-muted-foreground">服务目标</span>
-            <p>{site.service_target || '-'}</p>
-          </div>
-          <div>
-            <span class="text-muted-foreground">重要性</span>
-            <p>{site.importance || '-'}</p>
-          </div>
-        </div>
-      </Card.Content>
-    </Card.Root>
-
-    <Tabs.Root value={activeTab} onValueChange={(v: string) => activeTab = v}>
-      <Tabs.List>
-        <Tabs.Trigger value="servers">服务器 ({servers.length})</Tabs.Trigger>
-        <Tabs.Trigger value="databases">数据库 ({databases.length})</Tabs.Trigger>
-        <Tabs.Trigger value="domains">域名 ({domains.length})</Tabs.Trigger>
-      </Tabs.List>
-
-      <Tabs.Content value="servers">
-        <Card.Root>
-          <Card.Header class="flex items-center justify-between">
-            <Card.Title>服务器关联</Card.Title>
-            <Button size="sm" onclick={() => openAdd('server')}>添加服务器</Button>
-          </Card.Header>
-          <Card.Content>
+        <Tabs.Content value="servers">
+          <div class="space-y-3">
+            <div class="flex justify-end">
+              <Button size="sm" onclick={() => openAdd('server')}>添加服务器</Button>
+            </div>
             <Table.Root>
               <Table.Header>
                 <Table.Row>
                   <Table.Head>服务器</Table.Head>
                   <Table.Head>部署角色</Table.Head>
                   <Table.Head>主用</Table.Head>
-                  <Table.Head>操作</Table.Head>
+                  <Table.Head class="w-[100px]">操作</Table.Head>
                 </Table.Row>
               </Table.Header>
               <Table.Body>
@@ -247,24 +204,21 @@
                 {/each}
               </Table.Body>
             </Table.Root>
-          </Card.Content>
-        </Card.Root>
-      </Tabs.Content>
+          </div>
+        </Tabs.Content>
 
-      <Tabs.Content value="databases">
-        <Card.Root>
-          <Card.Header class="flex items-center justify-between">
-            <Card.Title>数据库关联</Card.Title>
-            <Button size="sm" onclick={() => openAdd('database')}>添加数据库</Button>
-          </Card.Header>
-          <Card.Content>
+        <Tabs.Content value="databases">
+          <div class="space-y-3">
+            <div class="flex justify-end">
+              <Button size="sm" onclick={() => openAdd('database')}>添加数据库</Button>
+            </div>
             <Table.Root>
               <Table.Header>
                 <Table.Row>
                   <Table.Head>数据库实例</Table.Head>
                   <Table.Head>用途</Table.Head>
                   <Table.Head>主用</Table.Head>
-                  <Table.Head>操作</Table.Head>
+                  <Table.Head class="w-[100px]">操作</Table.Head>
                 </Table.Row>
               </Table.Header>
               <Table.Body>
@@ -292,23 +246,20 @@
                 {/each}
               </Table.Body>
             </Table.Root>
-          </Card.Content>
-        </Card.Root>
-      </Tabs.Content>
+          </div>
+        </Tabs.Content>
 
-      <Tabs.Content value="domains">
-        <Card.Root>
-          <Card.Header class="flex items-center justify-between">
-            <Card.Title>域名关联</Card.Title>
-            <Button size="sm" onclick={() => openAdd('domain')}>添加域名</Button>
-          </Card.Header>
-          <Card.Content>
+        <Tabs.Content value="domains">
+          <div class="space-y-3">
+            <div class="flex justify-end">
+              <Button size="sm" onclick={() => openAdd('domain')}>添加域名</Button>
+            </div>
             <Table.Root>
               <Table.Header>
                 <Table.Row>
                   <Table.Head>域名</Table.Head>
                   <Table.Head>主用</Table.Head>
-                  <Table.Head>操作</Table.Head>
+                  <Table.Head class="w-[100px]">操作</Table.Head>
                 </Table.Row>
               </Table.Header>
               <Table.Body>
@@ -335,12 +286,12 @@
                 {/each}
               </Table.Body>
             </Table.Root>
-          </Card.Content>
-        </Card.Root>
-      </Tabs.Content>
-    </Tabs.Root>
-  {/if}
-</div>
+          </div>
+        </Tabs.Content>
+      </Tabs.Root>
+    {/if}
+  </Card.Content>
+</Card.Root>
 
 <Dialog.Root bind:open={addDialogOpen}>
   <Dialog.Content>

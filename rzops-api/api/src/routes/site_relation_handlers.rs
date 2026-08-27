@@ -8,6 +8,24 @@ use crate::routes::SiteRelationState;
 use crate::auth_extractor::AuthUser;
 use crate::change_log::{record_change, ChangeLogState};
 
+// 反向查询：某服务器关联到的站点
+#[utoipa::path(get, path = "/api/v1/site-relations/servers/{server_id}/sites", params(("server_id" = uuid::Uuid, Path)), responses((status = 200, body = [SiteRefByServerResponse]), (status = 500, body = ErrorResponse)), tag = "SiteRelation", security(("bearer_auth" = [])))]
+pub async fn list_sites_by_server(_auth: AuthUser, State(st): State<SiteRelationState>, Path(server_id): Path<Uuid>) -> impl IntoResponse {
+    match st.site_server.find_sites_by_server(server_id).await {
+        Ok(v) => (StatusCode::OK, Json(v.iter().map(|e| SiteRefByServerResponse { site_id: e.site_id, site_name: e.site_name.clone(), deploy_role: e.deploy_role.clone(), is_primary: e.is_primary }).collect::<Vec<_>>())).into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: e.to_string() })).into_response(),
+    }
+}
+
+// 反向查询：某数据库实例关联到的站点
+#[utoipa::path(get, path = "/api/v1/site-relations/databases/{database_instance_id}/sites", params(("database_instance_id" = uuid::Uuid, Path)), responses((status = 200, body = [SiteRefByDatabaseResponse]), (status = 500, body = ErrorResponse)), tag = "SiteRelation", security(("bearer_auth" = [])))]
+pub async fn list_sites_by_database(_auth: AuthUser, State(st): State<SiteRelationState>, Path(database_instance_id): Path<Uuid>) -> impl IntoResponse {
+    match st.site_database.find_sites_by_database(database_instance_id).await {
+        Ok(v) => (StatusCode::OK, Json(v.iter().map(|e| SiteRefByDatabaseResponse { site_id: e.site_id, site_name: e.site_name.clone(), usage_type: e.usage_type.clone(), is_primary: e.is_primary }).collect::<Vec<_>>())).into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: e.to_string() })).into_response(),
+    }
+}
+
 
 // Site-Server
 #[utoipa::path(get, path = "/api/v1/site-relations/site-servers/{site_id}", params(("site_id" = uuid::Uuid, Path)), responses((status = 200, body = [SiteServerRelationResponse]), (status = 500, body = ErrorResponse)), tag = "SiteRelation", security(("bearer_auth" = [])))]

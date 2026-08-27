@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use sqlx::{Pool, Postgres, Row};
 use uuid::Uuid;
-use rzops_domain::models::ops_site_relation::{OpsSiteServer, OpsSiteDatabase, OpsSiteDomain};
+use rzops_domain::models::ops_site_relation::{OpsSiteServer, OpsSiteDatabase, OpsSiteDomain, SiteRefByServer, SiteRefByDatabase};
 use rzops_domain::ports::site_relation_repository::{SiteServerRelationRepository, SiteDatabaseRelationRepository, SiteDomainRelationRepository};
 
 pub struct PgSiteRelationRepository { pool: Pool<Postgres> }
@@ -30,6 +30,19 @@ impl SiteServerRelationRepository for PgSiteRelationRepository {
             .bind(site_id).fetch_all(&self.pool).await?;
         Ok(rows.iter().map(|r| row_to_site_server(r)).collect())
     }
+    async fn find_sites_by_server(&self, server_id: Uuid) -> Result<Vec<SiteRefByServer>, sqlx::Error> {
+        let rows = sqlx::query(
+            "SELECT r.site_id, s.name AS site_name, r.deploy_role::text, r.is_primary \
+             FROM cmdb_ops_site_server r JOIN cmdb_ops_site s ON s.id = r.site_id \
+             WHERE r.server_id=$1 ORDER BY s.name")
+            .bind(server_id).fetch_all(&self.pool).await?;
+        Ok(rows.iter().map(|r| SiteRefByServer {
+            site_id: r.get("site_id"),
+            site_name: r.get("site_name"),
+            deploy_role: r.get("deploy_role"),
+            is_primary: r.get("is_primary"),
+        }).collect())
+    }
     async fn create(&self, e: &OpsSiteServer) -> Result<OpsSiteServer, sqlx::Error> {
         Ok(row_to_site_server(&sqlx::query("INSERT INTO cmdb_ops_site_server (id,site_id,server_id,deploy_role,is_primary,created_at) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id, site_id, server_id, deploy_role::text, is_primary, created_at")
             .bind(e.id).bind(e.site_id).bind(e.server_id).bind(e.deploy_role.clone()).bind(e.is_primary).bind(e.created_at)
@@ -46,6 +59,19 @@ impl SiteDatabaseRelationRepository for PgSiteRelationRepository {
         let rows = sqlx::query("SELECT id, site_id, database_instance_id, usage_type::text, is_primary, created_at FROM cmdb_ops_site_database WHERE site_id=$1 ORDER BY created_at")
             .bind(site_id).fetch_all(&self.pool).await?;
         Ok(rows.iter().map(|r| row_to_site_database(r)).collect())
+    }
+    async fn find_sites_by_database(&self, database_instance_id: Uuid) -> Result<Vec<SiteRefByDatabase>, sqlx::Error> {
+        let rows = sqlx::query(
+            "SELECT r.site_id, s.name AS site_name, r.usage_type::text, r.is_primary \
+             FROM cmdb_ops_site_database r JOIN cmdb_ops_site s ON s.id = r.site_id \
+             WHERE r.database_instance_id=$1 ORDER BY s.name")
+            .bind(database_instance_id).fetch_all(&self.pool).await?;
+        Ok(rows.iter().map(|r| SiteRefByDatabase {
+            site_id: r.get("site_id"),
+            site_name: r.get("site_name"),
+            usage_type: r.get("usage_type"),
+            is_primary: r.get("is_primary"),
+        }).collect())
     }
     async fn create(&self, e: &OpsSiteDatabase) -> Result<OpsSiteDatabase, sqlx::Error> {
         Ok(row_to_site_database(&sqlx::query("INSERT INTO cmdb_ops_site_database (id,site_id,database_instance_id,usage_type,is_primary,created_at) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id, site_id, database_instance_id, usage_type::text, is_primary, created_at")

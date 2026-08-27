@@ -14,6 +14,7 @@
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import StatusBadge from '$lib/components/shared/StatusBadge.svelte';
   import AttachmentSection from '$lib/components/shared/AttachmentSection.svelte';
+  import { siteRelationsApi, type SiteRefByServer } from '$lib/api/site-relations';
   import {
     serverTypeOptions, hostingTypeOptions, serverRoleOptions,
     serverStatusOptions, architectureOptions, raidLevelOptions,
@@ -26,6 +27,7 @@
   let server = $state<ServerResponse | null>(null);
   let ips = $state<ServerIpResponse[]>([]);
   let ports = $state<ServerPortResponse[]>([]);
+  let sites = $state<SiteRefByServer[]>([]);
   let loading = $state(true);
   let dataCenterMap = $state<Record<string, string>>({});
   let providerMap = $state<Record<string, string>>({});
@@ -47,6 +49,7 @@
       ports = portData.data;
       dataCenterMap = Object.fromEntries(dcOptions.map(o => [o.value, o.label]));
       providerMap = Object.fromEntries(provOptions.map(o => [o.value, o.label]));
+      siteRelationsApi.listSitesByServer(id).then(s => { sites = s; }).catch(() => {});
     } catch (err) {
       console.error('Failed to load server:', err);
       goto('/servers');
@@ -346,6 +349,38 @@
       </Card.Content>
     </Card.Root>
 
+    <Card.Root>
+      <Card.Header>
+        <Card.Title>所属站点</Card.Title>
+        <Card.Description>该服务器部署承载的站点（在站点详情页维护关联）</Card.Description>
+      </Card.Header>
+      <Card.Content>
+        {#if sites.length === 0}
+          <p class="text-sm text-muted-foreground">暂未关联站点</p>
+        {:else}
+          <Table.Root>
+            <Table.Header>
+              <Table.Row>
+                <Table.Head>站点</Table.Head>
+                <Table.Head>部署角色</Table.Head>
+                <Table.Head>主用</Table.Head>
+              </Table.Row>
+            </Table.Header>
+            <Table.Body>
+              {#each sites as s}
+                <Table.Row>
+                  <Table.Cell>
+                    <a href="/ops-sites/{s.site_id}" class="text-primary hover:underline">{s.site_name}</a>
+                  </Table.Cell>
+                  <Table.Cell>{s.deploy_role || '-'}</Table.Cell>
+                  <Table.Cell>{s.is_primary ? '是' : '-'}</Table.Cell>
+                </Table.Row>
+              {/each}
+            </Table.Body>
+          </Table.Root>
+        {/if}
+      </Card.Content>
+    </Card.Root>
     <AttachmentSection targetType="server" targetId={server.id} />
   {/if}
 </div>

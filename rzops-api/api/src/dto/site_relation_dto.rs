@@ -53,3 +53,21 @@ pub struct SiteDomainRelationResponse {
     pub is_primary: bool,
     pub created_at: DateTime<Utc>,
 }
+
+/// 反向查询：某服务器关联到的站点。
+#[derive(Debug, Serialize, utoipa::ToSchema)]
+pub struct SiteRefByServerResponse {
+    pub site_id: Uuid,
+    pub site_name: String,
+    pub deploy_role: Option<String>,
+    pub is_primary: bool,
+}
+
+/// 反向查询：某数据库实例关联到的站点。
+#[derive(Debug, Serialize, utoipa::ToSchema)]
+pub struct SiteRefByDatabaseResponse {
+    pub site_id: Uuid,
+    pub site_name: String,
+    pub usage_type: Option<String>,
+    pub is_primary: bool,
+}

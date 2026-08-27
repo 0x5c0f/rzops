@@ -370,6 +370,11 @@
         options={$webServerSoftwareOptions}
         placeholder="选择Web服务器"
       />
+
+      <div class="flex items-center gap-2 pt-6">
+        <input type="checkbox" id="is_database_server" bind:checked={form.is_database_server} class="h-4 w-4" />
+        <Label for="is_database_server">数据库服务器</Label>
+      </div>
     </Card.Content>
   </Card.Root>
 
@@ -555,11 +560,6 @@
         placeholder="选择RAID级别"
         disabled={!form.is_raid}
       />
-
-      <div class="flex items-center gap-2 pt-6">
-        <input type="checkbox" id="is_database_server" bind:checked={form.is_database_server} class="h-4 w-4" />
-        <Label for="is_database_server">数据库服务器</Label>
-      </div>
     </Card.Content>
   </Card.Root>
 

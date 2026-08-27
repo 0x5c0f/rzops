@@ -1,5 +1,6 @@
 <script lang="ts">
   import AttachmentSection from '$lib/components/shared/AttachmentSection.svelte';
+  import SiteRelationsSection from '$lib/components/shared/SiteRelationsSection.svelte';
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import { opsSitesApi } from '$lib/api/ops-sites';
@@ -125,14 +126,6 @@
               <dd>{site.web_framework || '-'}</dd>
             </div>
             <div class="flex justify-between">
-              <dt class="text-muted-foreground">内部系统</dt>
-              <dd>{site.is_internal_system ? '是' : '否'}</dd>
-            </div>
-            <div class="flex justify-between">
-              <dt class="text-muted-foreground">使用CDN</dt>
-              <dd>{site.uses_cdn ? '是' : '否'}</dd>
-            </div>
-            <div class="flex justify-between">
               <dt class="text-muted-foreground">测试站点</dt>
               <dd>{site.is_test_site ? '是' : '否'}</dd>
             </div>
@@ -140,6 +133,7 @@
         </Card.Content>
       </Card.Root>
     </div>
+    <SiteRelationsSection siteId={site.id} />
     <AttachmentSection targetType="site" targetId={site.id} />
   {/if}
 </div>

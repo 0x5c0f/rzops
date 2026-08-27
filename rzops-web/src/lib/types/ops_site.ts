@@ -10,10 +10,8 @@ export interface OpsSiteResponse {
   code_repo_type: string | null;
   code_repo_url: string | null;
   purpose: string | null;
-  is_internal_system: boolean | null;
   language_runtime: string | null;
   web_framework: string | null;
-  uses_cdn: boolean | null;
   is_test_site: boolean | null;
   backup_plan_id: string | null;
   last_backup_time: string | null;
@@ -43,10 +41,8 @@ export interface CreateOpsSiteRequest {
   code_repo_type?: string;
   code_repo_url?: string;
   purpose?: string;
-  is_internal_system?: boolean;
   language_runtime?: string;
   web_framework?: string;
-  uses_cdn?: boolean;
   is_test_site?: boolean;
   backup_plan_id?: string;
   last_backup_time?: string;

@@ -1,5 +1,6 @@
 <script lang="ts">
   import AttachmentSection from '$lib/components/shared/AttachmentSection.svelte';
+  import { siteRelationsApi, type SiteRefByDatabase } from '$lib/api/site-relations';
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import { databaseInstancesApi } from '$lib/api/database-instances';
@@ -22,6 +23,7 @@
   let serverMap = $state<Record<string, string>>({});
   let backupPlanMap = $state<Record<string, string>>({});
   let monitorTargetMap = $state<Record<string, string>>({});
+  let sites = $state<SiteRefByDatabase[]>([]);
 
   onMount(async () => {
     const id = $page.params.id;
@@ -37,6 +39,7 @@
       serverMap = Object.fromEntries(servers.map(o => [o.value, o.label]));
       backupPlanMap = Object.fromEntries(backups.map(o => [o.value, o.label]));
       monitorTargetMap = Object.fromEntries(monitors.map(o => [o.value, o.label]));
+      siteRelationsApi.listSitesByDatabase(id).then(s => { sites = s; }).catch(() => {});
     } catch (err) {
       console.error('Failed to load database instance:', err);
       goto('/database-instances');
@@ -173,6 +176,38 @@
         </Card.Content>
       </Card.Root>
     </div>
+    <Card.Root>
+      <Card.Header>
+        <Card.Title>所属站点</Card.Title>
+        <Card.Description>该数据库实例被哪些站点使用（在站点详情页维护关联）</Card.Description>
+      </Card.Header>
+      <Card.Content>
+        {#if sites.length === 0}
+          <p class="text-sm text-muted-foreground">暂未关联站点</p>
+        {:else}
+          <Table.Root>
+            <Table.Header>
+              <Table.Row>
+                <Table.Head>站点</Table.Head>
+                <Table.Head>用途</Table.Head>
+                <Table.Head>主用</Table.Head>
+              </Table.Row>
+            </Table.Header>
+            <Table.Body>
+              {#each sites as s}
+                <Table.Row>
+                  <Table.Cell>
+                    <a href="/ops-sites/{s.site_id}" class="text-primary hover:underline">{s.site_name}</a>
+                  </Table.Cell>
+                  <Table.Cell>{s.usage_type || '-'}</Table.Cell>
+                  <Table.Cell>{s.is_primary ? '是' : '-'}</Table.Cell>
+                </Table.Row>
+              {/each}
+            </Table.Body>
+          </Table.Root>
+        {/if}
+      </Card.Content>
+    </Card.Root>
     <AttachmentSection targetType="database" targetId={instance.id} />
   {/if}
 </div>

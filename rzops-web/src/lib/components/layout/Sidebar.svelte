@@ -71,7 +71,6 @@
       label: '管理',
       items: [
         { href: '/attachments', label: '附件' },
-        { href: '/site-relations', label: '站点关联' },
         { href: '/dicts', label: '字典管理' },
       ],
     },
