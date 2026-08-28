@@ -15,9 +15,7 @@
   let initialized = $state(false);
 
   onMount(async () => {
-    // 预加载数据字典选项（幂等，浏览器端执行）
-    loadAllDicts();
-    // Skip auth check for login page
+    // 登录页不加载字典（字典接口需认证，未登录请求会 401 导致整页跳转死循环）
     if ($page.url.pathname === '/login') {
       loading = false;
       initialized = true;
@@ -38,6 +36,8 @@
     try {
       const user = await authApi.me();
       auth.setUser(user);
+      // 认证通过后再预加载数据字典选项（幂等）
+      loadAllDicts();
       loading = false;
       initialized = true;
     } catch (err) {

@@ -39,7 +39,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   if (res.status === 401) {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('token');
-      window.location.href = '/login';
+      // 已在登录页时不重复跳转，避免 401 触发的整页跳转造成 reload 死循环
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
     }
     throw new ApiError(401, '未授权，请重新登录');
   }
