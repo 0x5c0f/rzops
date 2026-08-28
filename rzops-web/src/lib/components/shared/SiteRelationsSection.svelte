@@ -18,6 +18,7 @@
     getDatabaseInstanceOptions,
     getDomainOptions,
   } from '$lib/utils/entity-options';
+  import { siteServerRoleOptions, siteDatabaseUsageOptions, getOptionLabel } from '$lib/utils/enum-options';
   import { onMount } from 'svelte';
 
   let {
@@ -187,7 +188,7 @@
                         {serverMap[rel.server_id] || rel.server_id}
                       </a>
                     </Table.Cell>
-                    <Table.Cell>{rel.deploy_role || '-'}</Table.Cell>
+                    <Table.Cell>{getOptionLabel($siteServerRoleOptions, rel.deploy_role) || '-'}</Table.Cell>
                     <Table.Cell>{rel.is_primary ? '是' : '-'}</Table.Cell>
                     <Table.Cell>
                       <Button variant="ghost" size="sm" onclick={() => handleDeleteServer(rel.id)}>
@@ -229,7 +230,7 @@
                         {dbMap[rel.database_instance_id] || rel.database_instance_id}
                       </a>
                     </Table.Cell>
-                    <Table.Cell>{rel.usage_type || '-'}</Table.Cell>
+                    <Table.Cell>{getOptionLabel($siteDatabaseUsageOptions, rel.usage_type) || '-'}</Table.Cell>
                     <Table.Cell>{rel.is_primary ? '是' : '-'}</Table.Cell>
                     <Table.Cell>
                       <Button variant="ghost" size="sm" onclick={() => handleDeleteDatabase(rel.id)}>

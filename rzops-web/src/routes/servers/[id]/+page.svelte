@@ -18,7 +18,7 @@
   import {
     serverTypeOptions, hostingTypeOptions, serverRoleOptions,
     serverStatusOptions, architectureOptions, raidLevelOptions,
-    webServerSoftwareOptions, getOptionLabel, getOptionLabels
+    webServerSoftwareOptions, siteServerRoleOptions, getOptionLabel, getOptionLabels
   } from '$lib/utils/enum-options';
   import { getDataCenterOptions, getProviderOptions, ensureOption } from '$lib/utils/entity-options';
   import { formatDate } from '$lib/utils/format';
@@ -369,7 +369,7 @@
                 <Table.Cell>
                   <a href="/ops-sites/{s.site_id}" class="text-primary hover:underline">{s.site_name}</a>
                 </Table.Cell>
-                <Table.Cell>{s.deploy_role || '-'}</Table.Cell>
+                <Table.Cell>{getOptionLabel($siteServerRoleOptions, s.deploy_role) || '-'}</Table.Cell>
                 <Table.Cell>{s.is_primary ? '是' : '-'}</Table.Cell>
               </Table.Row>
             {:else}

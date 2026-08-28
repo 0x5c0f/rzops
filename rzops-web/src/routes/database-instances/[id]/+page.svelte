@@ -9,7 +9,7 @@
   import * as Card from '$lib/ui/card';
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import StatusBadge from '$lib/components/shared/StatusBadge.svelte';
-  import { databaseStatusOptions, databaseTypeOptions, importanceOptions, getOptionLabel } from '$lib/utils/enum-options';
+  import { databaseStatusOptions, databaseTypeOptions, importanceOptions, siteDatabaseUsageOptions, getOptionLabel } from '$lib/utils/enum-options';
   import {
     getServerOptions,
     getBackupPlanOptions,
@@ -196,7 +196,7 @@
                 <Table.Cell>
                   <a href="/ops-sites/{s.site_id}" class="text-primary hover:underline">{s.site_name}</a>
                 </Table.Cell>
-                <Table.Cell>{s.usage_type || '-'}</Table.Cell>
+                <Table.Cell>{getOptionLabel($siteDatabaseUsageOptions, s.usage_type) || '-'}</Table.Cell>
                 <Table.Cell>{s.is_primary ? '是' : '-'}</Table.Cell>
               </Table.Row>
             {:else}
