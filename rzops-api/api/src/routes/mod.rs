@@ -102,12 +102,13 @@ pub fn contract_routes(repo: Arc<dyn contract_repository::ContractRepository>) -
     Router::new().route("/", axum::routing::get(list_contracts).post(create_contract))
         .route("/{id}", axum::routing::get(get_contract).put(update_contract).delete(delete_contract)).with_state(repo)
 }
-pub fn attachment_routes(repo: Arc<dyn attachment_repository::AttachmentRepository>, upload_dir: String) -> Router {
+pub fn attachment_routes(repo: Arc<dyn attachment_repository::AttachmentRepository>, pool: sqlx::PgPool, upload_dir: String) -> Router {
     Router::new().route("/", axum::routing::get(list_attachments).post(create_attachment))
         .route("/upload", axum::routing::post(upload_attachment))
         .route("/{id}/download", axum::routing::get(download_attachment))
         .route("/{id}", axum::routing::get(get_attachment).put(update_attachment).delete(delete_attachment))
         .with_state(repo)
+        .layer(axum::Extension(pool))
         .layer(axum::Extension(upload_dir))
 }
 pub fn audit_log_routes(repo: Arc<dyn audit_log_repository::AuditLogRepository>) -> Router {

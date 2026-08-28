@@ -27,8 +27,29 @@
     credential: '凭据',
     backup_plan: '备份计划',
     monitor_target: '监控目标',
+    contract: '合同',
     other: '其他',
   };
+
+  // 目标类型 → 详情页路由前缀
+  const targetRoute: Record<string, string> = {
+    server: '/servers/',
+    database: '/database-instances/',
+    site: '/ops-sites/',
+    domain: '/domains/',
+    certificate: '/certificates/',
+    provider: '/providers/',
+    data_center: '/data-centers/',
+    monitor_target: '/monitor-targets/',
+    backup_plan: '/backup-plans/',
+    contract: '/contracts/',
+  };
+
+  function targetHref(targetType: string | null, targetId: string | null): string | null {
+    if (!targetType || !targetId) return null;
+    const prefix = targetRoute[targetType];
+    return prefix ? `${prefix}${targetId}` : null;
+  }
 
   onMount(async () => {
     try {
@@ -101,8 +122,19 @@
           <div class="text-sm">{targetTypeZh[attachment.target_type ?? ''] || attachment.target_type || '-'}</div>
         </div>
         <div class="space-y-2">
-          <Label>目标ID</Label>
-          <div class="text-sm">{attachment.target_id ?? '-'}</div>
+          <Label>关联目标</Label>
+          {#if attachment.target_id}
+            {@const href = targetHref(attachment.target_type, attachment.target_id)}
+            {#if href}
+              <a href={href} class="text-sm font-medium text-primary hover:underline">
+                {attachment.target_name || attachment.target_id}
+              </a>
+            {:else}
+              <div class="text-sm">{attachment.target_name || attachment.target_id}</div>
+            {/if}
+          {:else}
+            <div class="text-sm">-</div>
+          {/if}
         </div>
         <div class="space-y-2">
           <Label>内容类型</Label>
@@ -117,8 +149,8 @@
           <div class="text-sm">{attachment.storage_key ?? '-'}</div>
         </div>
         <div class="space-y-2">
-          <Label>上传者ID</Label>
-          <div class="text-sm">{attachment.uploaded_by_id ?? '-'}</div>
+          <Label>上传者</Label>
+          <div class="text-sm">{attachment.uploader_name ?? '-'}</div>
         </div>
         <div class="space-y-2">
           <Label>状态</Label>

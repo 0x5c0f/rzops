@@ -14,6 +14,7 @@ mod middleware;
 /// Application state shared across handlers.
 #[derive(Clone)]
 pub struct AppState {
+    pub pool: Pool<Postgres>,
     pub user_repo: Arc<dyn user_repository::UserRepository>,
     pub provider_repo: Arc<dyn provider_repository::ProviderRepository>,
     pub datacenter_repo: Arc<dyn datacenter_repository::DataCenterRepository>,
@@ -67,6 +68,7 @@ impl AppState {
             dict_repo: Arc::new(PgDictRepository::new(pool.clone())),
             token_service: Arc::new(JwtService::new(jwt_secret, jwt_expiration)),
             upload_dir,
+            pool,
         }
     }
 }
@@ -111,7 +113,7 @@ pub fn create_router(state: AppState) -> Router {
         .nest("/api/v1/backup-plans", rzops_api::backup_plan_routes(state.backup_plan_repo.clone()))
         .nest("/api/v1/monitor-targets", rzops_api::monitor_target_routes(state.monitor_target_repo.clone()))
         .nest("/api/v1/contracts", rzops_api::contract_routes(state.contract_repo.clone()))
-        .nest("/api/v1/attachments", rzops_api::attachment_routes(state.attachment_repo.clone(), state.upload_dir.clone()))
+        .nest("/api/v1/attachments", rzops_api::attachment_routes(state.attachment_repo.clone(), state.pool.clone(), state.upload_dir.clone()))
         .nest("/api/v1/audit-logs", rzops_api::audit_log_routes(state.audit_log_repo.clone()))
         .nest("/api/v1/change-records", rzops_api::change_record_routes(state.change_record_repo.clone()))
         .nest("/api/v1/dicts", rzops_api::dict_routes(state.dict_repo.clone()))

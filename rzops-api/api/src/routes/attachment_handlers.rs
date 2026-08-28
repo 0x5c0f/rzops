@@ -6,6 +6,7 @@ use axum::{
     Json,
 };
 use chrono::Utc;
+use sqlx::PgPool;
 use uuid::Uuid;
 use rzops_domain::models::attachment::Attachment;
 use rzops_domain::ports::attachment_repository::{AttachmentFilter, AttachmentRepository};
@@ -14,7 +15,66 @@ use crate::dto::attachment_dto::*;
 use crate::auth_extractor::AuthUser;
 use crate::change_log::{record_change, ChangeLogState};
 
-fn to_resp(e:&Attachment)->AttachmentResponse{AttachmentResponse{id:e.id,filename:e.filename.clone(),target_type:e.target_type.clone(),target_id:e.target_id,storage_key:e.storage_key.clone(),content_type:e.content_type.clone(),size_bytes:e.size_bytes,uploaded_by_id:e.uploaded_by_id,status:e.status.clone(),remarks:e.remarks.clone(),created_at:e.created_at,updated_at:e.updated_at}}
+/// 根据附件目标类型与目标 ID 解析资源名称（表名列名来自固定白名单，非用户输入）
+async fn resolve_target_name(pool: &PgPool, target_type: &str, target_id: Uuid) -> Option<String> {
+    let (table, col) = match target_type {
+        "server" => ("cmdb_server", "name"),
+        "database" => ("cmdb_database_instance", "name"),
+        "site" => ("cmdb_ops_site", "name"),
+        "domain" => ("cmdb_domain", "domain_name"),
+        "certificate" => ("cmdb_certificate", "name"),
+        "provider" => ("cmdb_provider", "name"),
+        "data_center" => ("cmdb_data_center", "name"),
+        "monitor_target" => ("cmdb_monitor_target", "name"),
+        "backup_plan" => ("cmdb_backup_plan", "name"),
+        "contract" => ("cmdb_contract", "name"),
+        _ => return None,
+    };
+    let sql = format!("SELECT {col} FROM {table} WHERE id = $1");
+    sqlx::query_scalar::<_, String>(&sql)
+        .bind(target_id)
+        .fetch_optional(pool)
+        .await
+        .ok()
+        .flatten()
+}
+
+/// 解析上传者姓名
+async fn resolve_uploader_name(pool: &PgPool, user_id: Uuid) -> Option<String> {
+    sqlx::query_scalar::<_, String>("SELECT full_name FROM \"user\" WHERE id = $1")
+        .bind(user_id)
+        .fetch_optional(pool)
+        .await
+        .ok()
+        .flatten()
+}
+
+async fn to_resp(pool: &PgPool, e: &Attachment) -> AttachmentResponse {
+    let target_name = match (e.target_type.as_deref(), e.target_id) {
+        (Some(t), Some(tid)) => resolve_target_name(pool, t, tid).await,
+        _ => None,
+    };
+    let uploader_name = match e.uploaded_by_id {
+        Some(uid) => resolve_uploader_name(pool, uid).await,
+        None => None,
+    };
+    AttachmentResponse {
+        id: e.id,
+        filename: e.filename.clone(),
+        target_type: e.target_type.clone(),
+        target_id: e.target_id,
+        target_name,
+        storage_key: e.storage_key.clone(),
+        content_type: e.content_type.clone(),
+        size_bytes: e.size_bytes,
+        uploaded_by_id: e.uploaded_by_id,
+        uploader_name,
+        status: e.status.clone(),
+        remarks: e.remarks.clone(),
+        created_at: e.created_at,
+        updated_at: e.updated_at,
+    }
+}
 
 fn content_type_from_name(name: &str, fallback: Option<&str>) -> Option<String> {
     if let Some(ct) = fallback.filter(|s| !s.is_empty()) {
@@ -125,7 +185,7 @@ async fn parse_upload(mut mp: Multipart) -> Result<UploadParsed, (StatusCode, Js
 
 /// 上传附件（multipart: file + target_type + target_id + remarks）
 #[utoipa::path(post, path = "/api/v1/attachments/upload", responses((status = 201, body = AttachmentResponse), (status = 400, body = ErrorResponse)), tag = "Attachment", security(("bearer_auth" = [])))]
-pub async fn upload_attachment(auth: AuthUser, State(r): State<Arc<dyn AttachmentRepository>>, Extension(upload_dir): Extension<String>, Extension(change_log): Extension<ChangeLogState>, mp: Multipart) -> impl IntoResponse {
+pub async fn upload_attachment(auth: AuthUser, State(r): State<Arc<dyn AttachmentRepository>>, Extension(pool): Extension<PgPool>, Extension(upload_dir): Extension<String>, Extension(change_log): Extension<ChangeLogState>, mp: Multipart) -> impl IntoResponse {
     let parsed = match parse_upload(mp).await {
         Ok(p) => p,
         Err((status, err)) => return (status, err).into_response(),
@@ -144,8 +204,8 @@ pub async fn upload_attachment(auth: AuthUser, State(r): State<Arc<dyn Attachmen
     let e = Attachment { id: Uuid::new_v4(), filename: fname, target_type, target_id, storage_key: Some(key), content_type: ct, size_bytes: Some(bytes.len() as i64), uploaded_by_id: Some(auth.user_id), status: "active".to_string(), remarks, created_at: now, updated_at: now };
     match r.create(&e).await {
         Ok(c) => {
-            record_change(&change_log, &auth, rzops_domain::enums::ChangeType::Create, "attachment", Some(c.id), serde_json::json!(null), serde_json::to_value(to_resp(&c)).unwrap_or(serde_json::json!({})), None).await;
-            (StatusCode::CREATED, Json(to_resp(&c))).into_response()
+            record_change(&change_log, &auth, rzops_domain::enums::ChangeType::Create, "attachment", Some(c.id), serde_json::json!(null), serde_json::to_value(to_resp(&pool, &c).await).unwrap_or(serde_json::json!({})), None).await;
+            (StatusCode::CREATED, Json(to_resp(&pool, &c).await)).into_response()
         }
         Err(err) => {
             let _ = tokio::fs::remove_file(&path).await;
@@ -155,29 +215,29 @@ pub async fn upload_attachment(auth: AuthUser, State(r): State<Arc<dyn Attachmen
 }
 
 #[utoipa::path(get, path = "/api/v1/attachments/{id}", params(("id" = uuid::Uuid, Path)), responses((status = 200, body = AttachmentResponse), (status = 404, body = ErrorResponse)), tag = "Attachment", security(("bearer_auth" = [])))]
-pub async fn get_attachment(_auth:AuthUser,State(r):State<Arc<dyn AttachmentRepository>>,Path(id):Path<Uuid>)->impl IntoResponse{match r.find_by_id(id).await{Ok(Some(e))=>(StatusCode::OK,Json(to_resp(&e))).into_response(),Ok(None)=>(StatusCode::NOT_FOUND,Json(ErrorResponse{error:"not found".into()})).into_response(),Err(e)=>(StatusCode::INTERNAL_SERVER_ERROR,Json(ErrorResponse{error:e.to_string()})).into_response()}}
+pub async fn get_attachment(_auth:AuthUser,State(r):State<Arc<dyn AttachmentRepository>>,Extension(pool):Extension<PgPool>,Path(id):Path<Uuid>)->impl IntoResponse{match r.find_by_id(id).await{Ok(Some(e))=>(StatusCode::OK,Json(to_resp(&pool,&e).await)).into_response(),Ok(None)=>(StatusCode::NOT_FOUND,Json(ErrorResponse{error:"not found".into()})).into_response(),Err(e)=>(StatusCode::INTERNAL_SERVER_ERROR,Json(ErrorResponse{error:e.to_string()})).into_response()}}
 #[utoipa::path(get, path = "/api/v1/attachments", params(ListAttachmentsQuery), responses((status = 200, body = AttachmentListResponse)), tag = "Attachment", security(("bearer_auth" = [])))]
-pub async fn list_attachments(_auth:AuthUser,State(r):State<Arc<dyn AttachmentRepository>>,Query(q):Query<ListAttachmentsQuery>)->impl IntoResponse{let p=q.page.unwrap_or(1).max(1);let pp=q.per_page.unwrap_or(20).min(100);let f=AttachmentFilter{status:q.status,target_type:q.target_type,target_id:q.target_id,q:q.q,limit:Some(pp),offset:Some((p-1)*pp)};match r.find_all(f.clone()).await{Ok(v)=>{let c=r.count(f).await.unwrap_or(0);(StatusCode::OK,Json(AttachmentListResponse{data:v.iter().map(to_resp).collect(),count:c})).into_response()},Err(e)=>(StatusCode::INTERNAL_SERVER_ERROR,Json(ErrorResponse{error:e.to_string()})).into_response()}}
+pub async fn list_attachments(_auth:AuthUser,State(r):State<Arc<dyn AttachmentRepository>>,Extension(pool):Extension<PgPool>,Query(q):Query<ListAttachmentsQuery>)->impl IntoResponse{let p=q.page.unwrap_or(1).max(1);let pp=q.per_page.unwrap_or(20).min(100);let f=AttachmentFilter{status:q.status,target_type:q.target_type,target_id:q.target_id,q:q.q,limit:Some(pp),offset:Some((p-1)*pp)};match r.find_all(f.clone()).await{Ok(v)=>{let c=r.count(f).await.unwrap_or(0);let mut data=Vec::with_capacity(v.len());for e in &v{data.push(to_resp(&pool,e).await);}(StatusCode::OK,Json(AttachmentListResponse{data,count:c})).into_response()},Err(e)=>(StatusCode::INTERNAL_SERVER_ERROR,Json(ErrorResponse{error:e.to_string()})).into_response()}}
 #[utoipa::path(post, path = "/api/v1/attachments", request_body = CreateAttachmentRequest, responses((status = 201, body = AttachmentResponse), (status = 400, body = ErrorResponse)), tag = "Attachment", security(("bearer_auth" = [])))]
-pub async fn create_attachment(auth:AuthUser,State(r):State<Arc<dyn AttachmentRepository>>,Extension(change_log):Extension<ChangeLogState>,Json(b):Json<CreateAttachmentRequest>)->impl IntoResponse{
+pub async fn create_attachment(auth:AuthUser,State(r):State<Arc<dyn AttachmentRepository>>,Extension(pool):Extension<PgPool>,Extension(change_log):Extension<ChangeLogState>,Json(b):Json<CreateAttachmentRequest>)->impl IntoResponse{
     let now=Utc::now();let e=Attachment{id:Uuid::new_v4(),filename:b.filename,target_type:b.target_type,target_id:b.target_id,storage_key:b.storage_key,content_type:b.content_type,size_bytes:b.size_bytes,uploaded_by_id:b.uploaded_by_id.or(Some(auth.user_id)),status:b.status.unwrap_or_else(|| "active".to_string()),remarks:b.remarks,created_at:now,updated_at:now};
     match r.create(&e).await{
         Ok(c)=>{
-            record_change(&change_log,&auth,rzops_domain::enums::ChangeType::Create,"attachment",Some(c.id),serde_json::json!(null),serde_json::to_value(to_resp(&c)).unwrap_or(serde_json::json!({})),None).await;
-            (StatusCode::CREATED,Json(to_resp(&c))).into_response()
+            record_change(&change_log,&auth,rzops_domain::enums::ChangeType::Create,"attachment",Some(c.id),serde_json::json!(null),serde_json::to_value(to_resp(&pool,&c).await).unwrap_or(serde_json::json!({})),None).await;
+            (StatusCode::CREATED,Json(to_resp(&pool,&c).await)).into_response()
         }
         Err(e)=>(StatusCode::INTERNAL_SERVER_ERROR,Json(ErrorResponse{error:e.to_string()})).into_response()
     }
 }
 #[utoipa::path(put, path = "/api/v1/attachments/{id}", params(("id" = uuid::Uuid, Path)), request_body = CreateAttachmentRequest, responses((status = 200, body = AttachmentResponse), (status = 404, body = ErrorResponse)), tag = "Attachment", security(("bearer_auth" = [])))]
-pub async fn update_attachment(auth:AuthUser,State(r):State<Arc<dyn AttachmentRepository>>,Extension(change_log):Extension<ChangeLogState>,Path(id):Path<Uuid>,Json(b):Json<CreateAttachmentRequest>)->impl IntoResponse{
+pub async fn update_attachment(auth:AuthUser,State(r):State<Arc<dyn AttachmentRepository>>,Extension(pool):Extension<PgPool>,Extension(change_log):Extension<ChangeLogState>,Path(id):Path<Uuid>,Json(b):Json<CreateAttachmentRequest>)->impl IntoResponse{
     let ex=match r.find_by_id(id).await{Ok(Some(e))=>e,Ok(None)=>return(StatusCode::NOT_FOUND,Json(ErrorResponse{error:"not found".into()})).into_response(),Err(e)=>return(StatusCode::INTERNAL_SERVER_ERROR,Json(ErrorResponse{error:e.to_string()})).into_response()};
-    let before_value=serde_json::to_value(to_resp(&ex)).unwrap_or(serde_json::json!({}));
+    let before_value=serde_json::to_value(to_resp(&pool,&ex).await).unwrap_or(serde_json::json!({}));
     let e=Attachment{id:ex.id,filename:b.filename,target_type:b.target_type.or(ex.target_type),target_id:b.target_id.or(ex.target_id),storage_key:b.storage_key.or(ex.storage_key),content_type:b.content_type.or(ex.content_type),size_bytes:b.size_bytes.or(ex.size_bytes),uploaded_by_id:b.uploaded_by_id.or(ex.uploaded_by_id),status:b.status.unwrap_or(ex.status),remarks:b.remarks.or(ex.remarks),created_at:ex.created_at,updated_at:Utc::now()};
     match r.update(id,&e).await{
         Ok(Some(c))=>{
-            record_change(&change_log,&auth,rzops_domain::enums::ChangeType::Update,"attachment",Some(c.id),before_value,serde_json::to_value(to_resp(&c)).unwrap_or(serde_json::json!({})),None).await;
-            (StatusCode::OK,Json(to_resp(&c))).into_response()
+            record_change(&change_log,&auth,rzops_domain::enums::ChangeType::Update,"attachment",Some(c.id),before_value,serde_json::to_value(to_resp(&pool,&c).await).unwrap_or(serde_json::json!({})),None).await;
+            (StatusCode::OK,Json(to_resp(&pool,&c).await)).into_response()
         }
         Ok(None)=>(StatusCode::NOT_FOUND,Json(ErrorResponse{error:"not found".into()})).into_response(),Err(e)=>(StatusCode::INTERNAL_SERVER_ERROR,Json(ErrorResponse{error:e.to_string()})).into_response()
     }

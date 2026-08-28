@@ -3,10 +3,12 @@ export interface AttachmentResponse {
   filename: string;
   target_type: string | null;
   target_id: string | null;
+  target_name: string | null;
   storage_key: string | null;
   content_type: string | null;
   size_bytes: number | null;
   uploaded_by_id: string | null;
+  uploader_name: string | null;
   status: string;
   remarks: string | null;
   created_at: string;

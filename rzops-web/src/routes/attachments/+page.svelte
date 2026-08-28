@@ -27,12 +27,41 @@
     credential: '凭据',
     backup_plan: '备份计划',
     monitor_target: '监控目标',
+    contract: '合同',
     other: '其他',
   };
 
+  const targetRoute: Record<string, string> = {
+    server: '/servers/',
+    database: '/database-instances/',
+    site: '/ops-sites/',
+    domain: '/domains/',
+    certificate: '/certificates/',
+    provider: '/providers/',
+    data_center: '/data-centers/',
+    monitor_target: '/monitor-targets/',
+    backup_plan: '/backup-plans/',
+    contract: '/contracts/',
+  };
+
+  function targetHref(targetType: string | null, targetId: string | null): string | null {
+    if (!targetType || !targetId) return null;
+    const prefix = targetRoute[targetType];
+    return prefix ? `${prefix}${targetId}` : null;
+  }
+
   const columns = [
     { key: 'filename', label: '文件名' , link: (item: AttachmentResponse) => `/attachments/${item.id}` },
-    { key: 'target_type', label: '目标类型', render: (v: unknown) => targetTypeZh[v as string] || (v as string) || '-' },
+    {
+      key: 'target_type',
+      label: '关联目标',
+      render: (v: unknown, item: AttachmentResponse) => {
+        const type = targetTypeZh[v as string] || (v as string) || '';
+        const name = item.target_name;
+        return name ? `${type} / ${name}` : (type || '-');
+      },
+      link: (item: AttachmentResponse) => targetHref(item.target_type, item.target_id),
+    },
     { key: 'content_type', label: '内容类型' },
     { key: 'size_bytes', label: '文件大小', render: (v: unknown) => formatBytes(v as number) },
     { key: 'created_at', label: '上传时间', render: (v: unknown) => formatDate(v as string) },

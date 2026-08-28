@@ -1706,6 +1706,7 @@ dependencies = [
  "rzops-domain",
  "serde",
  "serde_json",
+ "sqlx",
  "thiserror",
  "tokio",
  "tracing",
