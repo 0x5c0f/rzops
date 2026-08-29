@@ -40,12 +40,14 @@
 </script>
 
 <div class={cn('space-y-2', className)}>
-  <Label>
-    {label}
-    {#if required}
-      <span class="text-destructive">*</span>
-    {/if}
-  </Label>
+  {#if label}
+    <Label>
+      {label}
+      {#if required}
+        <span class="text-destructive">*</span>
+      {/if}
+    </Label>
+  {/if}
   <div class="relative">
     <Select.Root type="single" bind:value={value} {disabled}>
       <Select.Trigger class={cn('w-full', value && !required ? 'pr-9' : '')}>

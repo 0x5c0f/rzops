@@ -58,6 +58,11 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
     }
   });
 
+  // 编辑时确保已选值可见（即使选项尚未加载）
+  let targetIdOptions = $derived(
+    form.target_id ? [...targetOptions.filter(o => o.value !== form.target_id), { label: form.target_id, value: form.target_id }] : targetOptions
+  );
+
   async function handleSave() {
     saving = true;
     try {
@@ -86,31 +91,6 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
         <Input id="name" bind:value={form.name} required />
       </div>
 
-      <FormSelect
-        label="目标类型"
-        bind:value={form.target_type}
-        options={$backupTargetTypeOptions}
-        placeholder="选择目标类型"
-      />
-
-      <div class="space-y-2">
-        <Label for="target_id">目标对象</Label>
-        {#if targetOptions.length > 0}
-          <FormSelect
-            label=""
-            bind:value={form.target_id}
-            options={targetOptions}
-            placeholder="选择目标对象"
-          />
-        {:else}
-          <Input
-            id="target_id"
-            bind:value={form.target_id}
-            placeholder="目标ID（UUID，或选择类型后自动加载）"
-          />
-        {/if}
-      </div>
-
       <div class="space-y-2">
         <Label for="schedule">调度计划</Label>
         <Input id="schedule" bind:value={form.schedule} placeholder="cron 表达式" />
@@ -130,6 +110,30 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
       <div class="space-y-2 md:col-span-2 lg:col-span-3">
         <Label for="remarks">备注</Label>
         <TextArea id="remarks" bind:value={form.remarks} rows={3} />
+      </div>
+    </Card.Content>
+  </Card.Root>
+
+  <Card.Root>
+    <Card.Header>
+      <Card.Title>关联信息</Card.Title>
+      <Card.Description>该备份计划的备份对象（可选）</Card.Description>
+    </Card.Header>
+    <Card.Content class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <FormSelect
+        label="目标类型"
+        bind:value={form.target_type}
+        options={$backupTargetTypeOptions}
+        placeholder="选择目标类型"
+      />
+      <div class="space-y-2">
+        <Label for="target_id">目标对象</Label>
+        <FormSelect
+          label=""
+          bind:value={form.target_id}
+          options={targetIdOptions}
+          placeholder="选择目标对象"
+        />
       </div>
     </Card.Content>
   </Card.Root>

@@ -65,6 +65,11 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
     }
   });
 
+  // 编辑时确保已选值可见（即使选项尚未加载）
+  let targetIdOptions = $derived(
+    form.target_id ? [...targetOptions.filter(o => o.value !== form.target_id), { label: form.target_id, value: form.target_id }] : targetOptions
+  );
+
   async function handleSave() {
     if (!form.name.trim()) return;
     saving = true;
@@ -138,20 +143,12 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
       />
       <div class="space-y-2">
         <Label for="target_id">目标对象</Label>
-        {#if targetOptions.length > 0}
-          <FormSelect
-            label=""
-            bind:value={form.target_id}
-            options={targetOptions}
-            placeholder="选择目标对象"
-          />
-        {:else}
-          <Input
-            id="target_id"
-            bind:value={form.target_id}
-            placeholder="目标ID（UUID，或选择类型后自动加载）"
-          />
-        {/if}
+        <FormSelect
+          label=""
+          bind:value={form.target_id}
+          options={targetIdOptions}
+          placeholder="选择目标对象"
+        />
       </div>
     </Card.Content>
   </Card.Root>
