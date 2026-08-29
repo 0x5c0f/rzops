@@ -2,12 +2,18 @@
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import { databaseInstancesApi } from '$lib/api/database-instances';
+  import { backupPlansApi } from '$lib/api/backup-plans';
+  import { monitorTargetsApi } from '$lib/api/monitor-targets';
   import type { CreateDatabaseInstanceRequest, DatabaseInstanceResponse } from '$lib/types/database_instance';
+  import type { BackupPlanResponse } from '$lib/types/backup_plan';
+  import type { MonitorTargetResponse } from '$lib/types/monitor_target';
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import DatabaseInstanceForm from '$lib/components/forms/DatabaseInstanceForm.svelte';
   import { onMount } from 'svelte';
 
   let instance = $state<DatabaseInstanceResponse | null>(null);
+  let backupPlans = $state<BackupPlanResponse[]>([]);
+  let monitorTargets = $state<MonitorTargetResponse[]>([]);
   let loading = $state(true);
   let loadError = $state(false);
 
@@ -15,7 +21,14 @@
     const id = $page.params.id;
     if (!id) { goto('/database-instances'); return; }
     try {
-      instance = await databaseInstancesApi.getById(id);
+      const [instData, bpData, mtData] = await Promise.all([
+        databaseInstancesApi.getById(id),
+        backupPlansApi.list({ target_type: 'database', target_id: id, per_page: 100 }),
+        monitorTargetsApi.list({ target_type: 'database', target_id: id, per_page: 100 }),
+      ]);
+      instance = instData;
+      backupPlans = bpData.data;
+      monitorTargets = mtData.data;
     } catch (err) {
       console.error('Failed to load database instance:', err);
       loadError = true;
@@ -34,10 +47,29 @@
       is_self_installed: d.is_self_installed ?? false,
       importance: d.importance ?? '',
       is_ops_managed: d.is_ops_managed ?? false,
-      backup_plan_id: d.backup_plan_id ?? '',
-      monitor_target_id: d.monitor_target_id ?? '',
       port: d.port ?? undefined,
       instance_name: d.instance_name ?? '',
+    };
+  }
+
+  function toBackupDraft(b: BackupPlanResponse) {
+    return {
+      id: b.id,
+      name: b.name,
+      schedule: b.schedule ?? '',
+      retention_days: b.retention_days != null ? String(b.retention_days) : '',
+      status: b.status,
+    };
+  }
+
+  function toMonitorDraft(m: MonitorTargetResponse) {
+    return {
+      id: m.id,
+      name: m.name,
+      monitor_type: m.monitor_type ?? '',
+      endpoint: m.endpoint ?? '',
+      interval_seconds: m.interval_seconds != null ? String(m.interval_seconds) : '',
+      status: m.status,
     };
   }
 
@@ -70,6 +102,8 @@
   {:else}
     <DatabaseInstanceForm
       initial={toForm(instance)}
+      initialBackupPlans={backupPlans.map(toBackupDraft)}
+      initialMonitorTargets={monitorTargets.map(toMonitorDraft)}
       entityId={instance.id}
       submitLabel="保存"
       onSubmit={handleUpdate}

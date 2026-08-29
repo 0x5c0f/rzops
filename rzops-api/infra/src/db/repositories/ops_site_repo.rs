@@ -44,9 +44,7 @@ fn row_to_ops_site(row: &sqlx::postgres::PgRow) -> OpsSite {
         language_runtime: row.get("language_runtime"),
         web_framework: wf_str,
         is_test_site: row.get("is_test_site"),
-        backup_plan_id: row.get("backup_plan_id"),
         last_backup_time: row.get("last_backup_time"),
-        monitor_target_id: row.get("monitor_target_id"),
         status: status_str,
         offline_time: row.get("offline_time"),
         offline_reason: row.get("offline_reason"),
@@ -60,7 +58,7 @@ fn row_to_ops_site(row: &sqlx::postgres::PgRow) -> OpsSite {
 const SELECT_COLS: &str = r#"id, name, url, business_unit_id, department_id,
     service_target::text, importance::text, online_time, code_repo_type::text,
     code_repo_url, purpose, language_runtime, web_framework::text,
-    is_test_site, backup_plan_id, last_backup_time, monitor_target_id,
+    is_test_site, last_backup_time,
     status::text, offline_time, offline_reason, function_summary, remarks,
     created_at, updated_at"#;
 
@@ -114,10 +112,10 @@ impl OpsSiteRepository for PgOpsSiteRepository {
             r#"INSERT INTO cmdb_ops_site
                (id, name, url, business_unit_id, department_id, service_target, importance,
                 online_time, code_repo_type, code_repo_url, purpose,
-                language_runtime, web_framework, is_test_site, backup_plan_id,
-                last_backup_time, monitor_target_id, status, offline_time, offline_reason,
+                language_runtime, web_framework, is_test_site,
+                last_backup_time, status, offline_time, offline_reason,
                 function_summary, remarks, created_at, updated_at)
-               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24)
+               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)
                RETURNING {}"#, SELECT_COLS
         ))
         .bind(s.id).bind(&s.name).bind(&s.url).bind(s.business_unit_id).bind(s.department_id)
@@ -128,8 +126,8 @@ impl OpsSiteRepository for PgOpsSiteRepository {
         .bind(&s.code_repo_url).bind(&s.purpose)
         .bind(&s.language_runtime)
         .bind(s.web_framework.clone())
-        .bind(s.is_test_site).bind(s.backup_plan_id).bind(s.last_backup_time)
-        .bind(s.monitor_target_id).bind(s.status.clone())
+        .bind(s.is_test_site).bind(s.last_backup_time)
+        .bind(s.status.clone())
         .bind(s.offline_time).bind(&s.offline_reason).bind(&s.function_summary).bind(&s.remarks)
         .bind(s.created_at).bind(s.updated_at)
         .fetch_one(&self.pool).await?;
@@ -142,9 +140,9 @@ impl OpsSiteRepository for PgOpsSiteRepository {
                 name=$2, url=$3, business_unit_id=$4, department_id=$5, service_target=$6,
                 importance=$7, online_time=$8, code_repo_type=$9, code_repo_url=$10,
                 purpose=$11, language_runtime=$12, web_framework=$13,
-                is_test_site=$14, backup_plan_id=$15, last_backup_time=$16,
-                monitor_target_id=$17, status=$18, offline_time=$19, offline_reason=$20,
-                function_summary=$21, remarks=$22, updated_at=$23
+                is_test_site=$14, last_backup_time=$15,
+                status=$16, offline_time=$17, offline_reason=$18,
+                function_summary=$19, remarks=$20, updated_at=$21
                WHERE id=$1 RETURNING {}"#, SELECT_COLS
         ))
         .bind(id).bind(&s.name).bind(&s.url).bind(s.business_unit_id).bind(s.department_id)
@@ -155,8 +153,8 @@ impl OpsSiteRepository for PgOpsSiteRepository {
         .bind(&s.code_repo_url).bind(&s.purpose)
         .bind(&s.language_runtime)
         .bind(s.web_framework.clone())
-        .bind(s.is_test_site).bind(s.backup_plan_id).bind(s.last_backup_time)
-        .bind(s.monitor_target_id).bind(s.status.clone())
+        .bind(s.is_test_site).bind(s.last_backup_time)
+        .bind(s.status.clone())
         .bind(s.offline_time).bind(&s.offline_reason).bind(&s.function_summary).bind(&s.remarks)
         .bind(s.updated_at)
         .fetch_optional(&self.pool).await?;

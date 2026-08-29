@@ -15,8 +15,6 @@ pub struct DatabaseInstance {
     pub is_self_installed: bool,
     pub importance: Option<String>,
     pub is_ops_managed: bool,
-    pub backup_plan_id: Option<Uuid>,
-    pub monitor_target_id: Option<Uuid>,
     pub port: Option<i32>,
     pub instance_name: Option<String>,
     pub created_at: DateTime<Utc>,

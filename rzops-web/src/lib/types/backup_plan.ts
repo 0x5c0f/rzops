@@ -3,6 +3,7 @@ export interface BackupPlanResponse {
   name: string;
   target_type: string | null;
   target_id: string | null;
+  target_name: string | null;
   schedule: string | null;
   retention_days: number | null;
   status: string;
@@ -31,6 +32,8 @@ export interface UpdateBackupPlanRequest extends Partial<CreateBackupPlanRequest
 export interface ListBackupPlansQuery {
   q?: string;
   status?: string;
+  target_type?: string;
+  target_id?: string;
   page?: number;
   per_page?: number;
 }

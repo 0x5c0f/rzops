@@ -27,6 +27,8 @@ pub struct UpdateBackupPlanRequest {
 #[derive(Debug, Deserialize, utoipa::ToSchema, utoipa::IntoParams)]
 pub struct ListBackupPlansQuery {
     pub status: Option<String>,
+    pub target_type: Option<String>,
+    pub target_id: Option<Uuid>,
     pub q: Option<String>,
     pub page: Option<i64>,
     pub per_page: Option<i64>,
@@ -38,6 +40,7 @@ pub struct BackupPlanResponse {
     pub name: String,
     pub target_type: Option<String>,
     pub target_id: Option<Uuid>,
+    pub target_name: Option<String>,
     pub schedule: Option<String>,
     pub retention_days: Option<i32>,
     pub status: String,

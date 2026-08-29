@@ -8,7 +8,7 @@
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import { formatDate } from '$lib/utils/format';
   import { onMount } from 'svelte';
-  import { commonStatusOptions } from '$lib/utils/enum-options';
+  import { commonStatusOptions, backupTargetTypeOptions } from '$lib/utils/enum-options';
 
   let data = $state<BackupPlanResponse[]>([]);
   let total = $state(0);
@@ -18,10 +18,23 @@
   let perPage = $derived(query.per_page ?? 20);
 
   let statusMap = $derived(Object.fromEntries($commonStatusOptions.map(o => [o.value, o.label])));
+  let targetTypeMap = $derived(Object.fromEntries($backupTargetTypeOptions.map(o => [o.value, o.label])));
+
+  const targetRoute: Record<string, string> = {
+    server: '/servers/',
+    database: '/database-instances/',
+    site: '/ops-sites/',
+  };
+  function targetHref(item: BackupPlanResponse): string | null {
+    if (!item.target_type || !item.target_id) return null;
+    const prefix = targetRoute[item.target_type];
+    return prefix ? `${prefix}${item.target_id}` : null;
+  }
 
   const columns = [
     { key: 'name', label: '名称' , link: (item: BackupPlanResponse) => `/backup-plans/${item.id}` },
-    { key: 'target_type', label: '目标类型' },
+    { key: 'target_type', label: '目标类型', valueMap: targetTypeMap },
+    { key: 'target_name', label: '关联目标', link: targetHref, render: (v: unknown, item: BackupPlanResponse) => (item.target_name || '-') },
     { key: 'schedule', label: '调度计划' },
     { key: 'retention_days', label: '保留天数' },
     { key: 'status', label: '状态', valueMap: statusMap },

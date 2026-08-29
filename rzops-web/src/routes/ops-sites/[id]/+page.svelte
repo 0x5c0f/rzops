@@ -4,7 +4,11 @@
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import { opsSitesApi } from '$lib/api/ops-sites';
+  import { backupPlansApi } from '$lib/api/backup-plans';
+  import { monitorTargetsApi } from '$lib/api/monitor-targets';
   import type { OpsSiteResponse } from '$lib/types/ops_site';
+  import type { BackupPlanResponse } from '$lib/types/backup_plan';
+  import type { MonitorTargetResponse } from '$lib/types/monitor_target';
   import { Button } from '$lib/ui/button';
   import * as Card from '$lib/ui/card';
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
@@ -15,6 +19,8 @@
 
   let site = $state<OpsSiteResponse | null>(null);
   let loading = $state(true);
+  let backupPlans = $state<BackupPlanResponse[]>([]);
+  let monitorTargets = $state<MonitorTargetResponse[]>([]);
 
   onMount(async () => {
     const id = $page.params.id;
@@ -22,6 +28,8 @@
 
     try {
       site = await opsSitesApi.getById(id);
+      backupPlansApi.list({ target_type: 'site', target_id: id, per_page: 100 }).then(r => { backupPlans = r.data; }).catch(() => {});
+      monitorTargetsApi.list({ target_type: 'site', target_id: id, per_page: 100 }).then(r => { monitorTargets = r.data; }).catch(() => {});
     } catch (err) {
       console.error('Failed to load ops-site:', err);
       goto('/ops-sites');
@@ -134,6 +142,44 @@
       </Card.Root>
     </div>
     <SiteRelationsSection siteId={site.id} />
+    <Card.Root>
+      <Card.Header>
+        <Card.Title>运维配置</Card.Title>
+        <Card.Description>该站点的备份计划与监控目标（在编辑页维护）</Card.Description>
+      </Card.Header>
+      <Card.Content class="grid gap-6 md:grid-cols-2">
+        <div class="space-y-2">
+          <h3 class="text-sm font-medium">备份计划</h3>
+          {#if backupPlans.length > 0}
+            <ul class="space-y-1 text-sm">
+              {#each backupPlans as bp}
+                <li>
+                  <a href="/backup-plans/{bp.id}" class="text-primary hover:underline">{bp.name}</a>
+                  <span class="ml-2 text-muted-foreground">{bp.schedule || ''}</span>
+                </li>
+              {/each}
+            </ul>
+          {:else}
+            <p class="text-sm text-muted-foreground">暂未配置备份计划</p>
+          {/if}
+        </div>
+        <div class="space-y-2">
+          <h3 class="text-sm font-medium">监控目标</h3>
+          {#if monitorTargets.length > 0}
+            <ul class="space-y-1 text-sm">
+              {#each monitorTargets as mt}
+                <li>
+                  <a href="/monitor-targets/{mt.id}" class="text-primary hover:underline">{mt.name}</a>
+                  <span class="ml-2 text-muted-foreground">{mt.endpoint || ''}</span>
+                </li>
+              {/each}
+            </ul>
+          {:else}
+            <p class="text-sm text-muted-foreground">暂未配置监控目标</p>
+          {/if}
+        </div>
+      </Card.Content>
+    </Card.Root>
     <AttachmentSection targetType="site" targetId={site.id} />
   {/if}
 </div>

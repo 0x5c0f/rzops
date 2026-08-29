@@ -4,41 +4,40 @@
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import { databaseInstancesApi } from '$lib/api/database-instances';
+  import { backupPlansApi } from '$lib/api/backup-plans';
+  import { monitorTargetsApi } from '$lib/api/monitor-targets';
   import type { DatabaseInstanceResponse } from '$lib/types/database_instance';
+  import type { BackupPlanResponse } from '$lib/types/backup_plan';
+  import type { MonitorTargetResponse } from '$lib/types/monitor_target';
   import { Button } from '$lib/ui/button';
   import * as Card from '$lib/ui/card';
+  import * as Table from '$lib/ui/table';
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import StatusBadge from '$lib/components/shared/StatusBadge.svelte';
   import { databaseStatusOptions, databaseTypeOptions, importanceOptions, siteDatabaseUsageOptions, getOptionLabel } from '$lib/utils/enum-options';
-  import {
-    getServerOptions,
-    getBackupPlanOptions,
-    getMonitorTargetOptions,
-  } from '$lib/utils/entity-options';
+  import { getServerOptions } from '$lib/utils/entity-options';
   import { formatDate } from '$lib/utils/format';
   import { onMount } from 'svelte';
 
   let instance = $state<DatabaseInstanceResponse | null>(null);
   let loading = $state(true);
   let serverMap = $state<Record<string, string>>({});
-  let backupPlanMap = $state<Record<string, string>>({});
-  let monitorTargetMap = $state<Record<string, string>>({});
+  let backupPlans = $state<BackupPlanResponse[]>([]);
+  let monitorTargets = $state<MonitorTargetResponse[]>([]);
   let sites = $state<SiteRefByDatabase[]>([]);
 
   onMount(async () => {
     const id = $page.params.id;
     if (!id) { goto('/database-instances'); return; }
     try {
-      const [inst, servers, backups, monitors] = await Promise.all([
+      const [inst, servers] = await Promise.all([
         databaseInstancesApi.getById(id),
         getServerOptions(),
-        getBackupPlanOptions(),
-        getMonitorTargetOptions(),
       ]);
       instance = inst;
       serverMap = Object.fromEntries(servers.map(o => [o.value, o.label]));
-      backupPlanMap = Object.fromEntries(backups.map(o => [o.value, o.label]));
-      monitorTargetMap = Object.fromEntries(monitors.map(o => [o.value, o.label]));
+      backupPlansApi.list({ target_type: 'database', target_id: id, per_page: 100 }).then(r => { backupPlans = r.data; }).catch(() => {});
+      monitorTargetsApi.list({ target_type: 'database', target_id: id, per_page: 100 }).then(r => { monitorTargets = r.data; }).catch(() => {});
       siteRelationsApi.listSitesByDatabase(id).then(s => { sites = s; }).catch(() => {});
     } catch (err) {
       console.error('Failed to load database instance:', err);
@@ -139,10 +138,12 @@
             <div class="flex justify-between">
               <dt class="text-muted-foreground">备份计划</dt>
               <dd>
-                {#if instance.backup_plan_id}
-                  <a href="/backup-plans/{instance.backup_plan_id}" class="text-primary hover:underline">
-                    {backupPlanMap[instance.backup_plan_id] || instance.backup_plan_id}
-                  </a>
+                {#if backupPlans.length > 0}
+                  <div class="flex flex-col items-end gap-1">
+                    {#each backupPlans as bp}
+                      <a href="/backup-plans/{bp.id}" class="text-primary hover:underline">{bp.name}</a>
+                    {/each}
+                  </div>
                 {:else}
                   -
                 {/if}
@@ -151,10 +152,12 @@
             <div class="flex justify-between">
               <dt class="text-muted-foreground">监控目标</dt>
               <dd>
-                {#if instance.monitor_target_id}
-                  <a href="/monitor-targets/{instance.monitor_target_id}" class="text-primary hover:underline">
-                    {monitorTargetMap[instance.monitor_target_id] || instance.monitor_target_id}
-                  </a>
+                {#if monitorTargets.length > 0}
+                  <div class="flex flex-col items-end gap-1">
+                    {#each monitorTargets as mt}
+                      <a href="/monitor-targets/{mt.id}" class="text-primary hover:underline">{mt.name}</a>
+                    {/each}
+                  </div>
                 {:else}
                   -
                 {/if}

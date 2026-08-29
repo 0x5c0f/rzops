@@ -25,13 +25,18 @@ impl BackupPlanRepository for PgBackupPlanRepository {
         let mut idx = 1;
         let s_status = f.status.as_ref();
         let s_q = f.q.as_ref();
+        let s_tt = f.target_type.as_ref();
         if s_status.is_some() { sql.push_str(&format!(" AND status::text = ${}", idx)); idx += 1; }
+        if s_tt.is_some() { sql.push_str(&format!(" AND target_type = ${}", idx)); idx += 1; }
+        if f.target_id.is_some() { sql.push_str(&format!(" AND target_id = ${}", idx)); idx += 1; }
         if s_q.is_some() { sql.push_str(&format!(" AND name ILIKE ${}", idx)); }
         sql.push_str(" ORDER BY created_at DESC");
         if let Some(l) = f.limit { sql.push_str(&format!(" LIMIT {}", l)); }
         if let Some(o) = f.offset { sql.push_str(&format!(" OFFSET {}", o)); }
         let mut query = sqlx::query(&sql);
         if let Some(s) = s_status { query = query.bind(s); }
+        if let Some(t) = s_tt { query = query.bind(t); }
+        if let Some(tid) = f.target_id { query = query.bind(tid); }
         if let Some(q) = s_q { query = query.bind(format!("%{}%", q)); }
         Ok(query.fetch_all(&self.pool).await?.iter().map(|r| row_to_entity(r)).collect())
     }
@@ -40,10 +45,15 @@ impl BackupPlanRepository for PgBackupPlanRepository {
         let mut idx = 1;
         let s_status = f.status.as_ref();
         let s_q = f.q.as_ref();
+        let s_tt = f.target_type.as_ref();
         if s_status.is_some() { sql.push_str(&format!(" AND status::text = ${}", idx)); idx += 1; }
+        if s_tt.is_some() { sql.push_str(&format!(" AND target_type = ${}", idx)); idx += 1; }
+        if f.target_id.is_some() { sql.push_str(&format!(" AND target_id = ${}", idx)); idx += 1; }
         if s_q.is_some() { sql.push_str(&format!(" AND name ILIKE ${}", idx)); }
         let mut query = sqlx::query(&sql);
         if let Some(s) = s_status { query = query.bind(s); }
+        if let Some(t) = s_tt { query = query.bind(t); }
+        if let Some(tid) = f.target_id { query = query.bind(tid); }
         if let Some(q) = s_q { query = query.bind(format!("%{}%", q)); }
         Ok(query.fetch_one(&self.pool).await?.get::<i64, _>("count"))
     }

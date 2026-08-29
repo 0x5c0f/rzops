@@ -7,21 +7,40 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
   import * as Card from '$lib/ui/card';
   import FormSelect from '$lib/components/shared/FormSelect.svelte';
   import TextArea from '$lib/components/shared/TextArea.svelte';
-  import { databaseStatusOptions, databaseTypeOptions, importanceOptions } from '$lib/utils/enum-options';
-  import {
-    getServerOptions,
-    getBackupPlanOptions,
-    getMonitorTargetOptions,
-  } from '$lib/utils/entity-options';
+  import { databaseStatusOptions, databaseTypeOptions, importanceOptions, monitorTypeOptions, commonStatusOptions } from '$lib/utils/enum-options';
+  import { getServerOptions } from '$lib/utils/entity-options';
+  import { backupPlansApi } from '$lib/api/backup-plans';
+  import { monitorTargetsApi } from '$lib/api/monitor-targets';
   import { onMount } from 'svelte';
+
+  interface BackupDraft {
+    id?: string;
+    name: string;
+    schedule: string;
+    retention_days: string;
+    status: string;
+  }
+  interface MonitorDraft {
+    id?: string;
+    name: string;
+    monitor_type: string;
+    endpoint: string;
+    interval_seconds: string;
+    status: string;
+  }
 
   let {
     initial = {} as CreateDatabaseInstanceRequest,
     entityId = '',
+    initialBackupPlans = [] as BackupDraft[],
+    initialMonitorTargets = [] as MonitorDraft[],
     submitLabel = '保存',
     onSubmit,
   }: {
     initial?: CreateDatabaseInstanceRequest;
+    entityId?: string;
+    initialBackupPlans?: BackupDraft[];
+    initialMonitorTargets?: MonitorDraft[];
     submitLabel?: string;
     onSubmit: (data: CreateDatabaseInstanceRequest) => Promise<string | void>;
   } = $props();
@@ -29,10 +48,12 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
   let saving = $state(false);
   let attachmentRef = $state<{ uploadAll: (id: string) => Promise<void> } | null>(null);
   let serverOptions = $state<{ label: string; value: string }[]>([]);
-  let backupPlanOptions = $state<{ label: string; value: string }[]>([]);
-  let monitorTargetOptions = $state<{ label: string; value: string }[]>([]);
 
   let form = $state<CreateDatabaseInstanceRequest>(createInitial(initial));
+  let enableBackup = $state(initialBackupPlans.length > 0);
+  let enableMonitor = $state(initialMonitorTargets.length > 0);
+  let backupPlans = $state<BackupDraft[]>(structuredClone(initialBackupPlans));
+  let monitorTargets = $state<MonitorDraft[]>(structuredClone(initialMonitorTargets));
 
   function createInitial(initial?: CreateDatabaseInstanceRequest): CreateDatabaseInstanceRequest {
     return {
@@ -47,23 +68,97 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
   }
 
   onMount(async () => {
-    const [servers, backups, monitors] = await Promise.all([
-      getServerOptions(),
-      getBackupPlanOptions(),
-      getMonitorTargetOptions(),
-    ]);
-    serverOptions = servers;
-    backupPlanOptions = backups;
-    monitorTargetOptions = monitors;
+    serverOptions = await getServerOptions();
   });
 
+  function emptyBackup(): BackupDraft {
+    return { name: '', schedule: '', retention_days: '', status: 'active' };
+  }
+  function emptyMonitor(): MonitorDraft {
+    return { name: '', monitor_type: '', endpoint: '', interval_seconds: '', status: 'active' };
+  }
+  function addBackupRow() {
+    backupPlans = [...backupPlans, emptyBackup()];
+  }
+  function removeBackupRow(index: number) {
+    backupPlans = backupPlans.filter((_, i) => i !== index);
+  }
+  function addMonitorRow() {
+    monitorTargets = [...monitorTargets, emptyMonitor()];
+  }
+  function removeMonitorRow(index: number) {
+    monitorTargets = monitorTargets.filter((_, i) => i !== index);
+  }
+
+  // 备份计划增量同步（target_type 固定为 database）
+  async function syncBackupPlans(dbId: string) {
+    for (const bp of initialBackupPlans) {
+      if (bp.id && !backupPlans.some(r => r.id === bp.id)) {
+        await backupPlansApi.delete(bp.id);
+      }
+    }
+    for (const row of backupPlans) {
+      const payload = {
+        name: row.name.trim(),
+        target_type: 'database',
+        target_id: dbId,
+        schedule: row.schedule || undefined,
+        retention_days: row.retention_days ? Number(row.retention_days) : undefined,
+        status: row.status,
+      };
+      if (row.id) {
+        await backupPlansApi.update(row.id, payload);
+      } else {
+        await backupPlansApi.create(payload);
+      }
+    }
+  }
+
+  // 监控目标增量同步（target_type 固定为 database）
+  async function syncMonitorTargets(dbId: string) {
+    for (const mt of initialMonitorTargets) {
+      if (mt.id && !monitorTargets.some(r => r.id === mt.id)) {
+        await monitorTargetsApi.delete(mt.id);
+      }
+    }
+    for (const row of monitorTargets) {
+      const payload = {
+        name: row.name.trim(),
+        target_type: 'database',
+        target_id: dbId,
+        monitor_type: row.monitor_type || undefined,
+        endpoint: row.endpoint || undefined,
+        interval_seconds: row.interval_seconds ? Number(row.interval_seconds) : undefined,
+        status: row.status,
+      };
+      if (row.id) {
+        await monitorTargetsApi.update(row.id, payload);
+      } else {
+        await monitorTargetsApi.create(payload);
+      }
+    }
+  }
+
   async function handleSave() {
+    if (enableBackup && backupPlans.some(r => !r.name.trim())) {
+      alert('备份计划的名称必填，请填写完整或删除空行');
+      return;
+    }
+    if (enableMonitor && monitorTargets.some(r => !r.name.trim())) {
+      alert('监控目标的名称必填，请填写完整或删除空行');
+      return;
+    }
     saving = true;
     try {
       const id = await onSubmit(form);
-      if (id) await attachmentRef?.uploadAll(id);
+      if (id) {
+        if (enableBackup) await syncBackupPlans(id);
+        if (enableMonitor) await syncMonitorTargets(id);
+        await attachmentRef?.uploadAll(id);
+      }
     } catch (err) {
       console.error('Failed to save database instance:', err);
+      alert('保存失败，请重试');
     } finally {
       saving = false;
     }
@@ -119,20 +214,6 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
         <Input id="port" type="number" bind:value={form.port} />
       </div>
 
-      <FormSelect
-        label="备份计划"
-        bind:value={form.backup_plan_id}
-        options={backupPlanOptions}
-        placeholder="选择备份计划"
-      />
-
-      <FormSelect
-        label="监控目标"
-        bind:value={form.monitor_target_id}
-        options={monitorTargetOptions}
-        placeholder="选择监控目标"
-      />
-
       <div class="flex items-center gap-4 pt-6">
         <div class="flex items-center gap-2">
           <input id="is_self_installed" type="checkbox" bind:checked={form.is_self_installed} class="h-4 w-4 rounded border-gray-300" />
@@ -148,6 +229,80 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
         <Label for="description">描述</Label>
         <TextArea id="description" bind:value={form.description} rows={3} />
       </div>
+    </Card.Content>
+  </Card.Root>
+
+  <!-- 备份计划：勾选后在此内联新建 -->
+  <Card.Root>
+    <Card.Header>
+      <Card.Title>备份计划</Card.Title>
+      <Card.Description>数据库实例通常需要定期备份，勾选后直接在此维护备份计划（也可在"备份计划"菜单维护）</Card.Description>
+    </Card.Header>
+    <Card.Content class="space-y-3">
+      <div class="flex items-center gap-2">
+        <input id="enable_backup" type="checkbox" bind:checked={enableBackup} class="h-4 w-4 rounded border-gray-300" />
+        <Label for="enable_backup">配置备份计划</Label>
+      </div>
+      {#if enableBackup}
+        {#each backupPlans as bp, i (i)}
+          <div class="grid gap-3 rounded-lg border p-3 md:grid-cols-2 lg:grid-cols-5">
+            <div class="space-y-1">
+              <Label>名称 <span class="text-destructive">*</span></Label>
+              <Input bind:value={bp.name} placeholder="如：主库每日备份" />
+            </div>
+            <div class="space-y-1">
+              <Label>调度计划</Label>
+              <Input bind:value={bp.schedule} placeholder="cron 表达式" />
+            </div>
+            <div class="space-y-1">
+              <Label>保留天数</Label>
+              <Input type="number" bind:value={bp.retention_days} />
+            </div>
+            <FormSelect label="状态" bind:value={bp.status} options={$commonStatusOptions} />
+            <div class="flex items-end">
+              <Button variant="outline" size="sm" onclick={() => removeBackupRow(i)}>移除</Button>
+            </div>
+          </div>
+        {/each}
+        <Button variant="outline" size="sm" onclick={addBackupRow}>+ 添加备份计划</Button>
+      {/if}
+    </Card.Content>
+  </Card.Root>
+
+  <!-- 监控目标：勾选后在此内联新建 -->
+  <Card.Root>
+    <Card.Header>
+      <Card.Title>监控目标</Card.Title>
+      <Card.Description>为数据库实例配置监控（TCP 端口探测等），勾选后直接在此维护（也可在"监控目标"菜单维护）</Card.Description>
+    </Card.Header>
+    <Card.Content class="space-y-3">
+      <div class="flex items-center gap-2">
+        <input id="enable_monitor" type="checkbox" bind:checked={enableMonitor} class="h-4 w-4 rounded border-gray-300" />
+        <Label for="enable_monitor">配置监控目标</Label>
+      </div>
+      {#if enableMonitor}
+        {#each monitorTargets as mt, i (i)}
+          <div class="grid gap-3 rounded-lg border p-3 md:grid-cols-2 lg:grid-cols-5">
+            <div class="space-y-1">
+              <Label>名称 <span class="text-destructive">*</span></Label>
+              <Input bind:value={mt.name} placeholder="如：主库 TCP 监控" />
+            </div>
+            <FormSelect label="监控类型" bind:value={mt.monitor_type} options={$monitorTypeOptions} placeholder="选择类型" />
+            <div class="space-y-1">
+              <Label>端点</Label>
+              <Input bind:value={mt.endpoint} placeholder="URL / IP:Port" />
+            </div>
+            <div class="space-y-1">
+              <Label>间隔(秒)</Label>
+              <Input type="number" bind:value={mt.interval_seconds} />
+            </div>
+            <div class="flex items-end">
+              <Button variant="outline" size="sm" onclick={() => removeMonitorRow(i)}>移除</Button>
+            </div>
+          </div>
+        {/each}
+        <Button variant="outline" size="sm" onclick={addMonitorRow}>+ 添加监控目标</Button>
+      {/if}
     </Card.Content>
   </Card.Root>
 

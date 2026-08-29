@@ -1,9 +1,9 @@
 export interface MonitorTargetResponse {
   id: string;
   name: string;
-  site_id: string | null;
   target_type: string | null;
   target_id: string | null;
+  target_name: string | null;
   monitor_type: string | null;
   endpoint: string | null;
   interval_seconds: number | null;
@@ -20,7 +20,6 @@ export interface MonitorTargetListResponse {
 
 export interface CreateMonitorTargetRequest {
   name: string;
-  site_id?: string;
   target_type?: string;
   target_id?: string;
   monitor_type?: string;
@@ -35,7 +34,8 @@ export interface UpdateMonitorTargetRequest extends Partial<CreateMonitorTargetR
 export interface ListMonitorTargetsQuery {
   q?: string;
   status?: string;
-  site_id?: string;
+  target_type?: string;
+  target_id?: string;
   page?: number;
   per_page?: number;
 }

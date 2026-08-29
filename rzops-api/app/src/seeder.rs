@@ -206,14 +206,17 @@ const DICT_SEEDS: &[(&str, &str, &str)] = &[
     ("site_database_usage", "archive", "归档"),
     ("site_database_usage", "other", "其他"),
     // ── 附件/备份/监控目标类型 ──
+    // 监控目标范围：服务器/数据库/站点/域名/证书（供应商、数据中心不做监控目标）
     ("asset_target_type", "server", "服务器"),
     ("asset_target_type", "database", "数据库"),
     ("asset_target_type", "site", "站点"),
     ("asset_target_type", "domain", "域名"),
     ("asset_target_type", "certificate", "证书"),
-    ("asset_target_type", "provider", "供应商"),
-    ("asset_target_type", "data_center", "数据中心"),
     ("asset_target_type", "other", "其他"),
+    // 备份目标范围：数据库实例/服务器/站点
+    ("backup_target_type", "database", "数据库实例"),
+    ("backup_target_type", "server", "服务器"),
+    ("backup_target_type", "site", "站点"),
 ];
 
 /// Seed 数据字典（cmdb_dict）。幂等：ON CONFLICT DO NOTHING。

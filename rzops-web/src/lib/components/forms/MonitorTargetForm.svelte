@@ -13,8 +13,6 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
     getOpsSiteOptions,
     getDomainOptions,
     getDatabaseInstanceOptions,
-    getProviderOptions,
-    getDataCenterOptions,
     getCertificateOptions,
   } from '$lib/utils/entity-options';
   import { onMount } from 'svelte';
@@ -32,7 +30,6 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
 
   let saving = $state(false);
   let attachmentRef = $state<{ uploadAll: (id: string) => Promise<void> } | null>(null);
-  let siteOptions = $state<{ label: string; value: string }[]>([]);
   let targetOptions = $state<{ label: string; value: string }[]>([]);
 
   let form = $state<CreateMonitorTargetRequest>(createInitial(initial));
@@ -40,7 +37,6 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
   function createInitial(initial?: CreateMonitorTargetRequest): CreateMonitorTargetRequest {
     return {
       name: '',
-      site_id: '',
       target_type: '',
       target_id: '',
       monitor_type: '',
@@ -59,8 +55,6 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
       database: getDatabaseInstanceOptions,
       site: getOpsSiteOptions,
       domain: getDomainOptions,
-      provider: getProviderOptions,
-      data_center: getDataCenterOptions,
       certificate: getCertificateOptions,
     };
     const fn = loader[t];
@@ -71,17 +65,12 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
     }
   });
 
-  onMount(() => {
-    getOpsSiteOptions().then((o) => (siteOptions = o));
-  });
-
   async function handleSave() {
     if (!form.name.trim()) return;
     saving = true;
     try {
       const id = await onSubmit({
         ...form,
-        site_id: form.site_id || undefined,
         target_id: form.target_id || undefined,
         target_type: form.target_type || undefined,
       });
@@ -104,13 +93,6 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
         <Label for="name">名称 <span class="text-destructive">*</span></Label>
         <Input id="name" bind:value={form.name} required />
       </div>
-
-      <FormSelect
-        label="所属站点"
-        bind:value={form.site_id}
-        options={siteOptions}
-        placeholder="选择站点（可选）"
-      />
 
       <FormSelect
         label="监控类型"
@@ -183,3 +165,4 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
     </Button>
   </div>
 </div>
+

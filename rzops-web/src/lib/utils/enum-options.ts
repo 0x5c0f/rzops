@@ -292,6 +292,7 @@ export const domainPrivacyStatusOptions = createDictStore('domain_privacy_status
 export const siteServerRoleOptions = createDictStore('site_server_role');
 export const siteDatabaseUsageOptions = createDictStore('site_database_usage');
 export const assetTargetTypeOptions = createDictStore('asset_target_type');
+export const backupTargetTypeOptions = createDictStore('backup_target_type');
 
 // 变更类型（系统行为标记，保留静态）
 export const changeTypeOptions: SelectOption[] = [
@@ -336,6 +337,7 @@ const STORE_MAP: Record<string, Writable<SelectOption[]>> = {
   site_server_role: siteServerRoleOptions,
   site_database_usage: siteDatabaseUsageOptions,
   asset_target_type: assetTargetTypeOptions,
+  backup_target_type: backupTargetTypeOptions,
 };
 
 let dictLoaded = false;

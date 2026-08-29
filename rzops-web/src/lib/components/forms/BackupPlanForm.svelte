@@ -7,7 +7,12 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
   import * as Card from '$lib/ui/card';
   import FormSelect from '$lib/components/shared/FormSelect.svelte';
   import TextArea from '$lib/components/shared/TextArea.svelte';
-  import { commonStatusOptions } from '$lib/utils/enum-options';
+  import { commonStatusOptions, backupTargetTypeOptions } from '$lib/utils/enum-options';
+  import {
+    getDatabaseInstanceOptions,
+    getServerOptions,
+    getOpsSiteOptions,
+  } from '$lib/utils/entity-options';
 
   let {
     initial = {} as CreateBackupPlanRequest,
@@ -22,6 +27,7 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
 
   let saving = $state(false);
   let attachmentRef = $state<{ uploadAll: (id: string) => Promise<void> } | null>(null);
+  let targetOptions = $state<{ label: string; value: string }[]>([]);
 
   let form = $state<CreateBackupPlanRequest>(createInitial(initial));
 
@@ -35,10 +41,31 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
     };
   }
 
+  // 根据目标类型联动加载可选项
+  $effect(() => {
+    const t = form.target_type;
+    if (!t) { targetOptions = []; return; }
+    const loader: Record<string, () => Promise<{ label: string; value: string }[]>> = {
+      server: getServerOptions,
+      database: getDatabaseInstanceOptions,
+      site: getOpsSiteOptions,
+    };
+    const fn = loader[t];
+    if (fn) {
+      fn().then((opts) => { targetOptions = opts; });
+    } else {
+      targetOptions = [];
+    }
+  });
+
   async function handleSave() {
     saving = true;
     try {
-      const id = await onSubmit(form);
+      const id = await onSubmit({
+        ...form,
+        target_id: form.target_id || undefined,
+        target_type: form.target_type || undefined,
+      });
       if (id) await attachmentRef?.uploadAll(id);
     } catch (err) {
       console.error('Failed to save backup plan:', err);
@@ -59,9 +86,29 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
         <Input id="name" bind:value={form.name} required />
       </div>
 
+      <FormSelect
+        label="目标类型"
+        bind:value={form.target_type}
+        options={$backupTargetTypeOptions}
+        placeholder="选择目标类型"
+      />
+
       <div class="space-y-2">
-        <Label for="target_type">目标类型</Label>
-        <Input id="target_type" bind:value={form.target_type} placeholder="数据库 / 文件 / ..." />
+        <Label for="target_id">目标对象</Label>
+        {#if targetOptions.length > 0}
+          <FormSelect
+            label=""
+            bind:value={form.target_id}
+            options={targetOptions}
+            placeholder="选择目标对象"
+          />
+        {:else}
+          <Input
+            id="target_id"
+            bind:value={form.target_id}
+            placeholder="目标ID（UUID，或选择类型后自动加载）"
+          />
+        {/if}
       </div>
 
       <div class="space-y-2">

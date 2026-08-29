@@ -8,15 +8,11 @@
   import * as Card from '$lib/ui/card';
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import StatusBadge from '$lib/components/shared/StatusBadge.svelte';
-  import { monitorTypeOptions, assetTargetTypeOptions, getOptionLabel } from '$lib/utils/enum-options';
-  import { getOpsSiteOptions } from '$lib/utils/entity-options';
-  import { resolveResourceLabel } from '$lib/utils/resource-label';
+  import { monitorTypeOptions, getOptionLabel } from '$lib/utils/enum-options';
   import { onMount } from 'svelte';
 
   let target = $state<MonitorTargetResponse | null>(null);
   let loading = $state(true);
-  let siteOptions = $state<{ label: string; value: string }[]>([]);
-  let targetLabel = $state('');
 
   const targetTypeZh: Record<string, string> = {
     server: '服务器',
@@ -24,19 +20,22 @@
     site: '站点',
     domain: '域名',
     certificate: '证书',
-    provider: '供应商',
-    data_center: '数据中心',
     other: '其他',
   };
 
-  function toResourceType(t: string | null): string | null {
-    if (!t) return null;
-    const map: Record<string, string> = {
-      database: 'database_instance',
-      site: 'ops_site',
-      data_center: 'datacenter',
-    };
-    return map[t] || t;
+  // 目标类型 → 详情页路由前缀
+  const targetRoute: Record<string, string> = {
+    server: '/servers/',
+    database: '/database-instances/',
+    site: '/ops-sites/',
+    domain: '/domains/',
+    certificate: '/certificates/',
+  };
+
+  function targetHref(t: string | null, id: string | null): string | null {
+    if (!t || !id) return null;
+    const prefix = targetRoute[t];
+    return prefix ? `${prefix}${id}` : null;
   }
 
   onMount(async () => {
@@ -45,12 +44,6 @@
 
     try {
       target = await monitorTargetsApi.getById(id);
-      getOpsSiteOptions().then((o) => (siteOptions = o));
-      if (target?.target_type && target.target_id) {
-        resolveResourceLabel(toResourceType(target.target_type), target.target_id).then((n) => {
-          if (n) targetLabel = n;
-        });
-      }
     } catch (err) {
       console.error('Failed to load monitor-target:', err);
       goto('/monitor-targets');
@@ -108,10 +101,6 @@
               <dd>{target.name}</dd>
             </div>
             <div class="flex justify-between">
-              <dt class="text-muted-foreground">所属站点</dt>
-              <dd>{siteOptions.find(o => o.value === target?.site_id)?.label || '-'}</dd>
-            </div>
-            <div class="flex justify-between">
               <dt class="text-muted-foreground">监控类型</dt>
               <dd>{getOptionLabel($monitorTypeOptions, target.monitor_type)}</dd>
             </div>
@@ -141,7 +130,15 @@
             </div>
             <div class="flex justify-between">
               <dt class="text-muted-foreground">目标对象</dt>
-              <dd>{targetLabel || (target.target_id ? target.target_id.slice(0, 8) : '-')}</dd>
+              <dd>
+                {#if target.target_name && target.target_id}
+                  <a href={targetHref(target.target_type, target.target_id)} class="font-medium text-primary hover:underline">
+                    {target.target_name}
+                  </a>
+                {:else}
+                  -
+                {/if}
+              </dd>
             </div>
           </dl>
         </Card.Content>

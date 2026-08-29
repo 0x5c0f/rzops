@@ -9,9 +9,24 @@
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import StatusBadge from '$lib/components/shared/StatusBadge.svelte';
   import { onMount } from 'svelte';
+  import { backupTargetTypeOptions } from '$lib/utils/enum-options';
 
   let plan = $state<BackupPlanResponse | null>(null);
   let loading = $state(true);
+  let targetTypeMap = $derived(Object.fromEntries($backupTargetTypeOptions.map(o => [o.value, o.label])));
+
+  // 目标类型 → 详情页路由前缀
+  const targetRoute: Record<string, string> = {
+    server: '/servers/',
+    database: '/database-instances/',
+    site: '/ops-sites/',
+  };
+
+  function targetHref(t: string | null, id: string | null): string | null {
+    if (!t || !id) return null;
+    const prefix = targetRoute[t];
+    return prefix ? `${prefix}${id}` : null;
+  }
 
   onMount(async () => {
     const id = $page.params.id;
@@ -77,11 +92,19 @@
             </div>
             <div class="flex justify-between">
               <dt class="text-muted-foreground">目标类型</dt>
-              <dd>{plan.target_type || '-'}</dd>
+              <dd>{plan.target_type ? (targetTypeMap[plan.target_type] ?? plan.target_type) : '-'}</dd>
             </div>
             <div class="flex justify-between">
-              <dt class="text-muted-foreground">目标ID</dt>
-              <dd class="font-mono">{plan.target_id || '-'}</dd>
+              <dt class="text-muted-foreground">关联目标</dt>
+              <dd>
+                {#if plan.target_name && plan.target_id}
+                  <a href={targetHref(plan.target_type, plan.target_id)} class="font-medium text-primary hover:underline">
+                    {plan.target_name}
+                  </a>
+                {:else}
+                  -
+                {/if}
+              </dd>
             </div>
             <div class="flex justify-between">
               <dt class="text-muted-foreground">调度计划</dt>

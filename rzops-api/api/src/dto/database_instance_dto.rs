@@ -13,8 +13,6 @@ pub struct CreateDatabaseInstanceRequest {
     pub is_self_installed: Option<bool>,
     pub importance: Option<String>,
     pub is_ops_managed: Option<bool>,
-    pub backup_plan_id: Option<Uuid>,
-    pub monitor_target_id: Option<Uuid>,
     pub port: Option<i32>,
     pub instance_name: Option<String>,
 }
@@ -30,8 +28,6 @@ pub struct UpdateDatabaseInstanceRequest {
     pub is_self_installed: Option<bool>,
     pub importance: Option<String>,
     pub is_ops_managed: Option<bool>,
-    pub backup_plan_id: Option<Uuid>,
-    pub monitor_target_id: Option<Uuid>,
     pub port: Option<i32>,
     pub instance_name: Option<String>,
 }
@@ -58,8 +54,6 @@ pub struct DatabaseInstanceResponse {
     pub is_self_installed: bool,
     pub importance: Option<String>,
     pub is_ops_managed: bool,
-    pub backup_plan_id: Option<Uuid>,
-    pub monitor_target_id: Option<Uuid>,
     pub port: Option<i32>,
     pub instance_name: Option<String>,
     pub created_at: DateTime<Utc>,

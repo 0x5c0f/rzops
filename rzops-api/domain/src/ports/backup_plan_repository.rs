@@ -5,6 +5,8 @@ use crate::models::backup_plan::BackupPlan;
 #[derive(Debug, Clone, Default)]
 pub struct BackupPlanFilter {
     pub status: Option<String>,
+    pub target_type: Option<String>,
+    pub target_id: Option<Uuid>,
     pub q: Option<String>,
     pub limit: Option<i64>,
     pub offset: Option<i64>,

@@ -36,8 +36,6 @@ fn row_to_database_instance(row: &sqlx::postgres::PgRow) -> DatabaseInstance {
         is_self_installed: row.get("is_self_installed"),
         importance: importance_str,
         is_ops_managed: row.get("is_ops_managed"),
-        backup_plan_id: row.get("backup_plan_id"),
-        monitor_target_id: row.get("monitor_target_id"),
         port: row.get("port"),
         instance_name: row.get("instance_name"),
         created_at: row.get::<DateTime<Utc>, _>("created_at"),
@@ -47,7 +45,7 @@ fn row_to_database_instance(row: &sqlx::postgres::PgRow) -> DatabaseInstance {
 
 const SELECT_COLS: &str = r#"id, server_id, name, db_type::text, description, status::text,
     offline_time, is_self_installed, importance::text, is_ops_managed,
-    backup_plan_id, monitor_target_id, port, instance_name,
+    port, instance_name,
     created_at, updated_at"#;
 
 #[async_trait]
@@ -98,15 +96,14 @@ impl DatabaseInstanceRepository for PgDatabaseInstanceRepository {
             r#"INSERT INTO cmdb_database_instance
                (id, server_id, name, db_type, description, status, offline_time,
                 is_self_installed, importance, is_ops_managed,
-                backup_plan_id, monitor_target_id, port, instance_name, created_at, updated_at)
-               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
+                port, instance_name, created_at, updated_at)
+               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
                RETURNING {}"#, SELECT_COLS
         ))
         .bind(db.id).bind(db.server_id).bind(&db.name).bind(db.db_type.clone())
         .bind(&db.description).bind(db.status.clone()).bind(db.offline_time)
         .bind(db.is_self_installed).bind(db.importance.clone())
-        .bind(db.is_ops_managed).bind(db.backup_plan_id)
-        .bind(db.monitor_target_id).bind(db.port).bind(&db.instance_name)
+        .bind(db.is_ops_managed).bind(db.port).bind(&db.instance_name)
         .bind(db.created_at).bind(db.updated_at)
         .fetch_one(&self.pool).await?;
         Ok(row_to_database_instance(&row))
@@ -117,15 +114,13 @@ impl DatabaseInstanceRepository for PgDatabaseInstanceRepository {
             r#"UPDATE cmdb_database_instance SET
                 server_id=$2, name=$3, db_type=$4, description=$5, status=$6,
                 offline_time=$7, is_self_installed=$8, importance=$9, is_ops_managed=$10,
-                backup_plan_id=$11, monitor_target_id=$12,
-                port=$13, instance_name=$14, updated_at=$15
+                port=$11, instance_name=$12, updated_at=$13
                WHERE id=$1 RETURNING {}"#, SELECT_COLS
         ))
         .bind(id).bind(db.server_id).bind(&db.name).bind(db.db_type.clone())
         .bind(&db.description).bind(db.status.clone()).bind(db.offline_time)
         .bind(db.is_self_installed).bind(db.importance.clone())
-        .bind(db.is_ops_managed).bind(db.backup_plan_id)
-        .bind(db.monitor_target_id).bind(db.port).bind(&db.instance_name).bind(db.updated_at)
+        .bind(db.is_ops_managed).bind(db.port).bind(&db.instance_name).bind(db.updated_at)
         .fetch_optional(&self.pool).await?;
         Ok(row.map(|r| row_to_database_instance(&r)))
     }

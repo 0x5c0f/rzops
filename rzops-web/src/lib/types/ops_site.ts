@@ -13,9 +13,7 @@ export interface OpsSiteResponse {
   language_runtime: string | null;
   web_framework: string | null;
   is_test_site: boolean | null;
-  backup_plan_id: string | null;
   last_backup_time: string | null;
-  monitor_target_id: string | null;
   status: string;
   offline_time: string | null;
   offline_reason: string | null;
@@ -44,9 +42,7 @@ export interface CreateOpsSiteRequest {
   language_runtime?: string;
   web_framework?: string;
   is_test_site?: boolean;
-  backup_plan_id?: string;
   last_backup_time?: string;
-  monitor_target_id?: string;
   status?: string;
   offline_time?: string;
   offline_reason?: string;

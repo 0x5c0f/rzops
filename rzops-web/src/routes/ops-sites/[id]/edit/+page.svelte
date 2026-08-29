@@ -2,12 +2,18 @@
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import { opsSitesApi } from '$lib/api/ops-sites';
+  import { backupPlansApi } from '$lib/api/backup-plans';
+  import { monitorTargetsApi } from '$lib/api/monitor-targets';
   import type { CreateOpsSiteRequest, OpsSiteResponse } from '$lib/types/ops_site';
+  import type { BackupPlanResponse } from '$lib/types/backup_plan';
+  import type { MonitorTargetResponse } from '$lib/types/monitor_target';
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import OpsSiteForm from '$lib/components/forms/OpsSiteForm.svelte';
   import { onMount } from 'svelte';
 
   let site = $state<OpsSiteResponse | null>(null);
+  let backupPlans = $state<BackupPlanResponse[]>([]);
+  let monitorTargets = $state<MonitorTargetResponse[]>([]);
   let loading = $state(true);
   let loadError = $state(false);
 
@@ -15,7 +21,14 @@
     const id = $page.params.id;
     if (!id) { goto('/ops-sites'); return; }
     try {
-      site = await opsSitesApi.getById(id);
+      const [siteData, bpData, mtData] = await Promise.all([
+        opsSitesApi.getById(id),
+        backupPlansApi.list({ target_type: 'site', target_id: id, per_page: 100 }),
+        monitorTargetsApi.list({ target_type: 'site', target_id: id, per_page: 100 }),
+      ]);
+      site = siteData;
+      backupPlans = bpData.data;
+      monitorTargets = mtData.data;
     } catch (err) {
       console.error('Failed to load ops site:', err);
       loadError = true;
@@ -38,11 +51,28 @@
       function_summary: s.function_summary ?? '',
       remarks: s.remarks ?? '',
       status: s.status ?? 'active',
-      is_internal_system: s.is_internal_system ?? false,
-      uses_cdn: s.uses_cdn ?? false,
       is_test_site: s.is_test_site ?? false,
-      backup_plan_id: s.backup_plan_id ?? '',
-      monitor_target_id: s.monitor_target_id ?? '',
+    };
+  }
+
+  function toBackupDraft(b: BackupPlanResponse) {
+    return {
+      id: b.id,
+      name: b.name,
+      schedule: b.schedule ?? '',
+      retention_days: b.retention_days != null ? String(b.retention_days) : '',
+      status: b.status,
+    };
+  }
+
+  function toMonitorDraft(m: MonitorTargetResponse) {
+    return {
+      id: m.id,
+      name: m.name,
+      monitor_type: m.monitor_type ?? '',
+      endpoint: m.endpoint ?? '',
+      interval_seconds: m.interval_seconds != null ? String(m.interval_seconds) : '',
+      status: m.status,
     };
   }
 
@@ -75,6 +105,8 @@
   {:else}
     <OpsSiteForm
       initial={toForm(site)}
+      initialBackupPlans={backupPlans.map(toBackupDraft)}
+      initialMonitorTargets={monitorTargets.map(toMonitorDraft)}
       entityId={site.id}
       submitLabel="保存"
       onSubmit={handleUpdate}

@@ -8,7 +8,7 @@
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import { formatDate } from '$lib/utils/format';
   import { onMount } from 'svelte';
-  import { commonStatusOptions, monitorTypeOptions } from '$lib/utils/enum-options';
+  import { commonStatusOptions, monitorTypeOptions, assetTargetTypeOptions } from '$lib/utils/enum-options';
 
   let data = $state<MonitorTargetResponse[]>([]);
   let total = $state(0);
@@ -19,9 +19,25 @@
 
   let statusMap = $derived(Object.fromEntries($commonStatusOptions.map(o => [o.value, o.label])));
   let monitorTypeMap = $derived(Object.fromEntries($monitorTypeOptions.map(o => [o.value, o.label])));
+  let targetTypeMap = $derived(Object.fromEntries($assetTargetTypeOptions.map(o => [o.value, o.label])));
+
+  const targetRoute: Record<string, string> = {
+    server: '/servers/',
+    database: '/database-instances/',
+    site: '/ops-sites/',
+    domain: '/domains/',
+    certificate: '/certificates/',
+  };
+  function targetHref(item: MonitorTargetResponse): string | null {
+    if (!item.target_type || !item.target_id) return null;
+    const prefix = targetRoute[item.target_type];
+    return prefix ? `${prefix}${item.target_id}` : null;
+  }
 
   const columns = [
     { key: 'name', label: '名称' , link: (item: MonitorTargetResponse) => `/monitor-targets/${item.id}` },
+    { key: 'target_type', label: '目标类型', valueMap: targetTypeMap },
+    { key: 'target_name', label: '关联目标', link: targetHref, render: (v: unknown, item: MonitorTargetResponse) => (item.target_name || '-') },
     { key: 'monitor_type', label: '监控类型', valueMap: monitorTypeMap },
     { key: 'endpoint', label: '端点' },
     { key: 'interval_seconds', label: '间隔(秒)' },

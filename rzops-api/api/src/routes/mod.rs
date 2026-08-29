@@ -90,13 +90,13 @@ pub fn ops_site_routes(repo: Arc<dyn ops_site_repository::OpsSiteRepository>) ->
     Router::new().route("/", axum::routing::get(list_ops_sites).post(create_ops_site))
         .route("/{id}", axum::routing::get(get_ops_site).put(update_ops_site).delete(delete_ops_site)).with_state(repo)
 }
-pub fn backup_plan_routes(repo: Arc<dyn backup_plan_repository::BackupPlanRepository>) -> Router {
+pub fn backup_plan_routes(repo: Arc<dyn backup_plan_repository::BackupPlanRepository>, pool: sqlx::PgPool) -> Router {
     Router::new().route("/", axum::routing::get(list_backup_plans).post(create_backup_plan))
-        .route("/{id}", axum::routing::get(get_backup_plan).put(update_backup_plan).delete(delete_backup_plan)).with_state(repo)
+        .route("/{id}", axum::routing::get(get_backup_plan).put(update_backup_plan).delete(delete_backup_plan)).with_state(repo).layer(axum::Extension(pool))
 }
-pub fn monitor_target_routes(repo: Arc<dyn monitor_target_repository::MonitorTargetRepository>) -> Router {
+pub fn monitor_target_routes(repo: Arc<dyn monitor_target_repository::MonitorTargetRepository>, pool: sqlx::PgPool) -> Router {
     Router::new().route("/", axum::routing::get(list_monitor_targets).post(create_monitor_target))
-        .route("/{id}", axum::routing::get(get_monitor_target).put(update_monitor_target).delete(delete_monitor_target)).with_state(repo)
+        .route("/{id}", axum::routing::get(get_monitor_target).put(update_monitor_target).delete(delete_monitor_target)).with_state(repo).layer(axum::Extension(pool))
 }
 pub fn contract_routes(repo: Arc<dyn contract_repository::ContractRepository>) -> Router {
     Router::new().route("/", axum::routing::get(list_contracts).post(create_contract))
