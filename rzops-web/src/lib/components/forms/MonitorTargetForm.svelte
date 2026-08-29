@@ -65,9 +65,11 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
     }
   });
 
-  // 编辑时确保已选值可见（即使选项尚未加载）
+  // 编辑时确保已选值可见（选项未加载/已被删除时兜底显示当前值）
   let targetIdOptions = $derived(
-    form.target_id ? [...targetOptions.filter(o => o.value !== form.target_id), { label: form.target_id, value: form.target_id }] : targetOptions
+    form.target_id && !targetOptions.some(o => o.value === form.target_id)
+      ? [...targetOptions, { label: form.target_id, value: form.target_id }]
+      : targetOptions
   );
 
   async function handleSave() {
