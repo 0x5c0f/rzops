@@ -12,7 +12,7 @@ use crate::change_log::{record_change, ChangeLogState};
 #[utoipa::path(get, path = "/api/v1/site-relations/servers/{server_id}/sites", params(("server_id" = uuid::Uuid, Path)), responses((status = 200, body = [SiteRefByServerResponse]), (status = 500, body = ErrorResponse)), tag = "SiteRelation", security(("bearer_auth" = [])))]
 pub async fn list_sites_by_server(_auth: AuthUser, State(st): State<SiteRelationState>, Path(server_id): Path<Uuid>) -> impl IntoResponse {
     match st.site_server.find_sites_by_server(server_id).await {
-        Ok(v) => (StatusCode::OK, Json(v.iter().map(|e| SiteRefByServerResponse { site_id: e.site_id, site_name: e.site_name.clone(), deploy_role: e.deploy_role.clone(), is_primary: e.is_primary }).collect::<Vec<_>>())).into_response(),
+        Ok(v) => (StatusCode::OK, Json(v.iter().map(|e| SiteRefByServerResponse { relation_id: e.relation_id, site_id: e.site_id, site_name: e.site_name.clone(), deploy_role: e.deploy_role.clone(), is_primary: e.is_primary }).collect::<Vec<_>>())).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: e.to_string() })).into_response(),
     }
 }
@@ -40,6 +40,16 @@ pub async fn create_site_server(auth:AuthUser,State(st):State<SiteRelationState>
         }
         Err(e)=>(StatusCode::INTERNAL_SERVER_ERROR,Json(ErrorResponse{error:e.to_string()})).into_response()}
 }
+#[utoipa::path(put, path = "/api/v1/site-relations/site-servers/by-id/{id}", params(("id" = uuid::Uuid, Path)), request_body = UpdateSiteServerRelationRequest, responses((status = 200, body = SiteServerRelationResponse), (status = 404, body = ErrorResponse)), tag = "SiteRelation", security(("bearer_auth" = [])))]
+pub async fn update_site_server(auth:AuthUser,State(st):State<SiteRelationState>,Extension(change_log):Extension<ChangeLogState>,Path(id):Path<Uuid>,Json(b):Json<UpdateSiteServerRelationRequest>)->impl IntoResponse{
+    match st.site_server.update(id, b.deploy_role.clone(), b.is_primary.unwrap_or(false)).await{
+        Ok(true)=>{
+            record_change(&change_log,&auth,rzops_domain::enums::ChangeType::Update,"site_server",Some(id),serde_json::json!(b),serde_json::json!(null),None).await;
+            (StatusCode::OK, Json(serde_json::json!({"id": id}))).into_response()
+        }
+        Ok(false)=>(StatusCode::NOT_FOUND,Json(ErrorResponse{error:"not found".into()})).into_response(),Err(e)=>(StatusCode::INTERNAL_SERVER_ERROR,Json(ErrorResponse{error:e.to_string()})).into_response()}
+}
+
 #[utoipa::path(delete, path = "/api/v1/site-relations/site-servers/by-id/{id}", params(("id" = uuid::Uuid, Path)), responses((status = 204), (status = 404, body = ErrorResponse)), tag = "SiteRelation", security(("bearer_auth" = [])))]
 pub async fn delete_site_server(auth:AuthUser,State(st):State<SiteRelationState>,Extension(change_log):Extension<ChangeLogState>,Path(id):Path<Uuid>)->impl IntoResponse{
     match st.site_server.delete(id).await{

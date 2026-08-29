@@ -48,8 +48,6 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
   let attachmentRef = $state<{ uploadAll: (id: string) => Promise<void> } | null>(null);
 
   let form = $state<CreateOpsSiteRequest>(createInitial(initial));
-  let enableBackup = $state(initialBackupPlans.length > 0);
-  let enableMonitor = $state(initialMonitorTargets.length > 0);
   let backupPlans = $state<BackupDraft[]>(structuredClone(initialBackupPlans));
   let monitorTargets = $state<MonitorDraft[]>(structuredClone(initialMonitorTargets));
 
@@ -146,11 +144,11 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
   }
 
   async function handleSave() {
-    if (enableBackup && backupPlans.some(r => !r.name.trim())) {
+    if (backupPlans.some(r => !r.name.trim())) {
       alert('备份计划的名称必填，请填写完整或删除空行');
       return;
     }
-    if (enableMonitor && monitorTargets.some(r => !r.name.trim())) {
+    if (monitorTargets.some(r => !r.name.trim())) {
       alert('监控目标的名称必填，请填写完整或删除空行');
       return;
     }
@@ -158,8 +156,8 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
     try {
       const id = await onSubmit(form);
       if (id) {
-        if (enableBackup) await syncBackupPlans(id);
-        if (enableMonitor) await syncMonitorTargets(id);
+        await syncBackupPlans(id);
+        await syncMonitorTargets(id);
         await attachmentRef?.uploadAll(id);
       }
     } catch (err) {
@@ -267,77 +265,65 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
     </Card.Content>
   </Card.Root>
 
-  <!-- 备份计划：勾选后在此内联新建 -->
+  <!-- 备份计划：直接在此内联维护 -->
   <Card.Root>
     <Card.Header>
       <Card.Title>备份计划</Card.Title>
-      <Card.Description>站点可作为独立备份对象，勾选后直接在此维护备份计划（也可在"备份计划"菜单维护）</Card.Description>
+      <Card.Description>站点可作为独立备份对象，直接在此维护备份计划（也可在"备份计划"菜单维护）</Card.Description>
     </Card.Header>
     <Card.Content class="space-y-3">
-      <div class="flex items-center gap-2">
-        <input id="enable_backup" type="checkbox" bind:checked={enableBackup} class="h-4 w-4 rounded border-gray-300" />
-        <Label for="enable_backup">为站点配置备份计划</Label>
-      </div>
-      {#if enableBackup}
-        {#each backupPlans as bp, i (i)}
-          <div class="grid gap-3 rounded-lg border p-3 md:grid-cols-2 lg:grid-cols-5">
-            <div class="space-y-1">
-              <Label>名称 <span class="text-destructive">*</span></Label>
-              <Input bind:value={bp.name} placeholder="如：官网站点每日备份" />
-            </div>
-            <div class="space-y-1">
-              <Label>调度计划</Label>
-              <Input bind:value={bp.schedule} placeholder="cron 表达式" />
-            </div>
-            <div class="space-y-1">
-              <Label>保留天数</Label>
-              <Input type="number" bind:value={bp.retention_days} />
-            </div>
-            <FormSelect label="状态" bind:value={bp.status} options={$commonStatusOptions} />
-            <div class="flex items-end">
-              <Button variant="outline" size="sm" onclick={() => removeBackupRow(i)}>移除</Button>
-            </div>
+      {#each backupPlans as bp, i (i)}
+        <div class="grid gap-3 rounded-lg border p-3 md:grid-cols-2 lg:grid-cols-5">
+          <div class="space-y-1">
+            <Label>名称 <span class="text-destructive">*</span></Label>
+            <Input bind:value={bp.name} placeholder="如：官网站点每日备份" />
           </div>
-        {/each}
-        <Button variant="outline" size="sm" onclick={addBackupRow}>+ 添加备份计划</Button>
-      {/if}
+          <div class="space-y-1">
+            <Label>调度计划</Label>
+            <Input bind:value={bp.schedule} placeholder="cron 表达式" />
+          </div>
+          <div class="space-y-1">
+            <Label>保留天数</Label>
+            <Input type="number" bind:value={bp.retention_days} />
+          </div>
+          <FormSelect label="状态" bind:value={bp.status} options={$commonStatusOptions} />
+          <div class="flex items-end">
+            <Button variant="outline" size="sm" onclick={() => removeBackupRow(i)}>移除</Button>
+          </div>
+        </div>
+      {/each}
+      <Button variant="outline" size="sm" onclick={addBackupRow}>+ 添加备份计划</Button>
     </Card.Content>
   </Card.Root>
 
-  <!-- 监控目标：勾选后在此内联新建 -->
+  <!-- 监控目标：直接在此内联维护 -->
   <Card.Root>
     <Card.Header>
       <Card.Title>监控目标</Card.Title>
-      <Card.Description>为站点配置监控（HTTP / TCP 等），勾选后直接在此维护（也可在"监控目标"菜单维护）</Card.Description>
+      <Card.Description>为站点配置监控（HTTP / TCP 等），直接在此维护（也可在"监控目标"菜单维护）</Card.Description>
     </Card.Header>
     <Card.Content class="space-y-3">
-      <div class="flex items-center gap-2">
-        <input id="enable_monitor" type="checkbox" bind:checked={enableMonitor} class="h-4 w-4 rounded border-gray-300" />
-        <Label for="enable_monitor">为站点配置监控目标</Label>
-      </div>
-      {#if enableMonitor}
-        {#each monitorTargets as mt, i (i)}
-          <div class="grid gap-3 rounded-lg border p-3 md:grid-cols-2 lg:grid-cols-5">
-            <div class="space-y-1">
-              <Label>名称 <span class="text-destructive">*</span></Label>
-              <Input bind:value={mt.name} placeholder="如：官网 HTTP 监控" />
-            </div>
-            <FormSelect label="监控类型" bind:value={mt.monitor_type} options={$monitorTypeOptions} placeholder="选择类型" />
-            <div class="space-y-1">
-              <Label>端点</Label>
-              <Input bind:value={mt.endpoint} placeholder="URL / IP:Port" />
-            </div>
-            <div class="space-y-1">
-              <Label>间隔(秒)</Label>
-              <Input type="number" bind:value={mt.interval_seconds} />
-            </div>
-            <div class="flex items-end">
-              <Button variant="outline" size="sm" onclick={() => removeMonitorRow(i)}>移除</Button>
-            </div>
+      {#each monitorTargets as mt, i (i)}
+        <div class="grid gap-3 rounded-lg border p-3 md:grid-cols-2 lg:grid-cols-5">
+          <div class="space-y-1">
+            <Label>名称 <span class="text-destructive">*</span></Label>
+            <Input bind:value={mt.name} placeholder="如：官网 HTTP 监控" />
           </div>
-        {/each}
-        <Button variant="outline" size="sm" onclick={addMonitorRow}>+ 添加监控目标</Button>
-      {/if}
+          <FormSelect label="监控类型" bind:value={mt.monitor_type} options={$monitorTypeOptions} placeholder="选择类型" />
+          <div class="space-y-1">
+            <Label>端点</Label>
+            <Input bind:value={mt.endpoint} placeholder="URL / IP:Port" />
+          </div>
+          <div class="space-y-1">
+            <Label>间隔(秒)</Label>
+            <Input type="number" bind:value={mt.interval_seconds} />
+          </div>
+          <div class="flex items-end">
+            <Button variant="outline" size="sm" onclick={() => removeMonitorRow(i)}>移除</Button>
+          </div>
+        </div>
+      {/each}
+      <Button variant="outline" size="sm" onclick={addMonitorRow}>+ 添加监控目标</Button>
     </Card.Content>
   </Card.Root>
 

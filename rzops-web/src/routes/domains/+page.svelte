@@ -8,6 +8,7 @@
   import StatusBadge from '$lib/components/shared/StatusBadge.svelte';
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import { formatDate } from '$lib/utils/format';
+  import { getProviderOptions } from '$lib/utils/entity-options';
   import { onMount } from 'svelte';
 
   let data = $state<DomainResponse[]>([]);
@@ -16,14 +17,15 @@
   let query = $state<ListDomainsQuery>({ page: 1, per_page: 20 });
   let page = $derived(query.page ?? 1);
   let perPage = $derived(query.per_page ?? 20);
+  let providerMap = $state<Record<string, string>>({});
 
-  const columns = [
+  const columns = $derived([
     { key: 'domain_name', label: '域名' , link: (item: DomainResponse) => `/domains/${item.id}` },
-    { key: 'provider_id', label: '注册商' },
+    { key: 'provider_id', label: '注册商', valueMap: providerMap },
     { key: 'expiry_date', label: '到期日期', render: (v: unknown) => formatDate(v as string) },
-    { key: 'is_enabled', label: '启用状态' },
+    { key: 'is_enabled', label: '启用状态', render: (v: unknown) => (v ? '启用' : '停用') },
     { key: 'created_at', label: '创建时间', render: (v: unknown) => formatDate(v as string) },
-  ];
+  ]);
 
   async function loadData() {
     loading = true;
@@ -38,7 +40,11 @@
     }
   }
 
-  onMount(loadData);
+  onMount(async () => {
+    const provOptions = await getProviderOptions();
+    providerMap = Object.fromEntries(provOptions.map(o => [o.value, o.label]));
+    await loadData();
+  });
 
   function handleSearch(e: Event) {
     const input = e.target as HTMLInputElement;

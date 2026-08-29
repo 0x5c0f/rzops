@@ -9,6 +9,7 @@ import type {
 } from '$lib/types/site_relation';
 
 export interface SiteRefByServer {
+  relation_id: string;
   site_id: string;
   site_name: string;
   deploy_role: string | null;
@@ -36,6 +37,9 @@ export const siteRelationsApi = {
 
   createServer: (data: CreateSiteServerRelationRequest) =>
     api.post<SiteServerRelationResponse>('/api/v1/site-relations/site-servers', data),
+
+  updateServer: (id: string, data: { deploy_role?: string; is_primary?: boolean }) =>
+    api.put<{ id: string }>(`/api/v1/site-relations/site-servers/by-id/${id}`, data),
 
   deleteServer: (id: string) =>
     api.delete<void>(`/api/v1/site-relations/site-servers/by-id/${id}`),

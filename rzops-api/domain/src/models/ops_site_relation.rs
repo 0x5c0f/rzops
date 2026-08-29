@@ -37,6 +37,7 @@ pub struct OpsSiteDomain {
 /// 反向查询：某服务器关联到的站点（含站点名），用于服务器详情页展示"所属站点"。
 #[derive(Debug, Clone)]
 pub struct SiteRefByServer {
+    pub relation_id: Uuid,
     pub site_id: Uuid,
     pub site_name: String,
     pub deploy_role: Option<String>,

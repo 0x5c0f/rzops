@@ -136,6 +136,7 @@ pub fn site_relation_routes(state: SiteRelationState) -> Router {
         .route("/site-servers/{site_id}", axum::routing::get(list_site_servers))
         .route("/site-servers", axum::routing::post(create_site_server))
         .route("/site-servers/by-id/{id}", axum::routing::delete(delete_site_server))
+        .route("/site-servers/by-id/{id}", axum::routing::put(update_site_server))
         .route("/site-databases/{site_id}", axum::routing::get(list_site_databases))
         .route("/site-databases", axum::routing::post(create_site_database))
         .route("/site-databases/by-id/{id}", axum::routing::delete(delete_site_database))

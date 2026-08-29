@@ -69,6 +69,20 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
     domains = domains.filter((_, i) => i !== index);
   }
 
+  // 选择已录入域名后自动带出域名模式（避免重复手输；手动填写模式优先）
+  let autoFilledDomainIds = $state<string[]>([]);
+  $effect(() => {
+    for (const d of domains) {
+      if (d.domain_id && !autoFilledDomainIds.includes(d.domain_id)) {
+        autoFilledDomainIds = [...autoFilledDomainIds, d.domain_id];
+        const opt = domainOptions.find(o => o.value === d.domain_id);
+        if (opt && !d.domain_pattern.trim()) {
+          d.domain_pattern = opt.label;
+        }
+      }
+    }
+  });
+
   // 增量同步域名绑定：删除已移除的、更新有 id 的、新增无 id 的
   async function syncDomains(certificateId: string) {
     for (const db of initialDomains) {
@@ -186,22 +200,22 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
   <Card.Root>
     <Card.Header>
       <Card.Title>绑定域名</Card.Title>
-      <p class="text-sm text-muted-foreground">证书可绑定一个或多个域名（支持通配符），如 *.example.com</p>
+      <p class="text-sm text-muted-foreground">证书通常绑定已录入的域名，选择后自动带出域名；也支持填写通配符模式（如 *.example.com）</p>
     </Card.Header>
     <Card.Content class="space-y-3">
       {#each domains as domain, i}
         <div class="grid gap-3 rounded-lg border p-3 md:grid-cols-12">
           <div class="space-y-1 md:col-span-4">
-            <Label>域名 / 模式 <span class="text-destructive">*</span></Label>
-            <Input bind:value={domain.domain_pattern} placeholder="*.example.com" />
-          </div>
-          <div class="space-y-1 md:col-span-4">
             <FormSelect
               label="关联域名"
               bind:value={domain.domain_id}
               options={domainOptions}
-              placeholder="选择域名（可选）"
+              placeholder="选择已录入域名"
             />
+          </div>
+          <div class="space-y-1 md:col-span-4">
+            <Label>域名 / 模式 <span class="text-destructive">*</span></Label>
+            <Input bind:value={domain.domain_pattern} placeholder="*.example.com" />
           </div>
           <div class="flex items-end gap-2 md:col-span-3">
             <label class="flex items-center gap-2 pb-2 text-sm">

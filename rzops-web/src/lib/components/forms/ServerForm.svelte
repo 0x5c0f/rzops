@@ -28,8 +28,10 @@
   import { serverIpsApi } from '$lib/api/server-ips';
   import { serverPortsApi } from '$lib/api/server-ports';
   import { databaseInstancesApi } from '$lib/api/database-instances';
+  import { siteRelationsApi } from '$lib/api/site-relations';
   import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.svelte';
-  import { getProviderOptions, getDataCenterOptions } from '$lib/utils/entity-options';
+  import { getProviderOptions, getDataCenterOptions, getOpsSiteOptions } from '$lib/utils/entity-options';
+  import { siteServerRoleOptions } from '$lib/utils/enum-options';
   import { onMount } from 'svelte';
 
   // IP / 端口 明细草稿行（id 存在 = 已有记录，用于编辑增量同步）
@@ -59,6 +61,13 @@
     importance: string;
     description: string;
   }
+  // 关联站点草稿行（id = 关联关系 id，编辑时用于增量删除）
+  interface SiteDraft {
+    id?: string;
+    site_id: string;
+    deploy_role: string;
+    is_primary: boolean;
+  }
 
   let {
     initial = {} as CreateServerRequest,
@@ -81,6 +90,7 @@
   let saving = $state(false);
   let providerOptions = $state<{ label: string; value: string }[]>([]);
   let dataCenterOptions = $state<{ label: string; value: string }[]>([]);
+  let siteOptions = $state<{ label: string; value: string }[]>([]);
   let attachmentRef = $state<{ uploadAll: (id: string) => Promise<void> } | null>(null);
 
   // 默认值为空字符串，确保编辑时清空字段能正确提交（后端部分更新语义）
@@ -90,6 +100,8 @@
   let dbInstances = $state<DbDraft[]>(
     initialDbInstances.length ? structuredClone(initialDbInstances) : [],
   );
+  let siteRels = $state<SiteDraft[]>([]);
+  let initialSiteRels = $state<SiteDraft[]>([]);
 
   function createInitial(initial?: CreateServerRequest): CreateServerRequest {
     return {
@@ -109,12 +121,29 @@
   }
 
   onMount(async () => {
-    const [providers, dataCenters] = await Promise.all([
+    const [providers, dataCenters, sites] = await Promise.all([
       getProviderOptions(),
       getDataCenterOptions(),
+      getOpsSiteOptions(),
     ]);
     providerOptions = providers;
     dataCenterOptions = dataCenters;
+    siteOptions = sites;
+    // 编辑时加载已有关联站点
+    if (entityId) {
+      try {
+        const rels = await siteRelationsApi.listSitesByServer(entityId);
+        siteRels = rels.map(r => ({
+          id: r.relation_id,
+          site_id: r.site_id,
+          deploy_role: r.deploy_role || '',
+          is_primary: r.is_primary,
+        }));
+        initialSiteRels = structuredClone(siteRels);
+      } catch (err) {
+        console.error('Failed to load site relations:', err);
+      }
+    }
   });
 
   function emptyIp(): IpDraft {
@@ -125,6 +154,9 @@
   }
   function emptyDb(): DbDraft {
     return { name: '', db_type: '', port: '', instance_name: '', importance: '', description: '' };
+  }
+  function emptySiteRel(): SiteDraft {
+    return { site_id: '', deploy_role: '', is_primary: false };
   }
 
   function addIpRow() {
@@ -144,6 +176,12 @@
   }
   function removeDbRow(index: number) {
     dbInstances = dbInstances.filter((_, i) => i !== index);
+  }
+  function addSiteRelRow() {
+    siteRels = [...siteRels, emptySiteRel()];
+  }
+  function removeSiteRelRow(index: number) {
+    siteRels = siteRels.filter((_, i) => i !== index);
   }
 
   // 主 IP 同步策略（保证编辑时主 IP 稳定、尊重用户显式勾选）：
@@ -260,6 +298,31 @@
     }
   }
 
+  // 站点关联增量同步：删除已移除的、更新有 id 的、新增无 id 的
+  async function syncSiteRels(serverId: string) {
+    for (const rel of initialSiteRels) {
+      if (rel.id && !siteRels.some(r => r.id === rel.id)) {
+        await siteRelationsApi.deleteServer(rel.id);
+      }
+    }
+    for (const rel of siteRels) {
+      if (!rel.site_id) continue;
+      if (rel.id) {
+        await siteRelationsApi.updateServer(rel.id, {
+          deploy_role: rel.deploy_role || undefined,
+          is_primary: rel.is_primary,
+        });
+      } else {
+        await siteRelationsApi.createServer({
+          site_id: rel.site_id,
+          server_id: serverId,
+          deploy_role: rel.deploy_role || undefined,
+          is_primary: rel.is_primary,
+        });
+      }
+    }
+  }
+
   async function handleSave() {
     if (
       form.lease_start_date &&
@@ -283,6 +346,7 @@
         await syncIps(serverId);
         await syncPorts(serverId);
         await syncDbInstances(serverId);
+        await syncSiteRels(serverId);
         await attachmentRef?.uploadAll(serverId);
         goto(`/servers/${serverId}`);
       }
@@ -471,6 +535,47 @@
         </div>
       {/each}
       <Button variant="outline" size="sm" type="button" onclick={addPortRow}>+ 添加端口</Button>
+    </Card.Content>
+  </Card.Root>
+
+  <!-- 关联站点 -->
+  <Card.Root>
+    <Card.Header>
+      <Card.Title>关联站点</Card.Title>
+      <p class="text-sm text-muted-foreground">维护该服务器部署承载的站点（一台服务器可关联多个站点，含部署角色与主备节点）</p>
+    </Card.Header>
+    <Card.Content class="space-y-3">
+      {#each siteRels as rel, i}
+        <div class="grid gap-3 rounded-lg border p-3 md:grid-cols-12">
+          <div class="space-y-1 md:col-span-6">
+            <FormSelect
+              label="站点"
+              required
+              bind:value={rel.site_id}
+              options={siteOptions.filter(o => o.value === rel.site_id || !siteRels.some(r => r.site_id === o.value && r !== rel))}
+              placeholder="选择站点"
+            />
+          </div>
+          <div class="space-y-1 md:col-span-3">
+            <FormSelect
+              label="部署角色"
+              bind:value={rel.deploy_role}
+              options={$siteServerRoleOptions}
+              placeholder="选择角色"
+            />
+          </div>
+          <div class="flex items-end gap-2 md:col-span-2">
+            <label class="flex items-center gap-2 pb-2 text-sm">
+              <input type="checkbox" bind:checked={rel.is_primary} class="h-4 w-4" />
+              主用节点
+            </label>
+          </div>
+          <div class="flex items-end justify-end md:col-span-1">
+            <Button variant="ghost" size="sm" type="button" onclick={() => removeSiteRelRow(i)}>删除</Button>
+          </div>
+        </div>
+      {/each}
+      <Button variant="outline" size="sm" type="button" onclick={addSiteRelRow}>+ 添加站点</Button>
     </Card.Content>
   </Card.Root>
 

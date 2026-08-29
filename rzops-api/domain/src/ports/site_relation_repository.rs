@@ -8,6 +8,7 @@ pub trait SiteServerRelationRepository: Send + Sync {
     async fn find_by_site(&self, site_id: Uuid) -> Result<Vec<OpsSiteServer>, sqlx::Error>;
     async fn find_sites_by_server(&self, server_id: Uuid) -> Result<Vec<SiteRefByServer>, sqlx::Error>;
     async fn create(&self, item: &OpsSiteServer) -> Result<OpsSiteServer, sqlx::Error>;
+    async fn update(&self, id: Uuid, deploy_role: Option<String>, is_primary: bool) -> Result<bool, sqlx::Error>;
     async fn delete(&self, id: Uuid) -> Result<bool, sqlx::Error>;
 }
 

@@ -10,6 +10,12 @@ pub struct CreateSiteServerRelationRequest {
     pub is_primary: Option<bool>,
 }
 
+#[derive(Debug, Deserialize, Serialize, utoipa::ToSchema)]
+pub struct UpdateSiteServerRelationRequest {
+    pub deploy_role: Option<String>,
+    pub is_primary: Option<bool>,
+}
+
 #[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct SiteServerRelationResponse {
     pub id: Uuid,
@@ -57,6 +63,7 @@ pub struct SiteDomainRelationResponse {
 /// 反向查询：某服务器关联到的站点。
 #[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct SiteRefByServerResponse {
+    pub relation_id: Uuid,
     pub site_id: Uuid,
     pub site_name: String,
     pub deploy_role: Option<String>,
