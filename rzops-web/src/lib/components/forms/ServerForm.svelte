@@ -538,6 +538,58 @@
     </Card.Content>
   </Card.Root>
 
+  <!-- 数据库实例（勾选"数据库服务器"后维护，便于在此直接关联） -->
+  {#if form.is_database_server}
+    <Card.Root>
+      <Card.Header>
+        <Card.Title>数据库实例</Card.Title>
+        <p class="text-sm text-muted-foreground">勾选了"数据库服务器"，可在此直接维护本服务器承载的数据库实例（也可在"数据库实例"菜单中维护）</p>
+      </Card.Header>
+      <Card.Content class="space-y-3">
+        {#each dbInstances as db, i}
+          <div class="grid gap-3 rounded-lg border p-3 md:grid-cols-12">
+            <div class="space-y-1 md:col-span-3">
+              <Label>实例名 <span class="text-destructive">*</span></Label>
+              <Input bind:value={db.name} placeholder="mysql-master" />
+            </div>
+            <div class="space-y-1 md:col-span-2">
+              <FormSelect
+                label="数据库类型 *"
+                bind:value={db.db_type}
+                options={$databaseTypeOptions}
+                placeholder="选择类型"
+              />
+            </div>
+            <div class="space-y-1 md:col-span-2">
+              <Label>端口</Label>
+              <Input type="number" bind:value={db.port} placeholder="3306" min={1} max={65535} />
+            </div>
+            <div class="space-y-1 md:col-span-2">
+              <Label>内部实例名</Label>
+              <Input bind:value={db.instance_name} placeholder="如：PROD-DB-01" />
+            </div>
+            <div class="space-y-1 md:col-span-2">
+              <FormSelect
+                label="重要性"
+                bind:value={db.importance}
+                options={$importanceOptions}
+                placeholder="选择重要性"
+              />
+            </div>
+            <div class="flex items-end justify-end md:col-span-1">
+              <Button variant="ghost" size="sm" type="button" onclick={() => removeDbRow(i)}>删除</Button>
+            </div>
+            <div class="space-y-1 md:col-span-12">
+              <Label>描述</Label>
+              <Input bind:value={db.description} placeholder="用途说明" />
+            </div>
+          </div>
+        {/each}
+        <Button variant="outline" size="sm" type="button" onclick={addDbRow}>+ 添加数据库实例</Button>
+      </Card.Content>
+    </Card.Root>
+  {/if}
+
   <!-- 关联站点 -->
   <Card.Root>
     <Card.Header>
@@ -667,58 +719,6 @@
       />
     </Card.Content>
   </Card.Root>
-
-  <!-- 数据库实例（勾选"数据库服务器"后维护，便于在此直接关联） -->
-  {#if form.is_database_server}
-    <Card.Root>
-      <Card.Header>
-        <Card.Title>数据库实例</Card.Title>
-        <p class="text-sm text-muted-foreground">勾选了"数据库服务器"，可在此直接维护本服务器承载的数据库实例（也可在"数据库实例"菜单中维护）</p>
-      </Card.Header>
-      <Card.Content class="space-y-3">
-        {#each dbInstances as db, i}
-          <div class="grid gap-3 rounded-lg border p-3 md:grid-cols-12">
-            <div class="space-y-1 md:col-span-3">
-              <Label>实例名 <span class="text-destructive">*</span></Label>
-              <Input bind:value={db.name} placeholder="mysql-master" />
-            </div>
-            <div class="space-y-1 md:col-span-2">
-              <FormSelect
-                label="数据库类型 *"
-                bind:value={db.db_type}
-                options={$databaseTypeOptions}
-                placeholder="选择类型"
-              />
-            </div>
-            <div class="space-y-1 md:col-span-2">
-              <Label>端口</Label>
-              <Input type="number" bind:value={db.port} placeholder="3306" min={1} max={65535} />
-            </div>
-            <div class="space-y-1 md:col-span-2">
-              <Label>内部实例名</Label>
-              <Input bind:value={db.instance_name} placeholder="如：PROD-DB-01" />
-            </div>
-            <div class="space-y-1 md:col-span-2">
-              <FormSelect
-                label="重要性"
-                bind:value={db.importance}
-                options={$importanceOptions}
-                placeholder="选择重要性"
-              />
-            </div>
-            <div class="flex items-end justify-end md:col-span-1">
-              <Button variant="ghost" size="sm" type="button" onclick={() => removeDbRow(i)}>删除</Button>
-            </div>
-            <div class="space-y-1 md:col-span-12">
-              <Label>描述</Label>
-              <Input bind:value={db.description} placeholder="用途说明" />
-            </div>
-          </div>
-        {/each}
-        <Button variant="outline" size="sm" type="button" onclick={addDbRow}>+ 添加数据库实例</Button>
-      </Card.Content>
-    </Card.Root>
-  {/if}
 
   <!-- 租赁信息 -->
   <Card.Root>

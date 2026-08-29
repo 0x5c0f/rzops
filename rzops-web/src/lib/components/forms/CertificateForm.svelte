@@ -21,6 +21,8 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
     domain_pattern: string;
     domain_id: string;
     is_primary: boolean;
+    // 记录该行最近一次自动带出的域名模式（用于判断是否可再次自动带出，避免覆盖用户手输）
+    _lastAuto?: string;
   }
 
   let {
@@ -69,16 +71,18 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
     domains = domains.filter((_, i) => i !== index);
   }
 
-  // 选择已录入域名后自动带出域名模式（避免重复手输；手动填写模式优先）
-  let autoFilledDomainIds = $state<string[]>([]);
+  // 选择已录入域名后自动带出域名模式（避免重复手输；手动填写模式后不再覆盖）
+  // 按"行"追踪：每行首次选择（或从自动带出值改为另一域名）时自动带出，用户手输后保持
   $effect(() => {
     for (const d of domains) {
-      if (d.domain_id && !autoFilledDomainIds.includes(d.domain_id)) {
-        autoFilledDomainIds = [...autoFilledDomainIds, d.domain_id];
-        const opt = domainOptions.find(o => o.value === d.domain_id);
-        if (opt && !d.domain_pattern.trim()) {
-          d.domain_pattern = opt.label;
-        }
+      if (!d.domain_id) continue;
+      const opt = domainOptions.find(o => o.value === d.domain_id);
+      if (!opt) continue;
+      // 仅当该行尚未自动带出过，或当前模式仍是上次自动带出的域名时，才更新
+      const isAuto = !d._lastAuto || d.domain_pattern.trim() === d._lastAuto;
+      if (isAuto && d.domain_pattern.trim() !== opt.label) {
+        d.domain_pattern = opt.label;
+        d._lastAuto = opt.label;
       }
     }
   });
