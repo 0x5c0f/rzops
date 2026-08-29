@@ -24,6 +24,7 @@ TRUNCATE TABLE cmdb_ops_site CASCADE;
 TRUNCATE TABLE cmdb_provider CASCADE;
 TRUNCATE TABLE cmdb_server CASCADE;
 TRUNCATE TABLE cmdb_server_ip CASCADE;
+TRUNCATE TABLE cmdb_server_port_server CASCADE;
 TRUNCATE TABLE cmdb_server_port CASCADE;
 
 -- 清理测试残留用户（保留 admin）

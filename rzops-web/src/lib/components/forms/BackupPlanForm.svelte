@@ -37,7 +37,7 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
       target_type: '',
       schedule: '',
       status: 'active',
-      ...structuredClone(initial ?? {}),
+      ...JSON.parse(JSON.stringify(initial ?? {})),
     };
   }
 

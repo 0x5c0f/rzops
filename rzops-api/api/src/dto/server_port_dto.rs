@@ -2,10 +2,18 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+/// 关联服务器简要信息（用于响应展示）
+#[derive(Debug, Serialize, utoipa::ToSchema)]
+pub struct ServerBrief {
+    pub id: Uuid,
+    pub name: String,
+}
+
 /// Request body for creating a server port.
 #[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct CreateServerPortRequest {
-    pub server_id: Uuid,
+    /// 关联的服务器 id 列表（多对多，至少一个）
+    pub server_ids: Vec<Uuid>,
     pub protocol: String,
     pub port: i32,
     pub service_name: String,
@@ -17,6 +25,7 @@ pub struct CreateServerPortRequest {
 /// Request body for updating a server port.
 #[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct UpdateServerPortRequest {
+    pub server_ids: Option<Vec<Uuid>>,
     pub protocol: Option<String>,
     pub port: Option<i32>,
     pub service_name: Option<String>,
@@ -39,7 +48,6 @@ pub struct ListServerPortsQuery {
 #[derive(Debug, Serialize, utoipa::ToSchema)]
 pub struct ServerPortResponse {
     pub id: Uuid,
-    pub server_id: Uuid,
     pub protocol: String,
     pub port: i32,
     pub service_name: String,
@@ -48,6 +56,10 @@ pub struct ServerPortResponse {
     pub description: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    /// 关联的服务器 id 列表
+    pub server_ids: Vec<Uuid>,
+    /// 关联的服务器简要信息（名称）
+    pub servers: Vec<ServerBrief>,
 }
 
 /// Paginated list response.

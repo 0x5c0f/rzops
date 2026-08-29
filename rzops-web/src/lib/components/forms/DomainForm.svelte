@@ -35,7 +35,7 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
       is_enabled: true,
       renewal_currency: 'CNY',
       registered_date: '',
-      ...structuredClone(initial ?? {}),
+      ...JSON.parse(JSON.stringify(initial ?? {})),
     };
   }
 

@@ -33,7 +33,7 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
     return {
       name: '',
       status: 'active',
-      ...structuredClone(initial ?? {}),
+      ...JSON.parse(JSON.stringify(initial ?? {})),
     };
   }
 

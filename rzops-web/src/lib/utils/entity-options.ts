@@ -67,6 +67,86 @@ export async function getServerOptions(): Promise<SelectOption[]> {
 }
 
 /**
+ * 远程搜索服务器选项（用于 RemoteSearchSelect，按关键字分页搜索）
+ */
+export async function searchServerOptions(keyword: string): Promise<SelectOption[]> {
+  try {
+    const res = await serversApi.list({ q: keyword || undefined, per_page: 20 });
+    return res.data.map(item => ({
+      label: `${item.name}${item.primary_ip ? ` (${item.primary_ip})` : ''}`,
+      value: item.id,
+    }));
+  } catch (err) {
+    console.error('Failed to search servers:', err);
+    return [];
+  }
+}
+
+/**
+ * 远程搜索数据库实例选项
+ */
+export async function searchDatabaseInstanceOptions(keyword: string): Promise<SelectOption[]> {
+  try {
+    const res = await databaseInstancesApi.list({ q: keyword || undefined, per_page: 20 });
+    return res.data.map(item => ({
+      label: `${item.name} (${item.db_type})`,
+      value: item.id,
+    }));
+  } catch (err) {
+    console.error('Failed to search database instances:', err);
+    return [];
+  }
+}
+
+/**
+ * 远程搜索域名选项
+ */
+export async function searchDomainOptions(keyword: string): Promise<SelectOption[]> {
+  try {
+    const res = await domainsApi.list({ q: keyword || undefined, per_page: 20 });
+    return res.data.map(item => ({
+      label: item.domain_name,
+      value: item.id,
+    }));
+  } catch (err) {
+    console.error('Failed to search domains:', err);
+    return [];
+  }
+}
+
+/**
+ * 远程搜索站点选项
+ */
+export async function searchOpsSiteOptions(keyword: string): Promise<SelectOption[]> {
+  try {
+    const res = await opsSitesApi.list({ q: keyword || undefined, per_page: 20 });
+    return res.data.map(item => ({
+      label: item.name,
+      value: item.id,
+    }));
+  } catch (err) {
+    console.error('Failed to search ops sites:', err);
+    return [];
+  }
+}
+
+/**
+ * 远程搜索供应商选项
+ */
+export async function searchProviderOptions(keyword: string): Promise<SelectOption[]> {
+  try {
+    const res = await providersApi.list({ q: keyword || undefined, per_page: 20 });
+    return res.data.map(item => ({
+      label: item.name,
+      value: item.id,
+    }));
+  } catch (err) {
+    console.error('Failed to search providers:', err);
+    return [];
+  }
+}
+
+/**
  * 获取数据库实例选项
  */
 export async function getDatabaseInstanceOptions(): Promise<SelectOption[]> {

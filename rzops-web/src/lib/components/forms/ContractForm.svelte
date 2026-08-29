@@ -31,7 +31,7 @@
       name: '',
       currency: 'CNY',
       status: 'active',
-      ...structuredClone(initial ?? {}),
+      ...JSON.parse(JSON.stringify(initial ?? {})),
     };
   }
 

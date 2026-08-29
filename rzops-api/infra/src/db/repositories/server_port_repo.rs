@@ -16,13 +16,21 @@ impl PgServerPortRepository {
     }
 }
 
-
+/// 端口查询公共列（含多对多关联聚合的服务器 id / 名称）
+const PORT_SELECT: &str = r#"
+    SELECT p.id, p.protocol::text, p.port, p.service_name, p.access_scope,
+           p.is_enabled, p.description, p.created_at, p.updated_at,
+           COALESCE(array_agg(s.id) FILTER (WHERE s.id IS NOT NULL), '{}') AS server_ids,
+           COALESCE(array_agg(s.name) FILTER (WHERE s.name IS NOT NULL), '{}') AS server_names
+    FROM cmdb_server_port p
+    LEFT JOIN cmdb_server_port_server ps ON ps.server_port_id = p.id
+    LEFT JOIN cmdb_server s ON s.id = ps.server_id
+"#;
 
 fn row_to_server_port(row: &sqlx::postgres::PgRow) -> ServerPort {
     let protocol_str: String = row.get("protocol");
     ServerPort {
         id: row.get("id"),
-        server_id: row.get("server_id"),
         protocol: protocol_str,
         port: row.get("port"),
         service_name: row.get("service_name"),
@@ -31,38 +39,44 @@ fn row_to_server_port(row: &sqlx::postgres::PgRow) -> ServerPort {
         description: row.get("description"),
         created_at: row.get::<DateTime<Utc>, _>("created_at"),
         updated_at: row.get::<DateTime<Utc>, _>("updated_at"),
+        server_ids: row.get("server_ids"),
+        server_names: row.get("server_names"),
     }
 }
 
 #[async_trait]
 impl ServerPortRepository for PgServerPortRepository {
     async fn find_by_id(&self, id: Uuid) -> Result<Option<ServerPort>, sqlx::Error> {
-        let row = sqlx::query(
-            r#"SELECT id, server_id, protocol::text, port, service_name,
-                      access_scope, is_enabled, description, created_at, updated_at
-               FROM cmdb_server_port WHERE id = $1"#,
-        )
-        .bind(id)
-        .fetch_optional(&self.pool)
-        .await?;
+        let sql = format!(
+            r#"{} WHERE p.id = $1 GROUP BY p.id"#,
+            PORT_SELECT
+        );
+        let row = sqlx::query(&sql).bind(id).fetch_optional(&self.pool).await?;
         Ok(row.map(|r| row_to_server_port(&r)))
     }
 
     async fn find_all(&self, filter: ServerPortFilter) -> Result<Vec<ServerPort>, sqlx::Error> {
-        let mut sql = String::from(
-            r#"SELECT id, server_id, protocol::text, port, service_name,
-                      access_scope, is_enabled, description, created_at, updated_at
-               FROM cmdb_server_port WHERE 1=1"#,
-        );
+        let mut sql = format!(r#"{} WHERE 1=1"#, PORT_SELECT);
 
         let mut string_binds: Vec<String> = Vec::new();
         let mut uuid_binds: Vec<Uuid> = Vec::new();
         let mut idx = 1;
-        if let Some(sid) = filter.server_id { sql.push_str(&format!(" AND server_id = ${}", idx)); uuid_binds.push(sid); idx += 1; }
-        if let Some(ref protocol) = filter.protocol { sql.push_str(&format!(" AND protocol::text = ${}", idx)); string_binds.push(protocol.clone()); idx += 1; }
-        if let Some(ref q) = filter.q { sql.push_str(&format!(" AND service_name ILIKE ${}", idx)); string_binds.push(format!("%{}%", q)); }
+        if let Some(sid) = filter.server_id {
+            sql.push_str(&format!(" AND EXISTS (SELECT 1 FROM cmdb_server_port_server ps2 WHERE ps2.server_port_id = p.id AND ps2.server_id = ${})", idx));
+            uuid_binds.push(sid);
+            idx += 1;
+        }
+        if let Some(ref protocol) = filter.protocol {
+            sql.push_str(&format!(" AND p.protocol::text = ${}", idx));
+            string_binds.push(protocol.clone());
+            idx += 1;
+        }
+        if let Some(ref q) = filter.q {
+            sql.push_str(&format!(" AND p.service_name ILIKE ${}", idx));
+            string_binds.push(format!("%{}%", q));
+        }
 
-        sql.push_str(" ORDER BY created_at DESC");
+        sql.push_str(" GROUP BY p.id ORDER BY p.created_at DESC");
         if let Some(limit) = filter.limit {
             sql.push_str(&format!(" LIMIT {}", limit));
         }
@@ -78,14 +92,25 @@ impl ServerPortRepository for PgServerPortRepository {
     }
 
     async fn count(&self, filter: ServerPortFilter) -> Result<i64, sqlx::Error> {
-        let mut sql = String::from("SELECT COUNT(*) as count FROM cmdb_server_port WHERE 1=1");
+        let mut sql = String::from("SELECT COUNT(*) as count FROM cmdb_server_port p WHERE 1=1");
 
         let mut string_binds: Vec<String> = Vec::new();
         let mut uuid_binds: Vec<Uuid> = Vec::new();
         let mut idx = 1;
-        if let Some(sid) = filter.server_id { sql.push_str(&format!(" AND server_id = ${}", idx)); uuid_binds.push(sid); idx += 1; }
-        if let Some(ref protocol) = filter.protocol { sql.push_str(&format!(" AND protocol::text = ${}", idx)); string_binds.push(protocol.clone()); idx += 1; }
-        if let Some(ref q) = filter.q { sql.push_str(&format!(" AND service_name ILIKE ${}", idx)); string_binds.push(format!("%{}%", q)); }
+        if let Some(sid) = filter.server_id {
+            sql.push_str(&format!(" AND EXISTS (SELECT 1 FROM cmdb_server_port_server ps2 WHERE ps2.server_port_id = p.id AND ps2.server_id = ${})", idx));
+            uuid_binds.push(sid);
+            idx += 1;
+        }
+        if let Some(ref protocol) = filter.protocol {
+            sql.push_str(&format!(" AND p.protocol::text = ${}", idx));
+            string_binds.push(protocol.clone());
+            idx += 1;
+        }
+        if let Some(ref q) = filter.q {
+            sql.push_str(&format!(" AND p.service_name ILIKE ${}", idx));
+            string_binds.push(format!("%{}%", q));
+        }
 
         let mut query = sqlx::query(&sql);
         for u in &uuid_binds { query = query.bind(u); }
@@ -95,37 +120,69 @@ impl ServerPortRepository for PgServerPortRepository {
     }
 
     async fn create(&self, port: &ServerPort) -> Result<ServerPort, sqlx::Error> {
-        let row = sqlx::query(
-            r#"INSERT INTO cmdb_server_port
-               (id, server_id, protocol, port, service_name, access_scope,
-                is_enabled, description, created_at, updated_at)
-               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-               RETURNING id, server_id, protocol::text, port, service_name,
-                         access_scope, is_enabled, description, created_at, updated_at"#,
+        let mut tx = self.pool.begin().await?;
+
+        // 端口定义按 (protocol, port, service_name) 复用：已存在则复用其 id，否则新建
+        let existing: Option<Uuid> = sqlx::query_scalar(
+            "SELECT id FROM cmdb_server_port WHERE protocol = $1 AND port = $2 AND service_name = $3",
         )
-        .bind(port.id)
-        .bind(port.server_id)
-        .bind(port.protocol.clone())
+        .bind(&port.protocol)
         .bind(port.port)
         .bind(&port.service_name)
-        .bind(&port.access_scope)
-        .bind(port.is_enabled)
-        .bind(&port.description)
-        .bind(port.created_at)
-        .bind(port.updated_at)
-        .fetch_one(&self.pool)
+        .fetch_optional(&mut *tx)
         .await?;
-        Ok(row_to_server_port(&row))
+
+        let port_id = match existing {
+            Some(id) => id,
+            None => {
+                sqlx::query(
+                    r#"INSERT INTO cmdb_server_port
+                       (id, protocol, port, service_name, access_scope,
+                        is_enabled, description, created_at, updated_at)
+                       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)"#,
+                )
+                .bind(port.id)
+                .bind(port.protocol.clone())
+                .bind(port.port)
+                .bind(&port.service_name)
+                .bind(&port.access_scope)
+                .bind(port.is_enabled)
+                .bind(&port.description)
+                .bind(port.created_at)
+                .bind(port.updated_at)
+                .execute(&mut *tx)
+                .await?;
+                port.id
+            }
+        };
+
+        for sid in &port.server_ids {
+            sqlx::query(
+                "INSERT INTO cmdb_server_port_server (server_port_id, server_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+            )
+            .bind(port_id)
+            .bind(sid)
+            .execute(&mut *tx)
+            .await?;
+        }
+
+        tx.commit().await?;
+
+        // 返回合并后的端口（含全部关联服务器）
+        match self.find_by_id(port_id).await? {
+            Some(p) => Ok(p),
+            None => Err(sqlx::Error::RowNotFound),
+        }
     }
 
     async fn update(&self, id: Uuid, port: &ServerPort) -> Result<Option<ServerPort>, sqlx::Error> {
+        let mut tx = self.pool.begin().await?;
+
         let row = sqlx::query(
             r#"UPDATE cmdb_server_port SET
                 protocol = $2, port = $3, service_name = $4, access_scope = $5,
                 is_enabled = $6, description = $7, updated_at = $8
-               WHERE id = $1
-               RETURNING id, server_id, protocol::text, port, service_name,
-                         access_scope, is_enabled, description, created_at, updated_at"#,
+               WHERE id = $1"#,
         )
         .bind(id)
         .bind(port.protocol.clone())
@@ -135,9 +192,31 @@ impl ServerPortRepository for PgServerPortRepository {
         .bind(port.is_enabled)
         .bind(&port.description)
         .bind(port.updated_at)
-        .fetch_optional(&self.pool)
+        .execute(&mut *tx)
         .await?;
-        Ok(row.map(|r| row_to_server_port(&r)))
+
+        if row.rows_affected() == 0 {
+            tx.rollback().await?;
+            return Ok(None);
+        }
+
+        // 重建关联：先清空再按 server_ids 重新绑定
+        sqlx::query("DELETE FROM cmdb_server_port_server WHERE server_port_id = $1")
+            .bind(id)
+            .execute(&mut *tx)
+            .await?;
+        for sid in &port.server_ids {
+            sqlx::query(
+                "INSERT INTO cmdb_server_port_server (server_port_id, server_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+            )
+            .bind(id)
+            .bind(sid)
+            .execute(&mut *tx)
+            .await?;
+        }
+
+        tx.commit().await?;
+        Ok(self.find_by_id(id).await?)
     }
 
     async fn delete(&self, id: Uuid) -> Result<bool, sqlx::Error> {

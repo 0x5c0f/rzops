@@ -5,43 +5,47 @@
   import { Label } from '$lib/ui/label';
   import * as Card from '$lib/ui/card';
   import FormSelect from '$lib/components/shared/FormSelect.svelte';
+  import RemoteSearchSelect from '$lib/components/shared/RemoteSearchSelect.svelte';
   import TextArea from '$lib/components/shared/TextArea.svelte';
-  import { getServerOptions } from '$lib/utils/entity-options';
+  import { searchServerOptions } from '$lib/utils/entity-options';
   import { protocolOptions } from '$lib/utils/enum-options';
-  import { onMount } from 'svelte';
 
   let {
     initial = {} as CreateServerPortRequest,
     editing = false,
     submitLabel = '保存',
+    /** 编辑时传入当前已关联服务器（用于多选回显） */
+    initialServers = [] as { id: string; name: string }[],
     onSubmit,
   }: {
     initial?: CreateServerPortRequest;
     editing?: boolean;
     submitLabel?: string;
+    initialServers?: { id: string; name: string }[];
     onSubmit: (data: CreateServerPortRequest) => Promise<void>;
   } = $props();
 
   let saving = $state(false);
-  let serverOptions = $state<{ label: string; value: string }[]>([]);
 
   let form = $state<CreateServerPortRequest>(createInitial(initial));
 
   function createInitial(initial?: CreateServerPortRequest): CreateServerPortRequest {
+    // 注意：不能用 structuredClone(initial) —— Svelte 5 的 $state 会对含数组字段（如 server_ids）做 deep proxy，
+    // structuredClone 无法克隆 proxy 数组，会抛 DataCloneError。用 JSON 深拷贝解包 proxy。
     return {
-      server_id: '',
+      server_ids: [],
       protocol: '',
       port: 0,
       service_name: '',
       access_scope: '',
       is_enabled: true,
-      ...structuredClone(initial ?? {}),
+      ...JSON.parse(JSON.stringify(initial ?? {})),
     };
   }
 
-  onMount(async () => {
-    serverOptions = await getServerOptions();
-  });
+  let displayServerOptions = $derived(
+    initialServers.map(s => ({ label: s.name, value: s.id }))
+  );
 
   async function handleSave() {
     saving = true;
@@ -61,20 +65,18 @@
       <Card.Title>基本信息</Card.Title>
     </Card.Header>
     <Card.Content class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-      {#if editing}
-        <div class="space-y-2">
-          <Label for="server_id">服务器</Label>
-          <Input id="server_id" value={form.server_id} disabled />
-        </div>
-      {:else}
-        <FormSelect
+      <div class="md:col-span-2 lg:col-span-3">
+        <RemoteSearchSelect
           label="服务器 *"
-          bind:value={form.server_id}
-          options={serverOptions}
-          placeholder="选择服务器"
+          multiple
+          bind:value={form.server_ids}
+          searchFn={searchServerOptions}
+          displayOptions={displayServerOptions}
+          placeholder="选择服务器（可多选）"
+          searchPlaceholder="输入名称或 IP 搜索..."
           required
         />
-      {/if}
+      </div>
 
       <FormSelect
         label="协议 *"
@@ -86,12 +88,12 @@
 
       <div class="space-y-2">
         <Label for="port">端口 <span class="text-destructive">*</span></Label>
-        <Input id="port" type="number" bind:value={form.port} required />
+        <Input id="port" type="number" bind:value={form.port} placeholder="如 80 / 443 / 3306" min={1} max={65535} required />
       </div>
 
       <div class="space-y-2">
         <Label for="service_name">服务名称 <span class="text-destructive">*</span></Label>
-        <Input id="service_name" bind:value={form.service_name} placeholder="如 nginx / mysql" required />
+        <Input id="service_name" bind:value={form.service_name} placeholder="如 nginx / mysql / ssh" required />
       </div>
 
       <div class="space-y-2">

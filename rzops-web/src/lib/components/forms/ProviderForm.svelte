@@ -31,7 +31,7 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
       name: '',
       provider_types: [],
       status: 'active',
-      ...structuredClone(initial ?? {}),
+      ...JSON.parse(JSON.stringify(initial ?? {})),
     };
   }
 

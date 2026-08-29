@@ -20,9 +20,14 @@ use crate::dto::server_port_dto::*;
 
 
 fn to_response(p: &ServerPort) -> ServerPortResponse {
+    let servers: Vec<ServerBrief> = p
+        .server_ids
+        .iter()
+        .zip(p.server_names.iter())
+        .map(|(id, name)| ServerBrief { id: *id, name: name.clone() })
+        .collect();
     ServerPortResponse {
         id: p.id,
-        server_id: p.server_id,
         protocol: p.protocol.clone(),
         port: p.port,
         service_name: p.service_name.clone(),
@@ -31,6 +36,8 @@ fn to_response(p: &ServerPort) -> ServerPortResponse {
         description: p.description.clone(),
         created_at: p.created_at,
         updated_at: p.updated_at,
+        server_ids: p.server_ids.clone(),
+        servers,
     }
 }
 
@@ -94,10 +101,15 @@ pub async fn create_server_port(
     Extension(change_log): Extension<ChangeLogState>,
     Json(body): Json<CreateServerPortRequest>,
 ) -> impl IntoResponse {
+    if body.server_ids.is_empty() {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse { error: "server_ids must not be empty".to_string() }),
+        ).into_response();
+    }
     let now = Utc::now();
     let port = ServerPort {
         id: Uuid::new_v4(),
-        server_id: body.server_id,
         protocol: body.protocol,
         port: body.port,
         service_name: body.service_name,
@@ -106,6 +118,8 @@ pub async fn create_server_port(
         description: body.description,
         created_at: now,
         updated_at: now,
+        server_ids: body.server_ids,
+        server_names: Vec::new(),
     };
 
     match repo.create(&port).await {
@@ -140,9 +154,15 @@ pub async fn update_server_port(
     };
 
     let before_value = serde_json::to_value(to_response(&existing)).unwrap_or(serde_json::json!({}));
+    let server_ids = body.server_ids.clone().unwrap_or_else(|| existing.server_ids.clone());
+    if server_ids.is_empty() {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse { error: "server_ids must not be empty".to_string() }),
+        ).into_response();
+    }
     let port = ServerPort {
         id: existing.id,
-        server_id: existing.server_id,
         protocol: body.protocol.unwrap_or(existing.protocol),
         port: body.port.unwrap_or(existing.port),
         service_name: body.service_name.unwrap_or(existing.service_name),
@@ -151,6 +171,8 @@ pub async fn update_server_port(
         description: body.description.or(existing.description),
         created_at: existing.created_at,
         updated_at: Utc::now(),
+        server_ids,
+        server_names: Vec::new(),
     };
 
     match repo.update(id, &port).await {

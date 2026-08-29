@@ -48,8 +48,8 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
   let attachmentRef = $state<{ uploadAll: (id: string) => Promise<void> } | null>(null);
 
   let form = $state<CreateOpsSiteRequest>(createInitial(initial));
-  let backupPlans = $state<BackupDraft[]>(structuredClone(initialBackupPlans));
-  let monitorTargets = $state<MonitorDraft[]>(structuredClone(initialMonitorTargets));
+  let backupPlans = $state<BackupDraft[]>(JSON.parse(JSON.stringify(initialBackupPlans)));
+  let monitorTargets = $state<MonitorDraft[]>(JSON.parse(JSON.stringify(initialMonitorTargets)));
 
   function createInitial(initial?: CreateOpsSiteRequest): CreateOpsSiteRequest {
     return {
@@ -66,7 +66,7 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
       remarks: '',
       status: 'active',
       is_test_site: false,
-      ...structuredClone(initial ?? {}),
+      ...JSON.parse(JSON.stringify(initial ?? {})),
     };
   }
 

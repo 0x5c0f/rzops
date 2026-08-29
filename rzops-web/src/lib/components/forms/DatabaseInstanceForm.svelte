@@ -50,8 +50,8 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
   let serverOptions = $state<{ label: string; value: string }[]>([]);
 
   let form = $state<CreateDatabaseInstanceRequest>(createInitial(initial));
-  let backupPlans = $state<BackupDraft[]>(structuredClone(initialBackupPlans));
-  let monitorTargets = $state<MonitorDraft[]>(structuredClone(initialMonitorTargets));
+  let backupPlans = $state<BackupDraft[]>(JSON.parse(JSON.stringify(initialBackupPlans)));
+  let monitorTargets = $state<MonitorDraft[]>(JSON.parse(JSON.stringify(initialMonitorTargets)));
 
   function createInitial(initial?: CreateDatabaseInstanceRequest): CreateDatabaseInstanceRequest {
     return {
@@ -61,7 +61,7 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
       is_self_installed: false,
       is_ops_managed: false,
       status: 'active',
-      ...structuredClone(initial ?? {}),
+      ...JSON.parse(JSON.stringify(initial ?? {})),
     };
   }
 

@@ -95,10 +95,10 @@
 
   // 默认值为空字符串，确保编辑时清空字段能正确提交（后端部分更新语义）
   let form = $state<CreateServerRequest>(createInitial(initial));
-  let ips = $state<IpDraft[]>(initialIps.length ? structuredClone(initialIps) : []);
-  let ports = $state<PortDraft[]>(initialPorts.length ? structuredClone(initialPorts) : []);
+  let ips = $state<IpDraft[]>(initialIps.length ? JSON.parse(JSON.stringify(initialIps)) : []);
+  let ports = $state<PortDraft[]>(initialPorts.length ? JSON.parse(JSON.stringify(initialPorts)) : []);
   let dbInstances = $state<DbDraft[]>(
-    initialDbInstances.length ? structuredClone(initialDbInstances) : [],
+    initialDbInstances.length ? JSON.parse(JSON.stringify(initialDbInstances)) : [],
   );
   let siteRels = $state<SiteDraft[]>([]);
   let initialSiteRels = $state<SiteDraft[]>([]);
@@ -116,7 +116,7 @@
       is_database_server: false,
       is_raid: false,
       price_currency: 'CNY',
-      ...structuredClone(initial ?? {}),
+      ...JSON.parse(JSON.stringify(initial ?? {})),
     };
   }
 
@@ -139,7 +139,7 @@
           deploy_role: r.deploy_role || '',
           is_primary: r.is_primary,
         }));
-        initialSiteRels = structuredClone(siteRels);
+        initialSiteRels = JSON.parse(JSON.stringify(siteRels));
       } catch (err) {
         console.error('Failed to load site relations:', err);
       }
@@ -268,7 +268,7 @@
       if (row.id) {
         await serverPortsApi.update(row.id, payload);
       } else {
-        await serverPortsApi.create({ server_id: serverId, ...payload });
+        await serverPortsApi.create({ server_ids: [serverId], ...payload });
       }
     }
   }

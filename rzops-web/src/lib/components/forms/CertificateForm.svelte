@@ -44,14 +44,14 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
   let domainOptions = $state<{ label: string; value: string }[]>([]);
 
   let form = $state<CreateCertificateRequest>(createInitial(initial));
-  let domains = $state<DomainDraft[]>(initialDomains.length ? structuredClone(initialDomains) : []);
+  let domains = $state<DomainDraft[]>(initialDomains.length ? JSON.parse(JSON.stringify(initialDomains)) : []);
 
   function createInitial(initial?: CreateCertificateRequest): CreateCertificateRequest {
     return {
       name: '',
       certificate_type: '',
       status: 'active',
-      ...structuredClone(initial ?? {}),
+      ...JSON.parse(JSON.stringify(initial ?? {})),
     };
   }
 

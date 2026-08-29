@@ -6,23 +6,16 @@
   import { Button } from '$lib/ui/button';
   import * as Card from '$lib/ui/card';
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
-  import { getServerOptions } from '$lib/utils/entity-options';
   import { onMount } from 'svelte';
 
   let serverPort = $state<ServerPortResponse | null>(null);
   let loading = $state(true);
-  let serverMap = $state<Record<string, string>>({});
 
   onMount(async () => {
     const id = $page.params.id;
     if (!id) { goto('/server-ports'); return; }
     try {
-      const [port, servers] = await Promise.all([
-        serverPortsApi.getById(id),
-        getServerOptions(),
-      ]);
-      serverPort = port;
-      serverMap = Object.fromEntries(servers.map(o => [o.value, o.label]));
+      serverPort = await serverPortsApi.getById(id);
     } catch (err) {
       console.error('Failed to load server port:', err);
       goto('/server-ports');
@@ -77,10 +70,16 @@
           <dl class="grid gap-3 text-sm">
             <div class="flex justify-between">
               <dt class="text-muted-foreground">服务器</dt>
-              <dd>
-                <a href="/servers/{serverPort.server_id}" class="text-primary hover:underline">
-                  {serverMap[serverPort.server_id] || serverPort.server_id}
-                </a>
+              <dd class="text-right">
+                {#if serverPort.servers.length > 0}
+                  <div class="flex flex-col items-end gap-1">
+                    {#each serverPort.servers as s}
+                      <a href="/servers/{s.id}" class="text-primary hover:underline">
+                        {s.name}
+                      </a>
+                    {/each}
+                  </div>
+                {:else}-{/if}
               </dd>
             </div>
             <div class="flex justify-between">

@@ -35,7 +35,7 @@
       ip_type: '',
       is_primary: false,
       status: 'active',
-      ...structuredClone(initial ?? {}),
+      ...JSON.parse(JSON.stringify(initial ?? {})),
     };
   }
 

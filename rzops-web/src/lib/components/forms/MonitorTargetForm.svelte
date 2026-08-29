@@ -42,7 +42,7 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
       monitor_type: '',
       endpoint: '',
       status: 'active',
-      ...structuredClone(initial ?? {}),
+      ...JSON.parse(JSON.stringify(initial ?? {})),
     };
   }
 

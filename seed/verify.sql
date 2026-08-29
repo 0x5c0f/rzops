@@ -32,6 +32,8 @@ UNION ALL SELECT 'site->backup', count(*) FROM cmdb_ops_site s LEFT JOIN cmdb_ba
 UNION ALL SELECT 'site->monitor', count(*) FROM cmdb_ops_site s LEFT JOIN cmdb_monitor_target m ON s.monitor_target_id=m.id WHERE s.monitor_target_id IS NOT NULL AND m.id IS NULL
 UNION ALL SELECT 'cert->provider', count(*) FROM cmdb_certificate c LEFT JOIN cmdb_provider p ON c.provider_id=p.id WHERE c.provider_id IS NOT NULL AND p.id IS NULL
 UNION ALL SELECT 'ip->server', count(*) FROM cmdb_server_ip i LEFT JOIN cmdb_server s ON i.server_id=s.id WHERE i.server_id IS NOT NULL AND s.id IS NULL
+UNION ALL SELECT 'port_server->port', count(*) FROM cmdb_server_port_server x LEFT JOIN cmdb_server_port p ON x.server_port_id=p.id WHERE p.id IS NULL
+UNION ALL SELECT 'port_server->server', count(*) FROM cmdb_server_port_server x LEFT JOIN cmdb_server s ON x.server_id=s.id WHERE s.id IS NULL
 UNION ALL SELECT 'site_server->site', count(*) FROM cmdb_ops_site_server x LEFT JOIN cmdb_ops_site s ON x.site_id=s.id WHERE s.id IS NULL
 UNION ALL SELECT 'site_server->server', count(*) FROM cmdb_ops_site_server x LEFT JOIN cmdb_server s ON x.server_id=s.id WHERE s.id IS NULL
 UNION ALL SELECT 'site_db->site', count(*) FROM cmdb_ops_site_database x LEFT JOIN cmdb_ops_site s ON x.site_id=s.id WHERE s.id IS NULL

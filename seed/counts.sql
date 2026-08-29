@@ -4,6 +4,7 @@ UNION ALL SELECT 'cmdb_data_center', count(*) FROM cmdb_data_center
 UNION ALL SELECT 'cmdb_server', count(*) FROM cmdb_server
 UNION ALL SELECT 'cmdb_server_ip', count(*) FROM cmdb_server_ip
 UNION ALL SELECT 'cmdb_server_port', count(*) FROM cmdb_server_port
+UNION ALL SELECT 'cmdb_server_port_server', count(*) FROM cmdb_server_port_server
 UNION ALL SELECT 'cmdb_database_instance', count(*) FROM cmdb_database_instance
 UNION ALL SELECT 'cmdb_ops_site', count(*) FROM cmdb_ops_site
 UNION ALL SELECT 'cmdb_domain', count(*) FROM cmdb_domain

@@ -26,7 +26,7 @@
 
   function toForm(p: ServerPortResponse): CreateServerPortRequest {
     return {
-      server_id: p.server_id,
+      server_ids: p.server_ids,
       protocol: p.protocol,
       port: p.port,
       service_name: p.service_name,
@@ -39,8 +39,7 @@
   async function handleUpdate(data: CreateServerPortRequest) {
     const id = $page.params.id;
     if (!id) return;
-    const { server_id: _serverId, ...rest } = data;
-    await serverPortsApi.update(id, rest);
+    await serverPortsApi.update(id, data);
     goto(`/server-ports/${id}`);
   }
 </script>
@@ -63,6 +62,12 @@
   {:else if loadError || !serverPort}
     <p class="text-sm text-muted-foreground">加载失败，服务器端口可能不存在。</p>
   {:else}
-    <ServerPortForm initial={toForm(serverPort)} editing submitLabel="保存" onSubmit={handleUpdate} />
+    <ServerPortForm
+      initial={toForm(serverPort)}
+      initialServers={serverPort.servers}
+      editing
+      submitLabel="保存"
+      onSubmit={handleUpdate}
+    />
   {/if}
 </div>

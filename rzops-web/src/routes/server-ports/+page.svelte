@@ -7,7 +7,6 @@
   import DataTable from '$lib/components/shared/DataTable.svelte';
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import { onMount } from 'svelte';
-  import { getServerOptions } from '$lib/utils/entity-options';
   import { protocolOptions } from '$lib/utils/enum-options';
 
   let data = $state<ServerPortResponse[]>([]);
@@ -16,11 +15,18 @@
   let query = $state<ListServerPortsQuery>({ page: 1, per_page: 20 });
   let page = $derived(query.page ?? 1);
   let perPage = $derived(query.per_page ?? 20);
-  let serverMap = $state<Record<string, string>>({});
   let protocolMap = $derived(Object.fromEntries($protocolOptions.map(o => [o.value, o.label])));
 
   const columns = $derived([
-    { key: 'server_id', label: '服务器', valueMap: serverMap },
+    {
+      key: 'servers',
+      label: '服务器',
+      render: (v: unknown) => {
+        const list = v as { id: string; name: string }[] | null | undefined;
+        if (!list || list.length === 0) return '-';
+        return list.map(s => s.name).join(', ');
+      },
+    },
     { key: 'protocol', label: '协议', valueMap: protocolMap },
     { key: 'port', label: '端口' },
     { key: 'service_name', label: '服务名称' , link: (item: ServerPortResponse) => `/server-ports/${item.id}` },
@@ -41,8 +47,6 @@
   }
 
   onMount(async () => {
-    const srvOptions = await getServerOptions();
-    Object.assign(serverMap, Object.fromEntries(srvOptions.map(o => [o.value, o.label])));
     await loadData();
   });
 
