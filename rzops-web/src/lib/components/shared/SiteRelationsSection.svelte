@@ -20,6 +20,7 @@
   } from '$lib/utils/entity-options';
   import { siteServerRoleOptions, siteDatabaseUsageOptions, getOptionLabel } from '$lib/utils/enum-options';
   import { onMount } from 'svelte';
+  import ConfirmDialog from '$lib/components/shared/ConfirmDialog.svelte';
 
   let {
     siteId,
@@ -47,6 +48,11 @@
   let addRole = $state('');
   let addIsPrimary = $state(false);
   let addSaving = $state(false);
+
+  // 删除确认状态
+  let confirmOpen = $state(false);
+  let pendingDeleteType = $state<'server' | 'database' | 'domain'>('server');
+  let pendingDeleteId = $state('');
 
   async function loadAll() {
     const [s, d, dom] = await Promise.all([
@@ -119,31 +125,39 @@
     }
   }
 
-  async function handleDeleteServer(id: string) {
-    if (!confirm('确定要删除此服务器关联吗？')) return;
-    try {
-      await siteRelationsApi.deleteServer(id);
-      servers = servers.filter(s => s.id !== id);
-    } catch (err) {
-      console.error('Failed to delete:', err);
-    }
+  function handleDeleteServer(id: string) {
+    pendingDeleteType = 'server';
+    pendingDeleteId = id;
+    confirmOpen = true;
   }
 
-  async function handleDeleteDatabase(id: string) {
-    if (!confirm('确定要删除此数据库关联吗？')) return;
-    try {
-      await siteRelationsApi.deleteDatabase(id);
-      databases = databases.filter(d => d.id !== id);
-    } catch (err) {
-      console.error('Failed to delete:', err);
-    }
+  function handleDeleteDatabase(id: string) {
+    pendingDeleteType = 'database';
+    pendingDeleteId = id;
+    confirmOpen = true;
   }
 
-  async function handleDeleteDomain(id: string) {
-    if (!confirm('确定要删除此域名关联吗？')) return;
+  function handleDeleteDomain(id: string) {
+    pendingDeleteType = 'domain';
+    pendingDeleteId = id;
+    confirmOpen = true;
+  }
+
+  async function doDelete() {
+    const id = pendingDeleteId;
+    const type = pendingDeleteType;
+    if (!id) return;
     try {
-      await siteRelationsApi.deleteDomain(id);
-      domains = domains.filter(d => d.id !== id);
+      if (type === 'server') {
+        await siteRelationsApi.deleteServer(id);
+        servers = servers.filter(s => s.id !== id);
+      } else if (type === 'database') {
+        await siteRelationsApi.deleteDatabase(id);
+        databases = databases.filter(d => d.id !== id);
+      } else if (type === 'domain') {
+        await siteRelationsApi.deleteDomain(id);
+        domains = domains.filter(d => d.id !== id);
+      }
     } catch (err) {
       console.error('Failed to delete:', err);
     }
@@ -351,3 +365,11 @@
     </Dialog.Footer>
   </Dialog.Content>
 </Dialog.Root>
+
+<ConfirmDialog
+  bind:open={confirmOpen}
+  title="确认删除"
+  description={`确定要删除此{pendingDeleteType === 'server' ? '服务器' : pendingDeleteType === 'database' ? '数据库' : '域名'}关联吗？`}
+  confirmLabel="删除"
+  onConfirm={doDelete}
+/>

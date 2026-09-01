@@ -5,6 +5,7 @@
   import { Button } from '$lib/ui/button';
   import * as Card from '$lib/ui/card';
   import { formatDate, formatBytes } from '$lib/utils/format';
+  import ConfirmDialog from '$lib/components/shared/ConfirmDialog.svelte';
 
   let {
     targetType,
@@ -18,6 +19,8 @@
   let loading = $state(true);
   let uploading = $state(false);
   let error = $state('');
+  let confirmOpen = $state(false);
+  let pendingDelete = $state<AttachmentResponse | null>(null);
 
   async function load() {
     loading = true;
@@ -58,13 +61,20 @@
     }
   }
 
-  async function handleDelete(item: AttachmentResponse) {
-    if (!confirm(`确定删除附件 "${item.filename}" 吗？`)) return;
+  function handleDelete(item: AttachmentResponse) {
+    pendingDelete = item;
+    confirmOpen = true;
+  }
+
+  async function doDelete() {
+    if (!pendingDelete) return;
     try {
-      await attachmentsApi.delete(item.id);
+      await attachmentsApi.delete(pendingDelete.id);
       await load();
     } catch (err) {
       error = err instanceof Error ? err.message : '删除失败';
+    } finally {
+      pendingDelete = null;
     }
   }
 </script>
@@ -114,3 +124,11 @@
     {/if}
   </Card.Content>
 </Card.Root>
+
+<ConfirmDialog
+  bind:open={confirmOpen}
+  title="确认删除"
+  description={`确定要删除附件「${pendingDelete?.filename}」吗？此操作可在回收站恢复。`}
+  confirmLabel="删除"
+  onConfirm={doDelete}
+/>
