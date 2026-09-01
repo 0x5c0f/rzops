@@ -44,6 +44,7 @@ pub struct CertificateResponse {
     pub remarks: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub deleted_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Serialize, utoipa::ToSchema)]

@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>RzOps CMDB 数据库 ER 图</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 24px; background: #F4F3EE; color: #1A1B1C; font-family: 'Roboto','PingFang SC','Segoe UI',Arial,sans-serif; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { font-size: 13px; color: #6B7280; margin-bottom: 20px; }
+  .card { background: #fff; border: 1px solid #E4E3DD; border-radius: 14px; padding: 16px; margin-bottom: 24px; overflow: auto; }
+  .card h2 { font-size: 15px; margin: 0 0 6px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: #4B5563; margin: 4px 0 10px; }
+  .legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .sw { display: inline-block; width: 16px; height: 0; border-top: 3px solid; vertical-align: middle; }
+  .sw.dash { border-top: 3px dashed; }
+  svg { width: 100%; height: auto; display: block; }
+  .note { font-size: 12px; color: #6B7280; margin-top: 8px; }
+</style>
+</head>
+<body>
+<h1>RzOps CMDB 数据库 ER 图</h1>
+<div class="sub">基于 rzopsdb 当前 schema（23 张表，含迁移表 _sqlx_migrations 未列入）。实线 = 数据库外键约束；虚线 = 多态引用（无外键，应用层逻辑）；青色小卡 = 多对多关联表。</div>
+
+<div class="card">
+  <h2>图 1 · 核心实体关系（外键约束）</h2>
+  <div class="legend">
+    <span><i class="sw" style="border-color:#5B8FF9"></i>供应商相关</span>
+    <span><i class="sw" style="border-color:#5AD8A6"></i>服务器域</span>
+    <span><i class="sw" style="border-color:#F6BD16"></i>站点关联</span>
+    <span><i class="sw" style="border-color:#9270CA"></i>域名/证书</span>
+  </div>
+  <div id="er1"></div>
+</div>
+
+<div class="card">
+  <h2>图 2 · 多态引用与日志（无外键，逻辑关系）</h2>
+  <div class="legend">
+    <span><i class="sw dash" style="border-color:#EA6668"></i>target_type + target_id 多态引用（可指向任一资源）</span>
+  </div>
+  <div id="er2"></div>
+</div>
+
+<div class="note">关联表字段：server_port_server(server_port_id,server_id)、ops_site_server(site_id,server_id,deploy_role,is_primary)、ops_site_database(site_id,database_instance_id,usage_type,is_primary)、ops_site_domain(site_id,domain_id,is_primary)、certificate_domain(certificate_id,domain_id,domain_pattern,is_primary)。</div>
+
+<script>
+(function () {
+  function esc(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  // ================= 图1：核心实体 =================
+  var N1 = [
+    { id:'provider', x:30, y:420, w:230, h:110, c:'#5B8FF9', title:'供应商', sub:'cmdb_provider', notes:['provider_types (jsonb 多类型)','被 server×3 / server_ip /','domain / certificate /','data_center 引用'] },
+    { id:'dict', x:30, y:60, w:230, h:64, c:'#C9A7E8', title:'字典', sub:'cmdb_dict', notes:['dict_type+code+label','各表枚举字段逻辑引用'] },
+    { id:'user', x:30, y:190, w:230, h:74, c:'#C9A7E8', title:'用户', sub:'user', notes:['maintainer / 上传者 / 操作者'] },
+    { id:'data_center', x:430, y:60, w:250, h:84, c:'#5AD8A6', title:'数据中心', sub:'cmdb_data_center', notes:['→ provider','line_type (jsonb 多选)'] },
+    { id:'server_port', x:430, y:220, w:250, h:74, c:'#5AD8A6', title:'服务器端口', sub:'cmdb_server_port', notes:['(protocol,port,service) 唯一','M2M server'] },
+    { id:'server_ip', x:430, y:380, w:250, h:84, c:'#5AD8A6', title:'服务器 IP', sub:'cmdb_server_ip', notes:['→ server, provider(isp)','server_id 可空(EIP 解绑)'] },
+    { id:'server', x:430, y:560, w:250, h:150, c:'#5AD8A6', title:'服务器', sub:'cmdb_server', notes:['→ data_center, provider×3','→ user(maintainer)','is_database_server','36 列'] },
+    { id:'database_instance', x:430, y:790, w:250, h:92, c:'#5AD8A6', title:'数据库实例', sub:'cmdb_database_instance', notes:['→ server','可关联 backup / monitor'] },
+    { id:'domain', x:1050, y:90, w:250, h:84, c:'#9270CA', title:'域名', sub:'cmdb_domain', notes:['→ provider','registered_date + expiry_date'] },
+    { id:'certificate', x:1050, y:280, w:250, h:84, c:'#9270CA', title:'证书', sub:'cmdb_certificate', notes:['→ provider','M2M domain'] },
+    { id:'ops_site', x:1050, y:520, w:250, h:120, c:'#F6BD16', title:'站点', sub:'cmdb_ops_site', notes:['→ server/db/domain (M2M)','⚠ business_unit_id /','department_id 悬空引用'] },
+    { id:'sp_server', x:760, y:238, w:170, h:46, c:'#9EACEA', title:'端口-服务器', sub:'M2M', notes:[] },
+    { id:'cert_domain', x:1360, y:300, w:170, h:46, c:'#9EACEA', title:'证书-域名', sub:'M2M', notes:[] },
+    { id:'os_server', x:1360, y:480, w:170, h:46, c:'#9EACEA', title:'站点-服务器', sub:'M2M', notes:[] },
+    { id:'os_database', x:1360, y:610, w:170, h:46, c:'#9EACEA', title:'站点-数据库', sub:'M2M', notes:[] },
+    { id:'os_domain', x:1360, y:740, w:170, h:46, c:'#9EACEA', title:'站点-域名', sub:'M2M', notes:[] }
+  ];
+  var E1 = [
+    { s:[430,102], t:[260,475], label:'provider_id', color:'#5B8FF9' },       // data_center→provider
+    { s:[430,620], t:[260,470], label:'isp/server/software', color:'#5B8FF9' },// server→provider
+    { s:[430,422], t:[260,480], label:'isp_provider_id', color:'#5B8FF9' },   // server_ip→provider
+    { s:[1050,130], t:[260,480], label:'provider_id', color:'#5B8FF9' },      // domain→provider
+    { s:[1050,320], t:[260,480], label:'provider_id', color:'#5B8FF9' },      // certificate→provider
+    { s:[555,560], t:[555,144], label:'data_center_id', color:'#5AD8A6' },    // server→data_center
+    { s:[555,380], t:[555,560], label:'server_id', color:'#5AD8A6' },         // server_ip→server
+    { s:[845,261], t:[680,260], label:'server_port_id', color:'#5AD8A6' },    // sp_server→server_port
+    { s:[845,286], t:[680,600], label:'server_id', color:'#5AD8A6' },         // sp_server→server
+    { s:[555,790], t:[555,710], label:'server_id', color:'#5AD8A6' },         // database_instance→server
+    { s:[430,640], t:[260,230], label:'maintainer_id', color:'#C9A7E8' },     // server→user
+    { s:[1445,503], t:[680,630], label:'server_id', color:'#F6BD16' },        // os_server→server
+    { s:[1445,503], t:[1300,560], label:'site_id', color:'#F6BD16' },         // os_server→ops_site
+    { s:[1445,633], t:[680,836], label:'database_instance_id', color:'#F6BD16' }, // os_database→db
+    { s:[1445,633], t:[1300,580], label:'site_id', color:'#F6BD16' },         // os_database→ops_site
+    { s:[1445,763], t:[1300,150], label:'domain_id', color:'#F6BD16' },       // os_domain→domain
+    { s:[1445,763], t:[1300,590], label:'site_id', color:'#F6BD16' },         // os_domain→ops_site
+    { s:[1445,323], t:[1300,322], label:'certificate_id', color:'#9270CA' },  // cert_domain→certificate
+    { s:[1445,323], t:[1300,140], label:'domain_id', color:'#9270CA' }        // cert_domain→domain
+  ];
+  function renderER1(host) {
+    var svg = '<?xml version="1.0" encoding="UTF-8"?>';
+    svg += '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1560 960" font-family="Roboto,PingFang SC,Segoe UI,Arial,sans-serif">';
+    svg += '<defs><marker id="ar1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="currentColor"/></marker></defs>';
+    // edges
+    for (var i=0;i<E1.length;i++){
+      var e=E1[i];
+      svg += '<path d="M'+e.s[0]+','+e.s[1]+'L'+e.t[0]+','+e.t[1]+'" stroke="'+e.color+'" stroke-width="1.6" fill="none" marker-end="url(#ar1)" opacity="0.85"/>';
+      var mx=(e.s[0]+e.t[0])/2, my=(e.s[1]+e.t[1])/2;
+      svg += '<text x="'+mx+'" y="'+(my-4)+'" text-anchor="middle" font-size="9.5" fill="'+e.color+'" style="paint-order:stroke;stroke:#fff;stroke-width:3px;stroke-linejoin:round">'+esc(e.label)+'</text>';
+    }
+    // nodes
+    for (var j=0;j<N1.length;j++){
+      var n=N1[j];
+      svg += '<rect x="'+n.x+'" y="'+n.y+'" width="'+n.w+'" height="'+n.h+'" rx="10" fill="#fff" stroke="'+n.c+'" stroke-width="1.6"/>';
+      svg += '<rect x="'+n.x+'" y="'+n.y+'" width="'+n.w+'" height="4" rx="2" fill="'+n.c+'"/>';
+      svg += '<text x="'+(n.x+12)+'" y="'+(n.y+22)+'" font-size="13" font-weight="600" fill="#1A1B1C">'+esc(n.title)+'</text>';
+      svg += '<text x="'+(n.x+12)+'" y="'+(n.y+37)+'" font-size="10.5" fill="#6B7280" font-family="monospace">'+esc(n.sub)+'</text>';
+      var ty=n.y+56;
+      for (var k=0;k<n.notes.length;k++){
+        svg += '<text x="'+(n.x+12)+'" y="'+ty+'" font-size="9.5" fill="#4B5563">'+esc(n.notes[k])+'</text>';
+        ty+=13;
+      }
+    }
+    svg += '</svg>';
+    host.innerHTML = svg;
+  }
+
+  // ================= 图2：多态引用 =================
+  var L2 = [
+    { id:'backup', x:30, y:80, w:230, h:84, title:'备份计划', sub:'cmdb_backup_plan', note:'target_type + target_id' },
+    { id:'monitor', x:30, y:230, w:230, h:84, title:'监控目标', sub:'cmdb_monitor_target', note:'target_type + target_id' },
+    { id:'attach', x:30, y:380, w:230, h:84, title:'附件', sub:'cmdb_attachment', note:'target_type + target_id' },
+    { id:'contract', x:30, y:530, w:230, h:84, title:'合同', sub:'cmdb_contract', note:'subject_type + subject_id' }
+  ];
+  var targets = [
+    { id:'server', x:520, y:60, w:210, h:64, title:'服务器 server' },
+    { id:'db', x:520, y:170, w:210, h:64, title:'数据库实例 database_instance' },
+    { id:'site', x:520, y:280, w:210, h:64, title:'站点 ops_site' },
+    { id:'domain', x:520, y:390, w:210, h:64, title:'域名 domain' },
+    { id:'cert', x:520, y:500, w:210, h:64, title:'证书 certificate' },
+    { id:'provider', x:520, y:610, w:210, h:64, title:'供应商 provider' },
+    { id:'any', x:520, y:720, w:210, h:64, title:'任意资源(多态)', sub:'含 user' }
+  ];
+  var logs = [
+    { id:'audit', x:900, y:120, w:230, h:84, title:'审计日志', sub:'cmdb_audit_log', note:'resource_type + resource_id' },
+    { id:'change', x:900, y:280, w:230, h:84, title:'变更记录', sub:'cmdb_change_record', note:'resource_type + resource_id' }
+  ];
+  function renderER2(host) {
+    var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1160 860" font-family="Roboto,PingFang SC,Segoe UI,Arial,sans-serif">';
+    svg += '<defs><marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="currentColor"/></marker></defs>';
+    // 多态表 → 目标（虚线）
+    var colors = ['#EA6668','#F6BD16','#5AD8A6','#9270CA'];
+    var L = [{s:L2[0],c:colors[0]},{s:L2[1],c:colors[1]},{s:L2[2],c:colors[2]},{s:L2[3],c:colors[3]}];
+    for (var i=0;i<L.length;i++){
+      var s=L[i].s, c=L[i].c;
+      var ty=s.y+42;
+      for (var j=0;j<targets.length;j++){
+        var t=targets[j];
+        if (s.id==='backup' && (t.id==='domain'||t.id==='cert'||t.id==='provider')) continue;
+        if (s.id==='monitor' && (t.id==='domain'||t.id==='cert'||t.id==='provider')) continue;
+        svg += '<path d="M260,'+ty+'L520,'+(t.y+32)+'" stroke="'+c+'" stroke-width="1.5" stroke-dasharray="6,4" fill="none" marker-end="url(#ar2)" opacity="0.7"/>';
+      }
+    }
+    // 日志 → 任意资源
+    for (var k=0;k<logs.length;k++){
+      var lg=logs[k];
+      svg += '<path d="M520,'+(720+32)+'L900,'+(lg.y+30)+'" stroke="#9EACEA" stroke-width="1.5" stroke-dasharray="6,4" fill="none" marker-end="url(#ar2)" opacity="0.7"/>';
+    }
+    // 多态表
+    for (var m=0;m<L2.length;m++){
+      var n=L2[m];
+      svg += '<rect x="'+n.x+'" y="'+n.y+'" width="'+n.w+'" height="'+n.h+'" rx="10" fill="#fff" stroke="#EA6668" stroke-width="1.6"/>';
+      svg += '<text x="'+(n.x+12)+'" y="'+(n.y+24)+'" font-size="13" font-weight="600" fill="#1A1B1C">'+esc(n.title)+'</text>';
+      svg += '<text x="'+(n.x+12)+'" y="'+(n.y+40)+'" font-size="10.5" fill="#6B7280" font-family="monospace">'+esc(n.sub)+'</text>';
+      svg += '<text x="'+(n.x+12)+'" y="'+(n.y+60)+'" font-size="9.5" fill="#EA6668">'+esc(n.note)+'</text>';
+    }
+    // 目标
+    for (var p=0;p<targets.length;p++){
+      var g=targets[p];
+      svg += '<rect x="'+g.x+'" y="'+g.y+'" width="'+g.w+'" height="'+g.h+'" rx="10" fill="#fff" stroke="#5B8FF9" stroke-width="1.4" stroke-dasharray="4,3"/>';
+      svg += '<text x="'+(g.x+12)+'" y="'+(g.y+24)+'" font-size="12.5" font-weight="600" fill="#1A1B1C">'+esc(g.title)+'</text>';
+      if (g.sub) svg += '<text x="'+(g.x+12)+'" y="'+(g.y+44)+'" font-size="10" fill="#6B7280">'+esc(g.sub)+'</text>';
+    }
+    // 日志
+    for (var q=0;q<logs.length;q++){
+      var l=logs[q];
+      svg += '<rect x="'+l.x+'" y="'+l.y+'" width="'+l.w+'" height="'+l.h+'" rx="10" fill="#fff" stroke="#9EACEA" stroke-width="1.6"/>';
+      svg += '<text x="'+(l.x+12)+'" y="'+(l.y+24)+'" font-size="13" font-weight="600" fill="#1A1B1C">'+esc(l.title)+'</text>';
+      svg += '<text x="'+(l.x+12)+'" y="'+(l.y+40)+'" font-size="10.5" fill="#6B7280" font-family="monospace">'+esc(l.sub)+'</text>';
+      svg += '<text x="'+(l.x+12)+'" y="'+(l.y+60)+'" font-size="9.5" fill="#9EACEA">'+esc(l.note)+'</text>';
+    }
+    svg += '</svg>';
+    host.innerHTML = svg;
+  }
+
+  try {
+    var h1 = document.getElementById('er1');
+    var h2 = document.getElementById('er2');
+    if (h1) renderER1(h1);
+    if (h2) renderER2(h2);
+  } catch (e) { console.error(e); }
+})();
+</script>
+</body>
+</html>

@@ -16,62 +16,47 @@ impl PgOpsSiteRepository {
     }
 }
 
-
-
-
-
-
-
 fn row_to_ops_site(row: &sqlx::postgres::PgRow) -> OpsSite {
-    let status_str: String = row.get("status");
-    let st_str: Option<String> = row.get("service_target");
-    let imp_str: Option<String> = row.get("importance");
-    let crt_str: Option<String> = row.get("code_repo_type");
-    let wf_str: Option<String> = row.get("web_framework");
-
     OpsSite {
         id: row.get("id"),
         name: row.get("name"),
         url: row.get("url"),
-        business_unit_id: row.get("business_unit_id"),
-        department_id: row.get("department_id"),
-        service_target: st_str,
-        importance: imp_str,
+        service_target: row.get("service_target"),
+        importance: row.get("importance"),
         online_time: row.get("online_time"),
-        code_repo_type: crt_str,
+        code_repo_type: row.get("code_repo_type"),
         code_repo_url: row.get("code_repo_url"),
         purpose: row.get("purpose"),
         language_runtime: row.get("language_runtime"),
-        web_framework: wf_str,
+        web_framework: row.get("web_framework"),
         is_test_site: row.get("is_test_site"),
         last_backup_time: row.get("last_backup_time"),
-        status: status_str,
+        status: row.get("status"),
         offline_time: row.get("offline_time"),
         offline_reason: row.get("offline_reason"),
         function_summary: row.get("function_summary"),
         remarks: row.get("remarks"),
         created_at: row.get::<DateTime<Utc>, _>("created_at"),
         updated_at: row.get::<DateTime<Utc>, _>("updated_at"),
+        deleted_at: row.get("deleted_at"),
     }
 }
 
-const SELECT_COLS: &str = r#"id, name, url, business_unit_id, department_id,
-    service_target::text, importance::text, online_time, code_repo_type::text,
-    code_repo_url, purpose, language_runtime, web_framework::text,
-    is_test_site, last_backup_time,
-    status::text, offline_time, offline_reason, function_summary, remarks,
-    created_at, updated_at"#;
+const SELECT_COLS: &str = r#"id, name, url, service_target, importance, online_time,
+    code_repo_type, code_repo_url, purpose, language_runtime, web_framework,
+    is_test_site, last_backup_time, status, offline_time, offline_reason,
+    function_summary, remarks, created_at, updated_at, deleted_at"#;
 
 #[async_trait]
 impl OpsSiteRepository for PgOpsSiteRepository {
     async fn find_by_id(&self, id: Uuid) -> Result<Option<OpsSite>, sqlx::Error> {
-        let row = sqlx::query(&format!("SELECT {} FROM cmdb_ops_site WHERE id = $1", SELECT_COLS))
+        let row = sqlx::query(&format!("SELECT {} FROM cmdb_ops_site WHERE id = $1 AND deleted_at IS NULL", SELECT_COLS))
             .bind(id).fetch_optional(&self.pool).await?;
         Ok(row.map(|r| row_to_ops_site(&r)))
     }
 
     async fn find_all(&self, filter: OpsSiteFilter) -> Result<Vec<OpsSite>, sqlx::Error> {
-        let mut sql = format!("SELECT {} FROM cmdb_ops_site WHERE 1=1", SELECT_COLS);
+        let mut sql = format!("SELECT {} FROM cmdb_ops_site WHERE deleted_at IS NULL", SELECT_COLS);
         let mut idx = 1;
         let s_status = filter.status.as_ref();
         let s_imp = filter.importance.as_ref();
@@ -91,7 +76,7 @@ impl OpsSiteRepository for PgOpsSiteRepository {
     }
 
     async fn count(&self, filter: OpsSiteFilter) -> Result<i64, sqlx::Error> {
-        let mut sql = String::from("SELECT COUNT(*) as count FROM cmdb_ops_site WHERE 1=1");
+        let mut sql = String::from("SELECT COUNT(*) as count FROM cmdb_ops_site WHERE deleted_at IS NULL");
         let mut idx = 1;
         let s_status = filter.status.as_ref();
         let s_imp = filter.importance.as_ref();
@@ -110,15 +95,14 @@ impl OpsSiteRepository for PgOpsSiteRepository {
     async fn create(&self, s: &OpsSite) -> Result<OpsSite, sqlx::Error> {
         let row = sqlx::query(&format!(
             r#"INSERT INTO cmdb_ops_site
-               (id, name, url, business_unit_id, department_id, service_target, importance,
-                online_time, code_repo_type, code_repo_url, purpose,
-                language_runtime, web_framework, is_test_site,
+               (id, name, url, service_target, importance, online_time, code_repo_type,
+                code_repo_url, purpose, language_runtime, web_framework, is_test_site,
                 last_backup_time, status, offline_time, offline_reason,
                 function_summary, remarks, created_at, updated_at)
-               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)
+               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)
                RETURNING {}"#, SELECT_COLS
         ))
-        .bind(s.id).bind(&s.name).bind(&s.url).bind(s.business_unit_id).bind(s.department_id)
+        .bind(s.id).bind(&s.name).bind(&s.url)
         .bind(s.service_target.clone())
         .bind(s.importance.clone())
         .bind(s.online_time)
@@ -137,15 +121,14 @@ impl OpsSiteRepository for PgOpsSiteRepository {
     async fn update(&self, id: Uuid, s: &OpsSite) -> Result<Option<OpsSite>, sqlx::Error> {
         let row = sqlx::query(&format!(
             r#"UPDATE cmdb_ops_site SET
-                name=$2, url=$3, business_unit_id=$4, department_id=$5, service_target=$6,
-                importance=$7, online_time=$8, code_repo_type=$9, code_repo_url=$10,
-                purpose=$11, language_runtime=$12, web_framework=$13,
-                is_test_site=$14, last_backup_time=$15,
-                status=$16, offline_time=$17, offline_reason=$18,
-                function_summary=$19, remarks=$20, updated_at=$21
-               WHERE id=$1 RETURNING {}"#, SELECT_COLS
+                name=$2, url=$3, service_target=$4, importance=$5, online_time=$6,
+                code_repo_type=$7, code_repo_url=$8, purpose=$9, language_runtime=$10,
+                web_framework=$11, is_test_site=$12, last_backup_time=$13,
+                status=$14, offline_time=$15, offline_reason=$16,
+                function_summary=$17, remarks=$18
+               WHERE id=$1 AND deleted_at IS NULL RETURNING {}"#, SELECT_COLS
         ))
-        .bind(id).bind(&s.name).bind(&s.url).bind(s.business_unit_id).bind(s.department_id)
+        .bind(id).bind(&s.name).bind(&s.url)
         .bind(s.service_target.clone())
         .bind(s.importance.clone())
         .bind(s.online_time)
@@ -156,13 +139,13 @@ impl OpsSiteRepository for PgOpsSiteRepository {
         .bind(s.is_test_site).bind(s.last_backup_time)
         .bind(s.status.clone())
         .bind(s.offline_time).bind(&s.offline_reason).bind(&s.function_summary).bind(&s.remarks)
-        .bind(s.updated_at)
         .fetch_optional(&self.pool).await?;
         Ok(row.map(|r| row_to_ops_site(&r)))
     }
 
     async fn delete(&self, id: Uuid) -> Result<bool, sqlx::Error> {
-        let result = sqlx::query("DELETE FROM cmdb_ops_site WHERE id = $1").bind(id).execute(&self.pool).await?;
+        let result = sqlx::query("UPDATE cmdb_ops_site SET deleted_at = now() WHERE id = $1 AND deleted_at IS NULL")
+            .bind(id).execute(&self.pool).await?;
         Ok(result.rows_affected() > 0)
     }
 }

@@ -2,8 +2,6 @@ export interface OpsSiteResponse {
   id: string;
   name: string;
   url: string | null;
-  business_unit_id: string | null;
-  department_id: string | null;
   service_target: string | null;
   importance: string | null;
   online_time: string | null;
@@ -21,6 +19,7 @@ export interface OpsSiteResponse {
   remarks: string | null;
   created_at: string;
   updated_at: string;
+  deleted_at: string | null;
 }
 
 export interface OpsSiteListResponse {
@@ -31,8 +30,6 @@ export interface OpsSiteListResponse {
 export interface CreateOpsSiteRequest {
   name: string;
   url?: string;
-  business_unit_id?: string;
-  department_id?: string;
   service_target?: string;
   importance?: string;
   online_time?: string;

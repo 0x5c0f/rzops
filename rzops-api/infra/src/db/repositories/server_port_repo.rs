@@ -24,7 +24,7 @@ const PORT_SELECT: &str = r#"
            COALESCE(array_agg(s.name) FILTER (WHERE s.name IS NOT NULL), '{}') AS server_names
     FROM cmdb_server_port p
     LEFT JOIN cmdb_server_port_server ps ON ps.server_port_id = p.id
-    LEFT JOIN cmdb_server s ON s.id = ps.server_id
+    LEFT JOIN cmdb_server s ON s.id = ps.server_id AND s.deleted_at IS NULL
 "#;
 
 fn row_to_server_port(row: &sqlx::postgres::PgRow) -> ServerPort {

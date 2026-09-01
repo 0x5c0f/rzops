@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="UTF-8">
+<title>RzOps CMDB 数据库表结构（表格版）</title>
+<style>
+body{font-family:"PingFang SC","Microsoft YaHei","Segoe UI",Arial,sans-serif;margin:0;padding:24px;background:#f4f3ee;color:#1a1b1c;}
+h1{font-size:20px;margin:0 0 6px;}
+.meta{color:#6b7280;font-size:13px;margin-bottom:20px;}
+.group{margin-bottom:28px;}
+.group-title{font-size:16px;font-weight:600;color:#1a1b1c;border-left:4px solid #5b8ff9;padding-left:10px;margin:24px 0 12px;}
+.table-card{background:#fff;border:1px solid #e4e3dd;border-radius:10px;padding:14px 16px;margin-bottom:14px;}
+.table-head{display:flex;align-items:baseline;gap:10px;margin-bottom:8px;}
+.table-name{font-size:14px;font-weight:600;}
+.table-cn{font-size:13px;color:#6b7280;}
+.table-count{font-size:11px;color:#9ca3af;margin-left:auto;}
+table{width:100%;border-collapse:collapse;font-size:12.5px;}
+th{text-align:left;background:#f9f8f4;color:#4b5563;font-weight:600;padding:6px 8px;border-bottom:2px solid #e4e3dd;white-space:nowrap;}
+td{padding:5px 8px;border-bottom:1px solid #f0efeb;vertical-align:top;}
+tr:hover td{background:#faf9f5;}
+.col-name{font-family:"Cascadia Code","Consolas",monospace;font-weight:500;}
+.pk{color:#5b8ff9;font-weight:600;}
+.fk{color:#5ad8a6;}
+.poly{color:#f6bd16;}
+.warn{color:#ea6668;}
+.type{font-family:"Cascadia Code","Consolas",monospace;color:#6b7280;font-size:11.5px;}
+.nullable-yes{color:#9ca3af;}
+.nullable-no{color:#ea6668;font-weight:600;}
+.default{font-family:"Cascadia Code","Consolas",monospace;color:#9270ca;font-size:11px;}
+.legend{display:flex;gap:16px;font-size:12px;color:#6b7280;margin:10px 0 16px;flex-wrap:wrap;}
+.legend span{display:inline-flex;align-items:center;gap:4px;}
+.dot{width:10px;height:10px;border-radius:2px;display:inline-block;}
+</style></head><body>
+<h1>RzOps CMDB 数据库表结构（表格版）</h1>
+<div class="meta">基于 rzopsdb 当前 schema · 23 张表（含迁移表 _sqlx_migrations 未列入）· 246 个字段 · 25 个外键约束</div>
+<div class="legend">
+<span><i class="dot" style="background:#5b8ff9"></i>主键 PK</span>
+<span><i class="dot" style="background:#5ad8a6"></i>外键 FK（有约束）</span>
+<span><i class="dot" style="background:#f6bd16"></i>多态引用（无 FK）</span>
+<span><i class="dot" style="background:#ea6668"></i>悬空引用 / 非空</span>
+</div>
+<div class="group"><div class="group-title">系统基础</div>
+<div class="table-card">
+<div class="table-head"><span class="table-name">user</span><span class="table-cn">用户</span><span class="table-count">7 列</span></div>
+<table><thead><tr><th style="width:22%">字段</th><th style="width:16%">类型</th><th style="width:8%">可空</th><th style="width:20%">默认值</th><th>说明 / 引用</th></tr></thead><tbody>
+<tr><td class="col-name pk">id</td><td class="type">uuid</td><td class="nullable-no">否</td><td class="default">gen_random_uuid()</td><td><span class="pk">主键 PK</span></td></tr>
+<tr><td class="col-name">email</td><td class="type">varchar</td><td class="nullable-no">否</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">hashed_password</td><td class="type">varchar</td><td class="nullable-no">否</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">is_active</td><td class="type">boolean</td><td class="nullable-no">否</td><td class="default">true</td><td></td></tr>
+<tr><td class="col-name">is_superuser</td><td class="type">boolean</td><td class="nullable-no">否</td><td class="default">false</td><td></td></tr>
+<tr><td class="col-name">full_name</td><td class="type">varchar</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">created_at</td><td class="type">timestamptz</td><td class="nullable-no">否</td><td class="default">now()</td><td></td></tr>
+</tbody></table></div>
+<div class="table-card">
+<div class="table-head"><span class="table-name">cmdb_dict</span><span class="table-cn">字典</span><span class="table-count">9 列</span></div>
+<table><thead><tr><th style="width:22%">字段</th><th style="width:16%">类型</th><th style="width:8%">可空</th><th style="width:20%">默认值</th><th>说明 / 引用</th></tr></thead><tbody>
+<tr><td class="col-name pk">id</td><td class="type">uuid</td><td class="nullable-no">否</td><td class="default"></td><td><span class="pk">主键 PK</span></td></tr>
+<tr><td class="col-name">dict_type</td><td class="type">varchar</td><td class="nullable-no">否</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">dict_code</td><td class="type">varchar</td><td class="nullable-no">否</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">dict_label</td><td class="type">varchar</td><td class="nullable-no">否</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">sort_order</td><td class="type">integer</td><td class="nullable-no">否</td><td class="default">0</td><td></td></tr>
+<tr><td class="col-name">enabled</td><td class="type">boolean</td><td class="nullable-no">否</td><td class="default">true</td><td></td></tr>
+<tr><td class="col-name">remark</td><td class="type">varchar</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">created_at</td><td class="type">timestamptz</td><td class="nullable-no">否</td><td class="default">now()</td><td></td></tr>
+<tr><td class="col-name">updated_at</td><td class="type">timestamptz</td><td class="nullable-no">否</td><td class="default">now()</td><td></td></tr>
+</tbody></table></div>
+</div>
+<div class="group"><div class="group-title">核心资源实体</div>
+<div class="table-card">
+<div class="table-head"><span class="table-name">cmdb_provider</span><span class="table-cn">供应商</span><span class="table-count">13 列</span></div>
+<table><thead><tr><th style="width:22%">字段</th><th style="width:16%">类型</th><th style="width:8%">可空</th><th style="width:20%">默认值</th><th>说明 / 引用</th></tr></thead><tbody>
+<tr><td class="col-name pk">id</td><td class="type">uuid</td><td class="nullable-no">否</td><td class="default">gen_random_uuid()</td><td><span class="pk">主键 PK</span></td></tr>
+<tr><td class="col-name">name</td><td class="type">varchar</td><td class="nullable-no">否</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">provider_types</td><td class="type">jsonb</td><td class="nullable-no">否</td><td class="default">&#x27;[]&#x27;::jsonb</td><td></td></tr>
+<tr><td class="col-name">contact_name</td><td class="type">varchar</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">contact_phone</td><td class="type">varchar</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">contact_qq</td><td class="type">varchar</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">fax</td><td class="type">varchar</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">address</td><td class="type">varchar</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">website</td><td class="type">varchar</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">description</td><td class="type">text</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">status</td><td class="type">varchar</td><td class="nullable-no">否</td><td class="default">&#x27;active&#x27;::character varying</td><td></td></tr>
+<tr><td class="col-name">created_at</td><td class="type">timestamptz</td><td class="nullable-no">否</td><td class="default">now()</td><td></td></tr>
+<tr><td class="col-name">updated_at</td><td class="type">timestamptz</td><td class="nullable-no">否</td><td class="default">now()</td><td></td></tr>
+</tbody></table></div>
+<div class="table-card">
+<div class="table-head"><span class="table-name">cmdb_data_center</span><span class="table-cn">数据中心</span><span class="table-count">11 列</span></div>
+<table><thead><tr><th style="width:22%">字段</th><th style="width:16%">类型</th><th style="width:8%">可空</th><th style="width:20%">默认值</th><th>说明 / 引用</th></tr></thead><tbody>
+<tr><td class="col-name pk">id</td><td class="type">uuid</td><td class="nullable-no">否</td><td class="default">gen_random_uuid()</td><td><span class="pk">主键 PK</span></td></tr>
+<tr><td class="col-name">name</td><td class="type">varchar</td><td class="nullable-no">否</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">provider_id</td><td class="type">uuid</td><td class="nullable-yes">是</td><td class="default"></td><td><span class="fk">→ cmdb_provider.id</span></td></tr>
+<tr><td class="col-name">phone</td><td class="type">varchar</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">address</td><td class="type">varchar</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">country</td><td class="type">varchar</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">line_type</td><td class="type">jsonb</td><td class="nullable-yes">是</td><td class="default">&#x27;[]&#x27;::jsonb</td><td></td></tr>
+<tr><td class="col-name">description</td><td class="type">text</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">status</td><td class="type">varchar</td><td class="nullable-no">否</td><td class="default">&#x27;active&#x27;::character varying</td><td></td></tr>
+<tr><td class="col-name">created_at</td><td class="type">timestamptz</td><td class="nullable-no">否</td><td class="default">now()</td><td></td></tr>
+<tr><td class="col-name">updated_at</td><td class="type">timestamptz</td><td class="nullable-no">否</td><td class="default">now()</td><td></td></tr>
+</tbody></table></div>
+<div class="table-card">
+<div class="table-head"><span class="table-name">cmdb_server</span><span class="table-cn">服务器</span><span class="table-count">36 列</span></div>
+<table><thead><tr><th style="width:22%">字段</th><th style="width:16%">类型</th><th style="width:8%">可空</th><th style="width:20%">默认值</th><th>说明 / 引用</th></tr></thead><tbody>
+<tr><td class="col-name pk">id</td><td class="type">uuid</td><td class="nullable-no">否</td><td class="default">gen_random_uuid()</td><td><span class="pk">主键 PK</span></td></tr>
+<tr><td class="col-name">asset_code</td><td class="type">varchar</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">name</td><td class="type">varchar</td><td class="nullable-no">否</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">primary_ip</td><td class="type">varchar</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">location</td><td class="type">varchar</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">isp_provider_id</td><td class="type">uuid</td><td class="nullable-yes">是</td><td class="default"></td><td><span class="fk">→ cmdb_provider.id</span></td></tr>
+<tr><td class="col-name">data_center_id</td><td class="type">uuid</td><td class="nullable-yes">是</td><td class="default"></td><td><span class="fk">→ cmdb_data_center.id</span></td></tr>
+<tr><td class="col-name">hosting_type</td><td class="type">varchar</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">is_dual_line</td><td class="type">boolean</td><td class="nullable-no">否</td><td class="default">false</td><td></td></tr>
+<tr><td class="col-name">lease_start_date</td><td class="type">date</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">lease_end_date</td><td class="type">date</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">price</td><td class="type">numeric</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">price_currency</td><td class="type">varchar</td><td class="nullable-no">否</td><td class="default">&#x27;CNY&#x27;::character varying</td><td></td></tr>
+<tr><td class="col-name">server_type</td><td class="type">varchar</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">role_tags</td><td class="type">jsonb</td><td class="nullable-no">否</td><td class="default">&#x27;[]&#x27;::jsonb</td><td></td></tr>
+<tr><td class="col-name">is_database_server</td><td class="type">boolean</td><td class="nullable-no">否</td><td class="default">false</td><td></td></tr>
+<tr><td class="col-name">cpu</td><td class="type">varchar</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">memory_gb</td><td class="type">integer</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">is_raid</td><td class="type">boolean</td><td class="nullable-no">否</td><td class="default">false</td><td></td></tr>
+<tr><td class="col-name">raid_level</td><td class="type">varchar</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">disk_layout</td><td class="type">text</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">hardware_config</td><td class="type">text</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">architecture</td><td class="type">varchar</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">maintainer_id</td><td class="type">uuid</td><td class="nullable-yes">是</td><td class="default"></td><td><span class="fk">→ user.id</span></td></tr>
+<tr><td class="col-name">brand</td><td class="type">varchar</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">warranty_info</td><td class="type">text</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">operating_system</td><td class="type">varchar</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">web_server_type</td><td class="type">jsonb</td><td class="nullable-no">否</td><td class="default">&#x27;[]&#x27;::jsonb</td><td></td></tr>
+<tr><td class="col-name">server_provider_id</td><td class="type">uuid</td><td class="nullable-yes">是</td><td class="default"></td><td><span class="fk">→ cmdb_provider.id</span></td></tr>
+<tr><td class="col-name">software_provider_id</td><td class="type">uuid</td><td class="nullable-yes">是</td><td class="default"></td><td><span class="fk">→ cmdb_provider.id</span></td></tr>
+<tr><td class="col-name">status</td><td class="type">varchar</td><td class="nullable-no">否</td><td class="default">&#x27;active&#x27;::character varying</td><td></td></tr>
+<tr><td class="col-name">offline_time</td><td class="type">timestamptz</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">offline_reason</td><td class="type">text</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">remarks</td><td class="type">text</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">created_at</td><td class="type">timestamptz</td><td class="nullable-no">否</td><td class="default">now()</td><td></td></tr>
+<tr><td class="col-name">updated_at</td><td class="type">timestamptz</td><td class="nullable-no">否</td><td class="default">now()</td><td></td></tr>
+</tbody></table></div>
+<div class="table-card">
+<div class="table-head"><span class="table-name">cmdb_server_ip</span><span class="table-cn">服务器 IP</span><span class="table-count">10 列</span></div>
+<table><thead><tr><th style="width:22%">字段</th><th style="width:16%">类型</th><th style="width:8%">可空</th><th style="width:20%">默认值</th><th>说明 / 引用</th></tr></thead><tbody>
+<tr><td class="col-name pk">id</td><td class="type">uuid</td><td class="nullable-no">否</td><td class="default">gen_random_uuid()</td><td><span class="pk">主键 PK</span></td></tr>
+<tr><td class="col-name">server_id</td><td class="type">uuid</td><td class="nullable-yes">是</td><td class="default"></td><td><span class="fk">→ cmdb_server.id</span></td></tr>
+<tr><td class="col-name">ip_address</td><td class="type">varchar</td><td class="nullable-no">否</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">ip_type</td><td class="type">varchar</td><td class="nullable-no">否</td><td class="default">&#x27;public&#x27;::character varying</td><td></td></tr>
+<tr><td class="col-name">is_primary</td><td class="type">boolean</td><td class="nullable-no">否</td><td class="default">false</td><td></td></tr>
+<tr><td class="col-name">isp_provider_id</td><td class="type">uuid</td><td class="nullable-yes">是</td><td class="default"></td><td><span class="fk">→ cmdb_provider.id</span></td></tr>
+<tr><td class="col-name">description</td><td class="type">text</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">status</td><td class="type">varchar</td><td class="nullable-no">否</td><td class="default">&#x27;enabled&#x27;::character varying</td><td></td></tr>
+<tr><td class="col-name">created_at</td><td class="type">timestamptz</td><td class="nullable-no">否</td><td class="default">now()</td><td></td></tr>
+<tr><td class="col-name">updated_at</td><td class="type">timestamptz</td><td class="nullable-no">否</td><td class="default">now()</td><td></td></tr>
+</tbody></table></div>
+<div class="table-card">
+<div class="table-head"><span class="table-name">cmdb_server_port</span><span class="table-cn">服务器端口（定义）</span><span class="table-count">9 列</span></div>
+<table><thead><tr><th style="width:22%">字段</th><th style="width:16%">类型</th><th style="width:8%">可空</th><th style="width:20%">默认值</th><th>说明 / 引用</th></tr></thead><tbody>
+<tr><td class="col-name pk">id</td><td class="type">uuid</td><td class="nullable-no">否</td><td class="default">gen_random_uuid()</td><td><span class="pk">主键 PK</span></td></tr>
+<tr><td class="col-name">protocol</td><td class="type">varchar</td><td class="nullable-no">否</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">port</td><td class="type">integer</td><td class="nullable-no">否</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">service_name</td><td class="type">varchar</td><td class="nullable-no">否</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">access_scope</td><td class="type">varchar</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">is_enabled</td><td class="type">boolean</td><td class="nullable-no">否</td><td class="default">true</td><td></td></tr>
+<tr><td class="col-name">description</td><td class="type">text</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">created_at</td><td class="type">timestamptz</td><td class="nullable-no">否</td><td class="default">now()</td><td></td></tr>
+<tr><td class="col-name">updated_at</td><td class="type">timestamptz</td><td class="nullable-no">否</td><td class="default">now()</td><td></td></tr>
+</tbody></table></div>
+<div class="table-card">
+<div class="table-head"><span class="table-name">cmdb_database_instance</span><span class="table-cn">数据库实例</span><span class="table-count">14 列</span></div>
+<table><thead><tr><th style="width:22%">字段</th><th style="width:16%">类型</th><th style="width:8%">可空</th><th style="width:20%">默认值</th><th>说明 / 引用</th></tr></thead><tbody>
+<tr><td class="col-name pk">id</td><td class="type">uuid</td><td class="nullable-no">否</td><td class="default">gen_random_uuid()</td><td><span class="pk">主键 PK</span></td></tr>
+<tr><td class="col-name">server_id</td><td class="type">uuid</td><td class="nullable-yes">是</td><td class="default"></td><td><span class="fk">→ cmdb_server.id</span></td></tr>
+<tr><td class="col-name">name</td><td class="type">varchar</td><td class="nullable-no">否</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">db_type</td><td class="type">varchar</td><td class="nullable-no">否</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">description</td><td class="type">text</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">status</td><td class="type">varchar</td><td class="nullable-no">否</td><td class="default">&#x27;active&#x27;::character varying</td><td></td></tr>
+<tr><td class="col-name">offline_time</td><td class="type">timestamptz</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">is_self_installed</td><td class="type">boolean</td><td class="nullable-no">否</td><td class="default">false</td><td></td></tr>
+<tr><td class="col-name">importance</td><td class="type">varchar</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">is_ops_managed</td><td class="type">boolean</td><td class="nullable-no">否</td><td class="default">true</td><td></td></tr>
+<tr><td class="col-name">port</td><td class="type">integer</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">instance_name</td><td class="type">varchar</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">created_at</td><td class="type">timestamptz</td><td class="nullable-no">否</td><td class="default">now()</td><td></td></tr>
+<tr><td class="col-name">updated_at</td><td class="type">timestamptz</td><td class="nullable-no">否</td><td class="default">now()</td><td></td></tr>
+</tbody></table></div>
+<div class="table-card">
+<div class="table-head"><span class="table-name">cmdb_domain</span><span class="table-cn">域名</span><span class="table-count">14 列</span></div>
+<table><thead><tr><th style="width:22%">字段</th><th style="width:16%">类型</th><th style="width:8%">可空</th><th style="width:20%">默认值</th><th>说明 / 引用</th></tr></thead><tbody>
+<tr><td class="col-name pk">id</td><td class="type">uuid</td><td class="nullable-no">否</td><td class="default">gen_random_uuid()</td><td><span class="pk">主键 PK</span></td></tr>
+<tr><td class="col-name">domain_name</td><td class="type">varchar</td><td class="nullable-no">否</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">expiry_date</td><td class="type">date</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">renewal_amount</td><td class="type">numeric</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">renewal_currency</td><td class="type">varchar</td><td class="nullable-no">否</td><td class="default">&#x27;CNY&#x27;::character varying</td><td></td></tr>
+<tr><td class="col-name">provider_id</td><td class="type">uuid</td><td class="nullable-yes">是</td><td class="default"></td><td><span class="fk">→ cmdb_provider.id</span></td></tr>
+<tr><td class="col-name">platform_phone</td><td class="type">varchar</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">domain_email</td><td class="type">varchar</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">privacy_status</td><td class="type">varchar</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">is_enabled</td><td class="type">boolean</td><td class="nullable-no">否</td><td class="default">true</td><td></td></tr>
+<tr><td class="col-name">remarks</td><td class="type">text</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">created_at</td><td class="type">timestamptz</td><td class="nullable-no">否</td><td class="default">now()</td><td></td></tr>
+<tr><td class="col-name">updated_at</td><td class="type">timestamptz</td><td class="nullable-no">否</td><td class="default">now()</td><td></td></tr>
+<tr><td class="col-name">registered_date</td><td class="type">date</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+</tbody></table></div>
+<div class="table-card">
+<div class="table-head"><span class="table-name">cmdb_certificate</span><span class="table-cn">证书</span><span class="table-count">10 列</span></div>
+<table><thead><tr><th style="width:22%">字段</th><th style="width:16%">类型</th><th style="width:8%">可空</th><th style="width:20%">默认值</th><th>说明 / 引用</th></tr></thead><tbody>
+<tr><td class="col-name pk">id</td><td class="type">uuid</td><td class="nullable-no">否</td><td class="default">gen_random_uuid()</td><td><span class="pk">主键 PK</span></td></tr>
+<tr><td class="col-name">name</td><td class="type">varchar</td><td class="nullable-no">否</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">provider_id</td><td class="type">uuid</td><td class="nullable-yes">是</td><td class="default"></td><td><span class="fk">→ cmdb_provider.id</span></td></tr>
+<tr><td class="col-name">lease_start_date</td><td class="type">date</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">lease_end_date</td><td class="type">date</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">certificate_type</td><td class="type">varchar</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">status</td><td class="type">varchar</td><td class="nullable-no">否</td><td class="default">&#x27;active&#x27;::character varying</td><td></td></tr>
+<tr><td class="col-name">remarks</td><td class="type">text</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">created_at</td><td class="type">timestamptz</td><td class="nullable-no">否</td><td class="default">now()</td><td></td></tr>
+<tr><td class="col-name">updated_at</td><td class="type">timestamptz</td><td class="nullable-no">否</td><td class="default">now()</td><td></td></tr>
+</tbody></table></div>
+<div class="table-card">
+<div class="table-head"><span class="table-name">cmdb_ops_site</span><span class="table-cn">站点</span><span class="table-count">22 列</span></div>
+<table><thead><tr><th style="width:22%">字段</th><th style="width:16%">类型</th><th style="width:8%">可空</th><th style="width:20%">默认值</th><th>说明 / 引用</th></tr></thead><tbody>
+<tr><td class="col-name pk">id</td><td class="type">uuid</td><td class="nullable-no">否</td><td class="default">gen_random_uuid()</td><td><span class="pk">主键 PK</span></td></tr>
+<tr><td class="col-name">name</td><td class="type">varchar</td><td class="nullable-no">否</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">url</td><td class="type">varchar</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">business_unit_id</td><td class="type">uuid</td><td class="nullable-yes">是</td><td class="default"></td><td><span class="warn">⚠ 悬空: 无对应表</span></td></tr>
+<tr><td class="col-name">department_id</td><td class="type">uuid</td><td class="nullable-yes">是</td><td class="default"></td><td><span class="warn">⚠ 悬空: 无对应表</span></td></tr>
+<tr><td class="col-name">service_target</td><td class="type">varchar</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">importance</td><td class="type">varchar</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">online_time</td><td class="type">timestamptz</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">code_repo_type</td><td class="type">varchar</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">code_repo_url</td><td class="type">varchar</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">purpose</td><td class="type">text</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">language_runtime</td><td class="type">varchar</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">web_framework</td><td class="type">varchar</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">is_test_site</td><td class="type">boolean</td><td class="nullable-no">否</td><td class="default">false</td><td></td></tr>
+<tr><td class="col-name">last_backup_time</td><td class="type">timestamptz</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">status</td><td class="type">varchar</td><td class="nullable-no">否</td><td class="default">&#x27;active&#x27;::character varying</td><td></td></tr>
+<tr><td class="col-name">offline_time</td><td class="type">timestamptz</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">offline_reason</td><td class="type">varchar</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">function_summary</td><td class="type">text</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">remarks</td><td class="type">text</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">created_at</td><td class="type">timestamptz</td><td class="nullable-no">否</td><td class="default">now()</td><td></td></tr>
+<tr><td class="col-name">updated_at</td><td class="type">timestamptz</td><td class="nullable-no">否</td><td class="default">now()</td><td></td></tr>
+</tbody></table></div>
+</div>
+<div class="group"><div class="group-title">多对多关联表（M2M，也是真实表）</div>
+<div class="table-card">
+<div class="table-head"><span class="table-name">cmdb_server_port_server</span><span class="table-cn">端口 ↔ 服务器</span><span class="table-count">3 列</span></div>
+<table><thead><tr><th style="width:22%">字段</th><th style="width:16%">类型</th><th style="width:8%">可空</th><th style="width:20%">默认值</th><th>说明 / 引用</th></tr></thead><tbody>
+<tr><td class="col-name">server_port_id</td><td class="type">uuid</td><td class="nullable-no">否</td><td class="default"></td><td><span class="fk">→ cmdb_server_port.id</span></td></tr>
+<tr><td class="col-name">server_id</td><td class="type">uuid</td><td class="nullable-no">否</td><td class="default"></td><td><span class="fk">→ cmdb_server.id</span></td></tr>
+<tr><td class="col-name">created_at</td><td class="type">timestamptz</td><td class="nullable-no">否</td><td class="default">now()</td><td></td></tr>
+</tbody></table></div>
+<div class="table-card">
+<div class="table-head"><span class="table-name">cmdb_ops_site_server</span><span class="table-cn">站点 ↔ 服务器</span><span class="table-count">6 列</span></div>
+<table><thead><tr><th style="width:22%">字段</th><th style="width:16%">类型</th><th style="width:8%">可空</th><th style="width:20%">默认值</th><th>说明 / 引用</th></tr></thead><tbody>
+<tr><td class="col-name pk">id</td><td class="type">uuid</td><td class="nullable-no">否</td><td class="default">gen_random_uuid()</td><td><span class="pk">主键 PK</span></td></tr>
+<tr><td class="col-name">site_id</td><td class="type">uuid</td><td class="nullable-no">否</td><td class="default"></td><td><span class="fk">→ cmdb_ops_site.id</span></td></tr>
+<tr><td class="col-name">server_id</td><td class="type">uuid</td><td class="nullable-no">否</td><td class="default"></td><td><span class="fk">→ cmdb_server.id</span></td></tr>
+<tr><td class="col-name">deploy_role</td><td class="type">varchar</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">is_primary</td><td class="type">boolean</td><td class="nullable-no">否</td><td class="default">false</td><td></td></tr>
+<tr><td class="col-name">created_at</td><td class="type">timestamptz</td><td class="nullable-no">否</td><td class="default">now()</td><td></td></tr>
+</tbody></table></div>
+<div class="table-card">
+<div class="table-head"><span class="table-name">cmdb_ops_site_database</span><span class="table-cn">站点 ↔ 数据库实例</span><span class="table-count">6 列</span></div>
+<table><thead><tr><th style="width:22%">字段</th><th style="width:16%">类型</th><th style="width:8%">可空</th><th style="width:20%">默认值</th><th>说明 / 引用</th></tr></thead><tbody>
+<tr><td class="col-name pk">id</td><td class="type">uuid</td><td class="nullable-no">否</td><td class="default">gen_random_uuid()</td><td><span class="pk">主键 PK</span></td></tr>
+<tr><td class="col-name">site_id</td><td class="type">uuid</td><td class="nullable-no">否</td><td class="default"></td><td><span class="fk">→ cmdb_ops_site.id</span></td></tr>
+<tr><td class="col-name">database_instance_id</td><td class="type">uuid</td><td class="nullable-no">否</td><td class="default"></td><td><span class="fk">→ cmdb_database_instance.id</span></td></tr>
+<tr><td class="col-name">usage_type</td><td class="type">varchar</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">is_primary</td><td class="type">boolean</td><td class="nullable-no">否</td><td class="default">false</td><td></td></tr>
+<tr><td class="col-name">created_at</td><td class="type">timestamptz</td><td class="nullable-no">否</td><td class="default">now()</td><td></td></tr>
+</tbody></table></div>
+<div class="table-card">
+<div class="table-head"><span class="table-name">cmdb_ops_site_domain</span><span class="table-cn">站点 ↔ 域名</span><span class="table-count">5 列</span></div>
+<table><thead><tr><th style="width:22%">字段</th><th style="width:16%">类型</th><th style="width:8%">可空</th><th style="width:20%">默认值</th><th>说明 / 引用</th></tr></thead><tbody>
+<tr><td class="col-name pk">id</td><td class="type">uuid</td><td class="nullable-no">否</td><td class="default">gen_random_uuid()</td><td><span class="pk">主键 PK</span></td></tr>
+<tr><td class="col-name">site_id</td><td class="type">uuid</td><td class="nullable-no">否</td><td class="default"></td><td><span class="fk">→ cmdb_ops_site.id</span></td></tr>
+<tr><td class="col-name">domain_id</td><td class="type">uuid</td><td class="nullable-no">否</td><td class="default"></td><td><span class="fk">→ cmdb_domain.id</span></td></tr>
+<tr><td class="col-name">is_primary</td><td class="type">boolean</td><td class="nullable-no">否</td><td class="default">false</td><td></td></tr>
+<tr><td class="col-name">created_at</td><td class="type">timestamptz</td><td class="nullable-no">否</td><td class="default">now()</td><td></td></tr>
+</tbody></table></div>
+<div class="table-card">
+<div class="table-head"><span class="table-name">cmdb_certificate_domain</span><span class="table-cn">证书 ↔ 域名</span><span class="table-count">6 列</span></div>
+<table><thead><tr><th style="width:22%">字段</th><th style="width:16%">类型</th><th style="width:8%">可空</th><th style="width:20%">默认值</th><th>说明 / 引用</th></tr></thead><tbody>
+<tr><td class="col-name pk">id</td><td class="type">uuid</td><td class="nullable-no">否</td><td class="default">gen_random_uuid()</td><td><span class="pk">主键 PK</span></td></tr>
+<tr><td class="col-name">certificate_id</td><td class="type">uuid</td><td class="nullable-no">否</td><td class="default"></td><td><span class="fk">→ cmdb_certificate.id</span></td></tr>
+<tr><td class="col-name">domain_id</td><td class="type">uuid</td><td class="nullable-yes">是</td><td class="default"></td><td><span class="fk">→ cmdb_domain.id</span></td></tr>
+<tr><td class="col-name">domain_pattern</td><td class="type">varchar</td><td class="nullable-no">否</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">is_primary</td><td class="type">boolean</td><td class="nullable-no">否</td><td class="default">false</td><td></td></tr>
+<tr><td class="col-name">created_at</td><td class="type">timestamptz</td><td class="nullable-no">否</td><td class="default">now()</td><td></td></tr>
+</tbody></table></div>
+</div>
+<div class="group"><div class="group-title">多态引用表（type+id，无外键）</div>
+<div class="table-card">
+<div class="table-head"><span class="table-name">cmdb_backup_plan</span><span class="table-cn">备份计划</span><span class="table-count">10 列</span></div>
+<table><thead><tr><th style="width:22%">字段</th><th style="width:16%">类型</th><th style="width:8%">可空</th><th style="width:20%">默认值</th><th>说明 / 引用</th></tr></thead><tbody>
+<tr><td class="col-name pk">id</td><td class="type">uuid</td><td class="nullable-no">否</td><td class="default">gen_random_uuid()</td><td><span class="pk">主键 PK</span></td></tr>
+<tr><td class="col-name">name</td><td class="type">varchar</td><td class="nullable-no">否</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">target_type</td><td class="type">varchar</td><td class="nullable-yes">是</td><td class="default"></td><td><span class="poly">多态: server/database_instance/ops_site</span></td></tr>
+<tr><td class="col-name">target_id</td><td class="type">uuid</td><td class="nullable-yes">是</td><td class="default"></td><td><span class="poly">多态: 对应 target_type 的资源 id</span></td></tr>
+<tr><td class="col-name">schedule</td><td class="type">varchar</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">retention_days</td><td class="type">integer</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">status</td><td class="type">varchar</td><td class="nullable-no">否</td><td class="default">&#x27;draft&#x27;::character varying</td><td></td></tr>
+<tr><td class="col-name">remarks</td><td class="type">text</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">created_at</td><td class="type">timestamptz</td><td class="nullable-no">否</td><td class="default">now()</td><td></td></tr>
+<tr><td class="col-name">updated_at</td><td class="type">timestamptz</td><td class="nullable-no">否</td><td class="default">now()</td><td></td></tr>
+</tbody></table></div>
+<div class="table-card">
+<div class="table-head"><span class="table-name">cmdb_monitor_target</span><span class="table-cn">监控目标</span><span class="table-count">11 列</span></div>
+<table><thead><tr><th style="width:22%">字段</th><th style="width:16%">类型</th><th style="width:8%">可空</th><th style="width:20%">默认值</th><th>说明 / 引用</th></tr></thead><tbody>
+<tr><td class="col-name pk">id</td><td class="type">uuid</td><td class="nullable-no">否</td><td class="default">gen_random_uuid()</td><td><span class="pk">主键 PK</span></td></tr>
+<tr><td class="col-name">name</td><td class="type">varchar</td><td class="nullable-no">否</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">target_type</td><td class="type">varchar</td><td class="nullable-yes">是</td><td class="default"></td><td><span class="poly">多态: server/database_instance/ops_site</span></td></tr>
+<tr><td class="col-name">target_id</td><td class="type">uuid</td><td class="nullable-yes">是</td><td class="default"></td><td><span class="poly">多态: 对应 target_type 的资源 id</span></td></tr>
+<tr><td class="col-name">monitor_type</td><td class="type">varchar</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">endpoint</td><td class="type">varchar</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">interval_seconds</td><td class="type">integer</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">status</td><td class="type">varchar</td><td class="nullable-no">否</td><td class="default">&#x27;draft&#x27;::character varying</td><td></td></tr>
+<tr><td class="col-name">remarks</td><td class="type">text</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">created_at</td><td class="type">timestamptz</td><td class="nullable-no">否</td><td class="default">now()</td><td></td></tr>
+<tr><td class="col-name">updated_at</td><td class="type">timestamptz</td><td class="nullable-no">否</td><td class="default">now()</td><td></td></tr>
+</tbody></table></div>
+<div class="table-card">
+<div class="table-head"><span class="table-name">cmdb_attachment</span><span class="table-cn">附件</span><span class="table-count">12 列</span></div>
+<table><thead><tr><th style="width:22%">字段</th><th style="width:16%">类型</th><th style="width:8%">可空</th><th style="width:20%">默认值</th><th>说明 / 引用</th></tr></thead><tbody>
+<tr><td class="col-name pk">id</td><td class="type">uuid</td><td class="nullable-no">否</td><td class="default">gen_random_uuid()</td><td><span class="pk">主键 PK</span></td></tr>
+<tr><td class="col-name">filename</td><td class="type">varchar</td><td class="nullable-no">否</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">target_type</td><td class="type">varchar</td><td class="nullable-yes">是</td><td class="default"></td><td><span class="poly">多态: 任意资源类型</span></td></tr>
+<tr><td class="col-name">target_id</td><td class="type">uuid</td><td class="nullable-yes">是</td><td class="default"></td><td><span class="poly">多态: 对应资源 id</span></td></tr>
+<tr><td class="col-name">storage_key</td><td class="type">varchar</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">content_type</td><td class="type">varchar</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">size_bytes</td><td class="type">bigint</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">uploaded_by_id</td><td class="type">uuid</td><td class="nullable-yes">是</td><td class="default"></td><td><span class="fk">→ user.id</span></td></tr>
+<tr><td class="col-name">status</td><td class="type">varchar</td><td class="nullable-no">否</td><td class="default">&#x27;active&#x27;::character varying</td><td></td></tr>
+<tr><td class="col-name">remarks</td><td class="type">text</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">created_at</td><td class="type">timestamptz</td><td class="nullable-no">否</td><td class="default">now()</td><td></td></tr>
+<tr><td class="col-name">updated_at</td><td class="type">timestamptz</td><td class="nullable-no">否</td><td class="default">now()</td><td></td></tr>
+</tbody></table></div>
+<div class="table-card">
+<div class="table-head"><span class="table-name">cmdb_contract</span><span class="table-cn">合同</span><span class="table-count">14 列</span></div>
+<table><thead><tr><th style="width:22%">字段</th><th style="width:16%">类型</th><th style="width:8%">可空</th><th style="width:20%">默认值</th><th>说明 / 引用</th></tr></thead><tbody>
+<tr><td class="col-name pk">id</td><td class="type">uuid</td><td class="nullable-no">否</td><td class="default">gen_random_uuid()</td><td><span class="pk">主键 PK</span></td></tr>
+<tr><td class="col-name">name</td><td class="type">varchar</td><td class="nullable-no">否</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">provider_id</td><td class="type">uuid</td><td class="nullable-yes">是</td><td class="default"></td><td><span class="fk">→ cmdb_provider.id</span></td></tr>
+<tr><td class="col-name">subject_type</td><td class="type">varchar</td><td class="nullable-yes">是</td><td class="default"></td><td><span class="poly">多态: 任意资源类型</span></td></tr>
+<tr><td class="col-name">subject_id</td><td class="type">uuid</td><td class="nullable-yes">是</td><td class="default"></td><td><span class="poly">多态: 对应资源 id</span></td></tr>
+<tr><td class="col-name">contract_no</td><td class="type">varchar</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">start_date</td><td class="type">date</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">end_date</td><td class="type">date</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">amount</td><td class="type">numeric</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">currency</td><td class="type">varchar</td><td class="nullable-no">否</td><td class="default">&#x27;CNY&#x27;::character varying</td><td></td></tr>
+<tr><td class="col-name">status</td><td class="type">varchar</td><td class="nullable-no">否</td><td class="default">&#x27;draft&#x27;::character varying</td><td></td></tr>
+<tr><td class="col-name">remarks</td><td class="type">text</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">created_at</td><td class="type">timestamptz</td><td class="nullable-no">否</td><td class="default">now()</td><td></td></tr>
+<tr><td class="col-name">updated_at</td><td class="type">timestamptz</td><td class="nullable-no">否</td><td class="default">now()</td><td></td></tr>
+</tbody></table></div>
+</div>
+<div class="group"><div class="group-title">日志表（多态 resource）</div>
+<div class="table-card">
+<div class="table-head"><span class="table-name">cmdb_audit_log</span><span class="table-cn">审计日志</span><span class="table-count">9 列</span></div>
+<table><thead><tr><th style="width:22%">字段</th><th style="width:16%">类型</th><th style="width:8%">可空</th><th style="width:20%">默认值</th><th>说明 / 引用</th></tr></thead><tbody>
+<tr><td class="col-name pk">id</td><td class="type">uuid</td><td class="nullable-no">否</td><td class="default">gen_random_uuid()</td><td><span class="pk">主键 PK</span></td></tr>
+<tr><td class="col-name">actor_id</td><td class="type">uuid</td><td class="nullable-yes">是</td><td class="default"></td><td><span class="fk">→ user.id</span></td></tr>
+<tr><td class="col-name">action</td><td class="type">varchar</td><td class="nullable-no">否</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">resource_type</td><td class="type">varchar</td><td class="nullable-no">否</td><td class="default"></td><td><span class="poly">多态: 任意资源类型</span></td></tr>
+<tr><td class="col-name">resource_id</td><td class="type">uuid</td><td class="nullable-yes">是</td><td class="default"></td><td><span class="poly">多态: 对应资源 id</span></td></tr>
+<tr><td class="col-name">ip_address</td><td class="type">varchar</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">user_agent</td><td class="type">varchar</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">extra_data</td><td class="type">jsonb</td><td class="nullable-no">否</td><td class="default">&#x27;{}&#x27;::jsonb</td><td></td></tr>
+<tr><td class="col-name">created_at</td><td class="type">timestamptz</td><td class="nullable-no">否</td><td class="default">now()</td><td></td></tr>
+</tbody></table></div>
+<div class="table-card">
+<div class="table-head"><span class="table-name">cmdb_change_record</span><span class="table-cn">变更记录</span><span class="table-count">9 列</span></div>
+<table><thead><tr><th style="width:22%">字段</th><th style="width:16%">类型</th><th style="width:8%">可空</th><th style="width:20%">默认值</th><th>说明 / 引用</th></tr></thead><tbody>
+<tr><td class="col-name pk">id</td><td class="type">uuid</td><td class="nullable-no">否</td><td class="default">gen_random_uuid()</td><td><span class="pk">主键 PK</span></td></tr>
+<tr><td class="col-name">actor_id</td><td class="type">uuid</td><td class="nullable-yes">是</td><td class="default"></td><td><span class="fk">→ user.id</span></td></tr>
+<tr><td class="col-name">change_type</td><td class="type">varchar</td><td class="nullable-no">否</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">resource_type</td><td class="type">varchar</td><td class="nullable-no">否</td><td class="default"></td><td><span class="poly">多态: 任意资源类型</span></td></tr>
+<tr><td class="col-name">resource_id</td><td class="type">uuid</td><td class="nullable-yes">是</td><td class="default"></td><td><span class="poly">多态: 对应资源 id</span></td></tr>
+<tr><td class="col-name">before_data</td><td class="type">jsonb</td><td class="nullable-no">否</td><td class="default">&#x27;{}&#x27;::jsonb</td><td></td></tr>
+<tr><td class="col-name">after_data</td><td class="type">jsonb</td><td class="nullable-no">否</td><td class="default">&#x27;{}&#x27;::jsonb</td><td></td></tr>
+<tr><td class="col-name">remarks</td><td class="type">text</td><td class="nullable-yes">是</td><td class="default"></td><td></td></tr>
+<tr><td class="col-name">created_at</td><td class="type">timestamptz</td><td class="nullable-no">否</td><td class="default">now()</td><td></td></tr>
+</tbody></table></div>
+</div>
+<div class="meta" style="margin-top:24px;">合计：22 张表 · 246 个字段 · 25 个外键 · 6 处多态引用 · 2 处悬空引用</div>
+</body></html>

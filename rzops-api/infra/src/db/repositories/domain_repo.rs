@@ -36,18 +36,19 @@ fn row_to_domain(row: &sqlx::postgres::PgRow) -> DomainAsset {
         remarks: row.get("remarks"),
         created_at: row.get::<DateTime<Utc>, _>("created_at"),
         updated_at: row.get::<DateTime<Utc>, _>("updated_at"),
+        deleted_at: row.get("deleted_at"),
     }
 }
 
 const SELECT_COLS: &str = r#"id, domain_name, registered_date, expiry_date,
     renewal_amount, renewal_currency, provider_id,
     platform_phone, domain_email, privacy_status::text, is_enabled, remarks,
-    created_at, updated_at"#;
+    created_at, updated_at, deleted_at"#;
 
 #[async_trait]
 impl DomainRepository for PgDomainRepository {
     async fn find_by_id(&self, id: Uuid) -> Result<Option<DomainAsset>, sqlx::Error> {
-        let row = sqlx::query(&format!("SELECT {} FROM cmdb_domain WHERE id = $1", SELECT_COLS))
+        let row = sqlx::query(&format!("SELECT {} FROM cmdb_domain WHERE id = $1 AND deleted_at IS NULL", SELECT_COLS))
             .bind(id)
             .fetch_optional(&self.pool)
             .await?;
@@ -55,7 +56,7 @@ impl DomainRepository for PgDomainRepository {
     }
 
     async fn find_all(&self, filter: DomainFilter) -> Result<Vec<DomainAsset>, sqlx::Error> {
-        let mut sql = format!("SELECT {} FROM cmdb_domain WHERE 1=1", SELECT_COLS);
+        let mut sql = format!("SELECT {} FROM cmdb_domain WHERE deleted_at IS NULL", SELECT_COLS);
         let mut binds: Vec<String> = Vec::new();
         if let Some(enabled) = filter.is_enabled {
             sql.push_str(&format!(" AND is_enabled = {}", enabled));
@@ -74,7 +75,7 @@ impl DomainRepository for PgDomainRepository {
     }
 
     async fn count(&self, filter: DomainFilter) -> Result<i64, sqlx::Error> {
-        let mut sql = String::from("SELECT COUNT(*) as count FROM cmdb_domain WHERE 1=1");
+        let mut sql = String::from("SELECT COUNT(*) as count FROM cmdb_domain WHERE deleted_at IS NULL");
         let mut binds: Vec<String> = Vec::new();
         if let Some(enabled) = filter.is_enabled {
             sql.push_str(&format!(" AND is_enabled = {}", enabled));
@@ -115,7 +116,7 @@ impl DomainRepository for PgDomainRepository {
                 renewal_amount=$5, renewal_currency=$6, provider_id=$7,
                 platform_phone=$8, domain_email=$9, privacy_status=$10, is_enabled=$11,
                 remarks=$12, updated_at=$13
-               WHERE id=$1 RETURNING {}"#, SELECT_COLS
+               WHERE id=$1 AND deleted_at IS NULL RETURNING {}"#, SELECT_COLS
         ))
         .bind(id).bind(&d.domain_name).bind(d.registered_date).bind(d.expiry_date)
         .bind(d.renewal_amount).bind(&d.renewal_currency)
@@ -128,7 +129,7 @@ impl DomainRepository for PgDomainRepository {
     }
 
     async fn delete(&self, id: Uuid) -> Result<bool, sqlx::Error> {
-        let result = sqlx::query("DELETE FROM cmdb_domain WHERE id = $1").bind(id).execute(&self.pool).await?;
+        let result = sqlx::query("UPDATE cmdb_domain SET deleted_at = now() WHERE id = $1 AND deleted_at IS NULL").bind(id).execute(&self.pool).await?;
         Ok(result.rows_affected() > 0)
     }
 }

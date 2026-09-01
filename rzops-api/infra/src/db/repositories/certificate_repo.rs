@@ -33,6 +33,7 @@ fn row_to_certificate(row: &sqlx::postgres::PgRow) -> Certificate {
         remarks: row.get("remarks"),
         created_at: row.get::<DateTime<Utc>, _>("created_at"),
         updated_at: row.get::<DateTime<Utc>, _>("updated_at"),
+        deleted_at: row.get("deleted_at"),
     }
 }
 
@@ -42,8 +43,8 @@ impl CertificateRepository for PgCertificateRepository {
         let row = sqlx::query(
             r#"SELECT id, name, provider_id, lease_start_date, lease_end_date,
                       certificate_type::text, status::text,
-                      remarks, created_at, updated_at
-               FROM cmdb_certificate WHERE id = $1"#,
+                      remarks, created_at, updated_at, deleted_at
+               FROM cmdb_certificate WHERE id = $1 AND deleted_at IS NULL"#,
         )
         .bind(id).fetch_optional(&self.pool).await?;
         Ok(row.map(|r| row_to_certificate(&r)))
@@ -53,8 +54,8 @@ impl CertificateRepository for PgCertificateRepository {
         let mut sql = String::from(
             r#"SELECT id, name, provider_id, lease_start_date, lease_end_date,
                       certificate_type::text, status::text,
-                      remarks, created_at, updated_at
-               FROM cmdb_certificate WHERE 1=1"#,
+                      remarks, created_at, updated_at, deleted_at
+               FROM cmdb_certificate WHERE deleted_at IS NULL"#,
         );
         let mut idx = 1;
         let s_status = filter.status.as_ref();
@@ -72,7 +73,7 @@ impl CertificateRepository for PgCertificateRepository {
     }
 
     async fn count(&self, filter: CertificateFilter) -> Result<i64, sqlx::Error> {
-        let mut sql = String::from("SELECT COUNT(*) as count FROM cmdb_certificate WHERE 1=1");
+        let mut sql = String::from("SELECT COUNT(*) as count FROM cmdb_certificate WHERE deleted_at IS NULL");
         let mut idx = 1;
         let s_status = filter.status.as_ref();
         let s_q = filter.q.as_ref();
@@ -93,7 +94,7 @@ impl CertificateRepository for PgCertificateRepository {
                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
                RETURNING id, name, provider_id, lease_start_date, lease_end_date,
                          certificate_type::text, status::text,
-                         remarks, created_at, updated_at"#,
+                         remarks, created_at, updated_at, deleted_at"#,
         )
         .bind(c.id).bind(&c.name).bind(c.provider_id).bind(c.lease_start_date)
         .bind(c.lease_end_date).bind(c.certificate_type.clone())
@@ -109,10 +110,10 @@ impl CertificateRepository for PgCertificateRepository {
                 name=$2, provider_id=$3, lease_start_date=$4, lease_end_date=$5,
                 certificate_type=$6, status=$7,
                 remarks=$8, updated_at=$9
-               WHERE id=$1
+               WHERE id=$1 AND deleted_at IS NULL
                RETURNING id, name, provider_id, lease_start_date, lease_end_date,
                          certificate_type::text, status::text,
-                         remarks, created_at, updated_at"#,
+                         remarks, created_at, updated_at, deleted_at"#,
         )
         .bind(id).bind(&c.name).bind(c.provider_id).bind(c.lease_start_date)
         .bind(c.lease_end_date).bind(c.certificate_type.clone())
@@ -123,7 +124,7 @@ impl CertificateRepository for PgCertificateRepository {
     }
 
     async fn delete(&self, id: Uuid) -> Result<bool, sqlx::Error> {
-        let result = sqlx::query("DELETE FROM cmdb_certificate WHERE id = $1").bind(id).execute(&self.pool).await?;
+        let result = sqlx::query("UPDATE cmdb_certificate SET deleted_at = now() WHERE id = $1 AND deleted_at IS NULL").bind(id).execute(&self.pool).await?;
         Ok(result.rows_affected() > 0)
     }
 }

@@ -19,4 +19,5 @@ pub struct DatabaseInstance {
     pub instance_name: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub deleted_at: Option<DateTime<Utc>>,
 }

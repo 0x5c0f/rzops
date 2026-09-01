@@ -8,8 +8,6 @@ pub struct OpsSite {
     pub id: Uuid,
     pub name: String,
     pub url: Option<String>,
-    pub business_unit_id: Option<Uuid>,
-    pub department_id: Option<Uuid>,
     pub service_target: Option<String>,
     pub importance: Option<String>,
     pub online_time: Option<DateTime<Utc>>,
@@ -27,4 +25,5 @@ pub struct OpsSite {
     pub remarks: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub deleted_at: Option<DateTime<Utc>>,
 }

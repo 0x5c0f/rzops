@@ -6,8 +6,6 @@ use uuid::Uuid;
 pub struct CreateOpsSiteRequest {
     pub name: String,
     pub url: Option<String>,
-    pub business_unit_id: Option<Uuid>,
-    pub department_id: Option<Uuid>,
     pub service_target: Option<String>,
     pub importance: Option<String>,
     pub online_time: Option<DateTime<Utc>>,
@@ -29,8 +27,6 @@ pub struct CreateOpsSiteRequest {
 pub struct UpdateOpsSiteRequest {
     pub name: Option<String>,
     pub url: Option<String>,
-    pub business_unit_id: Option<Uuid>,
-    pub department_id: Option<Uuid>,
     pub service_target: Option<String>,
     pub importance: Option<String>,
     pub online_time: Option<DateTime<Utc>>,
@@ -62,8 +58,6 @@ pub struct OpsSiteResponse {
     pub id: Uuid,
     pub name: String,
     pub url: Option<String>,
-    pub business_unit_id: Option<Uuid>,
-    pub department_id: Option<Uuid>,
     pub service_target: Option<String>,
     pub importance: Option<String>,
     pub online_time: Option<DateTime<Utc>>,
@@ -81,6 +75,7 @@ pub struct OpsSiteResponse {
     pub remarks: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub deleted_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Serialize, utoipa::ToSchema)]

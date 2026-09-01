@@ -85,6 +85,7 @@ fn row_to_server(row: &sqlx::postgres::PgRow) -> Server {
         remarks: row.get("remarks"),
         created_at: row.get::<DateTime<Utc>, _>("created_at"),
         updated_at: row.get::<DateTime<Utc>, _>("updated_at"),
+        deleted_at: row.get("deleted_at"),
     }
 }
 
@@ -95,13 +96,13 @@ const SELECT_COLS: &str = r#"id, asset_code, name, primary_ip, location,
     cpu, memory_gb, is_raid, raid_level, disk_layout, hardware_config,
     architecture, maintainer_id, brand, warranty_info, operating_system,
     web_server_type, server_provider_id, software_provider_id,
-    status::text, offline_time, offline_reason, remarks, created_at, updated_at"#;
+    status::text, offline_time, offline_reason, remarks, created_at, updated_at, deleted_at"#;
 
 #[async_trait]
 impl ServerRepository for PgServerRepository {
     async fn find_by_id(&self, id: Uuid) -> Result<Option<Server>, sqlx::Error> {
         let row = sqlx::query(&format!(
-            "SELECT {} FROM cmdb_server WHERE id = $1",
+            "SELECT {} FROM cmdb_server WHERE id = $1 AND deleted_at IS NULL",
             SELECT_COLS
         ))
         .bind(id)
@@ -112,7 +113,7 @@ impl ServerRepository for PgServerRepository {
     }
 
     async fn find_all(&self, filter: ServerFilter) -> Result<Vec<Server>, sqlx::Error> {
-        let mut sql = format!("SELECT {} FROM cmdb_server WHERE 1=1", SELECT_COLS);
+        let mut sql = format!("SELECT {} FROM cmdb_server WHERE deleted_at IS NULL", SELECT_COLS);
         let mut binds: Vec<String> = Vec::new();
         let mut idx = 1;
 
@@ -159,7 +160,7 @@ impl ServerRepository for PgServerRepository {
     }
 
     async fn count(&self, filter: ServerFilter) -> Result<i64, sqlx::Error> {
-        let mut sql = String::from("SELECT COUNT(*) as count FROM cmdb_server WHERE 1=1");
+        let mut sql = String::from("SELECT COUNT(*) as count FROM cmdb_server WHERE deleted_at IS NULL");
         let mut string_binds: Vec<String> = Vec::new();
         let mut uuid_binds: Vec<Uuid> = Vec::new();
         let mut idx = 1;
@@ -261,7 +262,7 @@ impl ServerRepository for PgServerRepository {
                 operating_system = $27, web_server_type = $28, server_provider_id = $29,
                 software_provider_id = $30, status = $31, offline_time = $32,
                 offline_reason = $33, remarks = $34, updated_at = $35
-               WHERE id = $1
+               WHERE id = $1 AND deleted_at IS NULL
                RETURNING {}"#,
             SELECT_COLS
         ))
@@ -307,7 +308,7 @@ impl ServerRepository for PgServerRepository {
     }
 
     async fn delete(&self, id: Uuid) -> Result<bool, sqlx::Error> {
-        let result = sqlx::query("DELETE FROM cmdb_server WHERE id = $1")
+        let result = sqlx::query("UPDATE cmdb_server SET deleted_at = now() WHERE id = $1 AND deleted_at IS NULL")
             .bind(id)
             .execute(&self.pool)
             .await?;
@@ -319,7 +320,7 @@ impl ServerRepository for PgServerRepository {
 impl PgServerRepository {
     /// Helper for find_all when data_center_id filter is present (mixed bind types).
     async fn find_all_with_uuid_filter(&self, filter: ServerFilter) -> Result<Vec<Server>, sqlx::Error> {
-        let mut sql = format!("SELECT {} FROM cmdb_server WHERE 1=1", SELECT_COLS);
+        let mut sql = format!("SELECT {} FROM cmdb_server WHERE deleted_at IS NULL", SELECT_COLS);
         let mut idx = 1;
 
         // Store filter values to bind in the same order as $N placeholders

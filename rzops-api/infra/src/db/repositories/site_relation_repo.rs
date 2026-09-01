@@ -33,7 +33,7 @@ impl SiteServerRelationRepository for PgSiteRelationRepository {
     async fn find_sites_by_server(&self, server_id: Uuid) -> Result<Vec<SiteRefByServer>, sqlx::Error> {
         let rows = sqlx::query(
             "SELECT r.id AS relation_id, r.site_id, s.name AS site_name, r.deploy_role::text, r.is_primary \
-             FROM cmdb_ops_site_server r JOIN cmdb_ops_site s ON s.id = r.site_id \
+             FROM cmdb_ops_site_server r JOIN cmdb_ops_site s ON s.id = r.site_id AND s.deleted_at IS NULL \
              WHERE r.server_id=$1 ORDER BY s.name")
             .bind(server_id).fetch_all(&self.pool).await?;
         Ok(rows.iter().map(|r| SiteRefByServer {
@@ -68,7 +68,7 @@ impl SiteDatabaseRelationRepository for PgSiteRelationRepository {
     async fn find_sites_by_database(&self, database_instance_id: Uuid) -> Result<Vec<SiteRefByDatabase>, sqlx::Error> {
         let rows = sqlx::query(
             "SELECT r.site_id, s.name AS site_name, r.usage_type::text, r.is_primary \
-             FROM cmdb_ops_site_database r JOIN cmdb_ops_site s ON s.id = r.site_id \
+             FROM cmdb_ops_site_database r JOIN cmdb_ops_site s ON s.id = r.site_id AND s.deleted_at IS NULL \
              WHERE r.database_instance_id=$1 ORDER BY s.name")
             .bind(database_instance_id).fetch_all(&self.pool).await?;
         Ok(rows.iter().map(|r| SiteRefByDatabase {

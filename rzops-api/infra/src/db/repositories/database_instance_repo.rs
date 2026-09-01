@@ -40,24 +40,25 @@ fn row_to_database_instance(row: &sqlx::postgres::PgRow) -> DatabaseInstance {
         instance_name: row.get("instance_name"),
         created_at: row.get::<DateTime<Utc>, _>("created_at"),
         updated_at: row.get::<DateTime<Utc>, _>("updated_at"),
+        deleted_at: row.get("deleted_at"),
     }
 }
 
 const SELECT_COLS: &str = r#"id, server_id, name, db_type::text, description, status::text,
     offline_time, is_self_installed, importance::text, is_ops_managed,
     port, instance_name,
-    created_at, updated_at"#;
+    created_at, updated_at, deleted_at"#;
 
 #[async_trait]
 impl DatabaseInstanceRepository for PgDatabaseInstanceRepository {
     async fn find_by_id(&self, id: Uuid) -> Result<Option<DatabaseInstance>, sqlx::Error> {
-        let row = sqlx::query(&format!("SELECT {} FROM cmdb_database_instance WHERE id = $1", SELECT_COLS))
+        let row = sqlx::query(&format!("SELECT {} FROM cmdb_database_instance WHERE id = $1 AND deleted_at IS NULL", SELECT_COLS))
             .bind(id).fetch_optional(&self.pool).await?;
         Ok(row.map(|r| row_to_database_instance(&r)))
     }
 
     async fn find_all(&self, filter: DatabaseInstanceFilter) -> Result<Vec<DatabaseInstance>, sqlx::Error> {
-        let mut sql = format!("SELECT {} FROM cmdb_database_instance WHERE 1=1", SELECT_COLS);
+        let mut sql = format!("SELECT {} FROM cmdb_database_instance WHERE deleted_at IS NULL", SELECT_COLS);
         let mut string_binds: Vec<String> = Vec::new();
         let mut uuid_binds: Vec<Uuid> = Vec::new();
         let mut idx = 1;
@@ -76,7 +77,7 @@ impl DatabaseInstanceRepository for PgDatabaseInstanceRepository {
     }
 
     async fn count(&self, filter: DatabaseInstanceFilter) -> Result<i64, sqlx::Error> {
-        let mut sql = String::from("SELECT COUNT(*) as count FROM cmdb_database_instance WHERE 1=1");
+        let mut sql = String::from("SELECT COUNT(*) as count FROM cmdb_database_instance WHERE deleted_at IS NULL");
         let mut string_binds: Vec<String> = Vec::new();
         let mut uuid_binds: Vec<Uuid> = Vec::new();
         let mut idx = 1;
@@ -115,7 +116,7 @@ impl DatabaseInstanceRepository for PgDatabaseInstanceRepository {
                 server_id=$2, name=$3, db_type=$4, description=$5, status=$6,
                 offline_time=$7, is_self_installed=$8, importance=$9, is_ops_managed=$10,
                 port=$11, instance_name=$12, updated_at=$13
-               WHERE id=$1 RETURNING {}"#, SELECT_COLS
+               WHERE id=$1 AND deleted_at IS NULL RETURNING {}"#, SELECT_COLS
         ))
         .bind(id).bind(db.server_id).bind(&db.name).bind(db.db_type.clone())
         .bind(&db.description).bind(db.status.clone()).bind(db.offline_time)
@@ -126,7 +127,7 @@ impl DatabaseInstanceRepository for PgDatabaseInstanceRepository {
     }
 
     async fn delete(&self, id: Uuid) -> Result<bool, sqlx::Error> {
-        let result = sqlx::query("DELETE FROM cmdb_database_instance WHERE id = $1").bind(id).execute(&self.pool).await?;
+        let result = sqlx::query("UPDATE cmdb_database_instance SET deleted_at = now() WHERE id = $1 AND deleted_at IS NULL").bind(id).execute(&self.pool).await?;
         Ok(result.rows_affected() > 0)
     }
 }

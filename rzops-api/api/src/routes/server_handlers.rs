@@ -70,6 +70,7 @@ fn to_response(s: &Server) -> ServerResponse {
         remarks: s.remarks.clone(),
         created_at: s.created_at,
         updated_at: s.updated_at,
+        deleted_at: s.deleted_at,
     }
 }
 
@@ -124,6 +125,7 @@ fn build_server_from_create(body: CreateServerRequest) -> Server {
         remarks: body.remarks,
         created_at: now,
         updated_at: now,
+        deleted_at: None,
     }
 }
 
@@ -301,6 +303,7 @@ pub async fn update_server(
         remarks: body.remarks.or(existing.remarks),
         created_at: existing.created_at,
         updated_at: Utc::now(),
+        deleted_at: existing.deleted_at,
     };
 
     match repo.update(id, &server).await {
