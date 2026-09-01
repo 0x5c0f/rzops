@@ -16,8 +16,11 @@
   import { siteStatusOptions, importanceOptions, serviceTargetOptions, getOptionLabel } from '$lib/utils/enum-options';
   import { formatDate } from '$lib/utils/format';
   import { onMount } from 'svelte';
+  import ConfirmDialog from '$lib/components/shared/ConfirmDialog.svelte';
 
   let site = $state<OpsSiteResponse | null>(null);
+
+  let confirmOpen = $state(false);
   let loading = $state(true);
   let backupPlans = $state<BackupPlanResponse[]>([]);
   let monitorTargets = $state<MonitorTargetResponse[]>([]);
@@ -38,13 +41,17 @@
     }
   });
 
-  async function handleDelete() {
+  function handleDelete() {
     if (!site) return;
-    if (!confirm(`确定要删除站点 "${site.name}" 吗？`)) return;
+    confirmOpen = true;
+  }
+
+  async function doDelete() {
+    if (!site) return;
     try {
       await opsSitesApi.delete(site.id);
       goto('/ops-sites');
-    } catch (err) {
+      } catch (err) {
       console.error('Failed to delete ops-site:', err);
     }
   }
@@ -182,4 +189,12 @@
     </Card.Root>
     <AttachmentSection targetType="site" targetId={site.id} />
   {/if}
+
+    <ConfirmDialog
+      bind:open={confirmOpen}
+      title="确认删除"
+      description={`确定要删除站点「${site?.name}」吗？此操作可在回收站恢复。`}
+      confirmLabel="删除"
+      onConfirm={doDelete}
+    />
 </div>

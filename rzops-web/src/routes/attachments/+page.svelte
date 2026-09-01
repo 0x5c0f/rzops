@@ -103,7 +103,6 @@
   }
 
   async function handleDelete(item: AttachmentResponse) {
-    if (!confirm(`确定要删除附件 "${item.filename}" 吗？`)) return;
     try {
       await attachmentsApi.delete(item.id);
       loadData();

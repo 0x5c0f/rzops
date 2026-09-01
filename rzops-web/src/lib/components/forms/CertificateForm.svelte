@@ -13,6 +13,7 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
   import { certificateStatusOptions, certificateTypeOptions } from '$lib/utils/enum-options';
   import { getProviderOptions, getDomainOptions } from '$lib/utils/entity-options';
   import { certificateDomainsApi } from '$lib/api/certificate-domains';
+  import { validateDateRange } from '$lib/utils/validation';
   import { onMount } from 'svelte';
 
   // 域名绑定草稿行（id 存在 = 已有记录，用于编辑增量同步）
@@ -39,6 +40,7 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
   } = $props();
 
   let saving = $state(false);
+  let formError = $state<string | null>(null);
   let attachmentRef = $state<{ uploadAll: (id: string) => Promise<void> } | null>(null);
   let providerOptions = $state<{ label: string; value: string }[]>([]);
   let domainOptions = $state<{ label: string; value: string }[]>([]);
@@ -110,17 +112,11 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
 
   async function handleSave() {
     if (domains.some(d => !d.domain_pattern.trim())) {
-      alert('域名绑定中"域名/模式"为必填，请填写完整或删除空行');
+      formError = '域名绑定中"域名/模式"为必填，请填写完整或删除空行';
       return;
     }
-    if (
-      form.lease_start_date &&
-      form.lease_end_date &&
-      form.lease_end_date < form.lease_start_date
-    ) {
-      alert('到期日期不能早于起始日期');
-      return;
-    }
+    formError = validateDateRange(form.lease_start_date, form.lease_end_date, '起始日期', '到期日期');
+    if (formError) return;
     saving = true;
     try {
       const certificateId = await onSubmit(form);
@@ -139,6 +135,12 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
 </script>
 
 <div class="space-y-4">
+  {#if formError}
+    <div class="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+      {formError}
+    </div>
+  {/if}
+
   <div class="flex items-center justify-between">
     <div></div>
     <div class="flex gap-2">

@@ -11,8 +11,11 @@
   import { getProviderOptions } from '$lib/utils/entity-options';
   import { formatDate } from '$lib/utils/format';
   import { onMount } from 'svelte';
+  import ConfirmDialog from '$lib/components/shared/ConfirmDialog.svelte';
 
   let domain = $state<DomainResponse | null>(null);
+
+  let confirmOpen = $state(false);
   let loading = $state(true);
   let providerMap = $state<Record<string, string>>({});
 
@@ -34,13 +37,17 @@
     }
   });
 
-  async function handleDelete() {
+  function handleDelete() {
     if (!domain) return;
-    if (!confirm(`确定要删除域名 "${domain.domain_name}" 吗？`)) return;
+    confirmOpen = true;
+  }
+
+  async function doDelete() {
+    if (!domain) return;
     try {
       await domainsApi.delete(domain.id);
       goto('/domains');
-    } catch (err) {
+      } catch (err) {
       console.error('Failed to delete domain:', err);
     }
   }
@@ -154,4 +161,12 @@
     </Card.Root>
     <AttachmentSection targetType="domain" targetId={domain.id} />
   {/if}
+
+    <ConfirmDialog
+      bind:open={confirmOpen}
+      title="确认删除"
+      description={`确定要删除域名「${domain?.domain_name}」吗？此操作可在回收站恢复。`}
+      confirmLabel="删除"
+      onConfirm={doDelete}
+    />
 </div>

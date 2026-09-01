@@ -7,8 +7,11 @@
   import * as Card from '$lib/ui/card';
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import { onMount } from 'svelte';
+  import ConfirmDialog from '$lib/components/shared/ConfirmDialog.svelte';
 
   let serverPort = $state<ServerPortResponse | null>(null);
+
+  let confirmOpen = $state(false);
   let loading = $state(true);
 
   onMount(async () => {
@@ -24,13 +27,17 @@
     }
   });
 
-  async function handleDelete() {
+  function handleDelete() {
     if (!serverPort) return;
-    if (!confirm(`确定要删除端口 "${serverPort.protocol}/${serverPort.port}" 吗？`)) return;
+    confirmOpen = true;
+  }
+
+  async function doDelete() {
+    if (!serverPort) return;
     try {
       await serverPortsApi.delete(serverPort.id);
       goto('/server-ports');
-    } catch (err) {
+      } catch (err) {
       console.error('Failed to delete server port:', err);
     }
   }
@@ -111,4 +118,12 @@
       </Card.Root>
     </div>
   {/if}
+
+    <ConfirmDialog
+      bind:open={confirmOpen}
+      title="确认删除"
+      description={`确定要删除端口「${serverPort?.protocol}」吗？此操作可在回收站恢复。`}
+      confirmLabel="删除"
+      onConfirm={doDelete}
+    />
 </div>

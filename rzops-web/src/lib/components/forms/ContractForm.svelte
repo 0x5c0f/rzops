@@ -9,6 +9,7 @@
   import TextArea from '$lib/components/shared/TextArea.svelte';
   import { contractStatusOptions } from '$lib/utils/enum-options';
   import { getProviderOptions } from '$lib/utils/entity-options';
+  import { validateDateRange } from '$lib/utils/validation';
   import { onMount } from 'svelte';
 
   let {
@@ -22,6 +23,7 @@
   } = $props();
 
   let saving = $state(false);
+  let formError = $state<string | null>(null);
   let providerOptions = $state<{ label: string; value: string }[]>([]);
 
   let form = $state<CreateContractRequest>(createInitial(initial));
@@ -40,10 +42,8 @@
   });
 
   async function handleSave() {
-    if (form.start_date && form.end_date && form.end_date < form.start_date) {
-      alert('结束日期不能早于开始日期');
-      return;
-    }
+    formError = validateDateRange(form.start_date, form.end_date, '开始日期', '结束日期');
+    if (formError) return;
     saving = true;
     try {
       await onSubmit(form);
@@ -56,6 +56,12 @@
 </script>
 
 <div class="space-y-4">
+  {#if formError}
+    <div class="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+      {formError}
+    </div>
+  {/if}
+
   <Card.Root>
     <Card.Header>
       <Card.Title>基本信息</Card.Title>

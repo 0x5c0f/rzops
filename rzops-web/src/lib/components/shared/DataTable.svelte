@@ -1,6 +1,7 @@
 <script lang="ts" generics="T">
   import * as Table from '$lib/ui/table';
   import { Button } from '$lib/ui/button';
+  import ConfirmDialog from '$lib/components/shared/ConfirmDialog.svelte';
 
   interface Column {
     key: string;
@@ -23,6 +24,10 @@
     onEdit,
     onDelete,
     editLabel = '编辑',
+    /** 用于生成删除确认消息，默认取 item.name */
+    getDeleteLabel,
+    /** 删除确认标题 */
+    deleteTitle = '确认删除',
   }: {
     columns: Column[];
     data: T[];
@@ -30,9 +35,13 @@
     onEdit?: (item: T) => void;
     onDelete?: (item: T) => void;
     editLabel?: string;
+    getDeleteLabel?: (item: T) => string;
+    deleteTitle?: string;
   } = $props();
 
   let hasActions = $derived(onEdit || onDelete);
+  let confirmOpen = $state(false);
+  let pendingDelete = $state<T | null>(null);
 
   function getValue(item: T, key: string): unknown {
     return (item as Record<string, unknown>)[key];
@@ -62,6 +71,26 @@
     }
 
     return String(raw);
+  }
+
+  function handleDeleteClick(item: T) {
+    pendingDelete = item;
+    confirmOpen = true;
+  }
+
+  function confirmDelete() {
+    if (pendingDelete && onDelete) {
+      onDelete(pendingDelete);
+    }
+    pendingDelete = null;
+    confirmOpen = false;
+  }
+
+  function deleteLabel(): string {
+    if (!pendingDelete) return '';
+    if (getDeleteLabel) return getDeleteLabel(pendingDelete);
+    const name = (pendingDelete as Record<string, unknown>).name;
+    return name ? String(name) : '该项';
   }
 </script>
 
@@ -122,7 +151,7 @@
                     </Button>
                   {/if}
                   {#if onDelete}
-                    <Button variant="ghost" size="sm" onclick={() => onDelete(item)}>
+                    <Button variant="ghost" size="sm" onclick={() => handleDeleteClick(item)}>
                       删除
                     </Button>
                   {/if}
@@ -135,3 +164,13 @@
     </Table.Body>
   </Table.Root>
 </div>
+
+{#if onDelete}
+  <ConfirmDialog
+    bind:open={confirmOpen}
+    title={deleteTitle}
+    description={`确定要删除「${deleteLabel()}」吗？此操作可在回收站恢复。`}
+    confirmLabel="删除"
+    onConfirm={confirmDelete}
+  />
+{/if}

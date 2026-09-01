@@ -66,7 +66,6 @@
   }
 
   async function handleDelete(item: ServerPortResponse) {
-    if (!confirm(`确定要删除端口 "${item.port}" 吗？`)) return;
     try {
       await serverPortsApi.delete(item.id);
       loadData();

@@ -10,8 +10,11 @@
   import { getProviderOptions } from '$lib/utils/entity-options';
   import { formatDate } from '$lib/utils/format';
   import { onMount } from 'svelte';
+  import ConfirmDialog from '$lib/components/shared/ConfirmDialog.svelte';
 
   let contract = $state<ContractResponse | null>(null);
+
+  let confirmOpen = $state(false);
   let loading = $state(true);
   let providerMap = $state<Record<string, string>>({});
 
@@ -34,13 +37,17 @@
     }
   });
 
-  async function handleDelete() {
+  function handleDelete() {
     if (!contract) return;
-    if (!confirm(`确定要删除合同 "${contract.name}" 吗？`)) return;
+    confirmOpen = true;
+  }
+
+  async function doDelete() {
+    if (!contract) return;
     try {
       await contractsApi.delete(contract.id);
       goto('/contracts');
-    } catch (err) {
+      } catch (err) {
       console.error('Failed to delete contract:', err);
     }
   }
@@ -138,4 +145,12 @@
       </Card.Root>
     </div>
   {/if}
+
+    <ConfirmDialog
+      bind:open={confirmOpen}
+      title="确认删除"
+      description={`确定要删除合同「${contract?.name}」吗？此操作可在回收站恢复。`}
+      confirmLabel="删除"
+      onConfirm={doDelete}
+    />
 </div>

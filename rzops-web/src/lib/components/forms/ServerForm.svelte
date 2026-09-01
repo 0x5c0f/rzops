@@ -32,12 +32,14 @@
   import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.svelte';
   import { getProviderOptions, getDataCenterOptions, getOpsSiteOptions } from '$lib/utils/entity-options';
   import { siteServerRoleOptions } from '$lib/utils/enum-options';
+  import { validateDateRange } from '$lib/utils/validation';
   import { onMount } from 'svelte';
 
   // IP / 端口 明细草稿行（id 存在 = 已有记录，用于编辑增量同步）
   interface IpDraft {
     id?: string;
     ip_address: string;
+    nic_name: string;
     ip_type: string;
     is_primary: boolean;
     isp_provider_id: string;
@@ -88,6 +90,7 @@
   } = $props();
 
   let saving = $state(false);
+  let formError = $state<string | null>(null);
   let providerOptions = $state<{ label: string; value: string }[]>([]);
   let dataCenterOptions = $state<{ label: string; value: string }[]>([]);
   let siteOptions = $state<{ label: string; value: string }[]>([]);
@@ -147,7 +150,7 @@
   });
 
   function emptyIp(): IpDraft {
-    return { ip_address: '', ip_type: '', is_primary: false, isp_provider_id: '', description: '' };
+    return { ip_address: '', nic_name: '', ip_type: '', is_primary: false, isp_provider_id: '', description: '' };
   }
   function emptyPort(): PortDraft {
     return { protocol: 'tcp', port: '', service_name: '', access_scope: '', is_enabled: true, description: '' };
@@ -237,6 +240,7 @@
     for (const row of ips) {
       const payload = {
         ip_address: row.ip_address.trim(),
+        nic_name: row.nic_name || undefined,
         ip_type: row.ip_type || undefined,
         is_primary: row.is_primary,
         isp_provider_id: row.isp_provider_id || undefined,
@@ -324,14 +328,8 @@
   }
 
   async function handleSave() {
-    if (
-      form.lease_start_date &&
-      form.lease_end_date &&
-      form.lease_end_date < form.lease_start_date
-    ) {
-      alert('租赁结束日期不能早于开始日期');
-      return;
-    }
+    formError = validateDateRange(form.lease_start_date, form.lease_end_date, '租赁开始日期', '租赁结束日期');
+    if (formError) return;
     if (!validateRows()) return;
     // 校验数据库实例行
     if (dbInstances.some(r => !r.name.trim() || !r.db_type)) {
@@ -360,6 +358,12 @@
 </script>
 
 <div class="space-y-4">
+  {#if formError}
+    <div class="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+      {formError}
+    </div>
+  {/if}
+
   <div class="flex items-center justify-between">
     <div></div>
     <div class="flex gap-2">
@@ -455,7 +459,11 @@
             <Label>IP 地址 <span class="text-destructive">*</span></Label>
             <Input bind:value={ip.ip_address} placeholder="192.168.1.10" />
           </div>
-          <div class="space-y-1 md:col-span-3">
+          <div class="space-y-1 md:col-span-2">
+            <Label>网卡名称</Label>
+            <Input bind:value={ip.nic_name} placeholder="eth0 / 内网网卡" />
+          </div>
+          <div class="space-y-1 md:col-span-2">
             <FormSelect
               label="类型"
               bind:value={ip.ip_type}
@@ -471,7 +479,7 @@
               placeholder="选择供应商"
             />
           </div>
-          <div class="flex items-end gap-2 md:col-span-2">
+          <div class="flex items-end gap-2 md:col-span-1">
             <label class="flex items-center gap-2 pb-2 text-sm">
               <input type="checkbox" bind:checked={ip.is_primary} class="h-4 w-4" />
               主 IP

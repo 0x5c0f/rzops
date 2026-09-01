@@ -2,6 +2,7 @@ export interface ServerIpResponse {
   id: string;
   server_id: string | null;
   ip_address: string;
+  nic_name: string | null;
   ip_type: string | null;
   is_primary: boolean;
   isp_provider_id: string | null;
@@ -19,6 +20,7 @@ export interface ServerIpListResponse {
 export interface CreateServerIpRequest {
   server_id?: string;
   ip_address: string;
+  nic_name?: string;
   ip_type?: string;
   is_primary?: boolean;
   isp_provider_id?: string;
@@ -28,6 +30,7 @@ export interface CreateServerIpRequest {
 
 export interface UpdateServerIpRequest {
   ip_address?: string;
+  nic_name?: string;
   ip_type?: string;
   is_primary?: boolean;
   isp_provider_id?: string;

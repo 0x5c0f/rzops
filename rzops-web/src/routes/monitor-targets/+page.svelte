@@ -76,7 +76,6 @@
   }
 
   async function handleDelete(item: MonitorTargetResponse) {
-    if (!confirm(`确定要删除监控目标 "${item.name}" 吗？`)) return;
     try {
       await monitorTargetsApi.delete(item.id);
       loadData();

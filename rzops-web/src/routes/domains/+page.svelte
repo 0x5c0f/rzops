@@ -62,7 +62,6 @@
   }
 
   async function handleDelete(item: DomainResponse) {
-    if (!confirm(`确定要删除域名 "${item.domain_name}" 吗？`)) return;
     try {
       await domainsApi.delete(item.id);
       loadData();

@@ -68,7 +68,6 @@
   }
 
   async function handleDelete(item: ContractResponse) {
-    if (!confirm(`确定要删除合同 "${item.name}" 吗？`)) return;
     try {
       await contractsApi.delete(item.id);
       loadData();

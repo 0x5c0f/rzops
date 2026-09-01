@@ -254,6 +254,11 @@ const FALLBACKS: Record<string, SelectOption[]> = {
     { label: '数据中心', value: 'data_center' },
     { label: '其他', value: 'other' },
   ],
+  backup_target_type: [
+    { label: '服务器', value: 'server' },
+    { label: '数据库实例', value: 'database' },
+    { label: '站点', value: 'site' },
+  ],
 };
 
 // 创建字典 store：初始为静态兜底

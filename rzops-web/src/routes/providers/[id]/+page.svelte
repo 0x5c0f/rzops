@@ -14,8 +14,11 @@
   import { getOptionLabel, getOptionLabels, providerTypeOptions, commonStatusOptions } from '$lib/utils/enum-options';
   import { formatDate } from '$lib/utils/format';
   import { onMount } from 'svelte';
+  import ConfirmDialog from '$lib/components/shared/ConfirmDialog.svelte';
 
   let provider = $state<ProviderResponse | null>(null);
+
+  let confirmOpen = $state(false);
   let servers = $state<ServerResponse[]>([]);
   let loading = $state(true);
 
@@ -38,13 +41,17 @@
     }
   });
 
-  async function handleDelete() {
+  function handleDelete() {
     if (!provider) return;
-    if (!confirm(`确定要删除供应商 "${provider.name}" 吗？`)) return;
+    confirmOpen = true;
+  }
+
+  async function doDelete() {
+    if (!provider) return;
     try {
       await providersApi.delete(provider.id);
       goto('/providers');
-    } catch (err) {
+      } catch (err) {
       console.error('Failed to delete provider:', err);
     }
   }
@@ -194,4 +201,12 @@
     </Card.Root>
     <AttachmentSection targetType="provider" targetId={provider.id} />
   {/if}
+
+    <ConfirmDialog
+      bind:open={confirmOpen}
+      title="确认删除"
+      description={`确定要删除供应商「${provider?.name}」吗？此操作可在回收站恢复。`}
+      confirmLabel="删除"
+      onConfirm={doDelete}
+    />
 </div>

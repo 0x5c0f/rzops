@@ -15,8 +15,11 @@
   import { getProviderOptions } from '$lib/utils/entity-options';
   import { formatDate } from '$lib/utils/format';
   import { onMount } from 'svelte';
+  import ConfirmDialog from '$lib/components/shared/ConfirmDialog.svelte';
 
   let datacenter = $state<DataCenterResponse | null>(null);
+
+  let confirmOpen = $state(false);
   let servers = $state<ServerResponse[]>([]);
   let loading = $state(true);
   let providerMap = $state<Record<string, string>>({});
@@ -42,13 +45,17 @@
     }
   });
 
-  async function handleDelete() {
+  function handleDelete() {
     if (!datacenter) return;
-    if (!confirm(`确定要删除数据中心 "${datacenter.name}" 吗？`)) return;
+    confirmOpen = true;
+  }
+
+  async function doDelete() {
+    if (!datacenter) return;
     try {
       await datacentersApi.delete(datacenter.id);
       goto('/datacenters');
-    } catch (err) {
+      } catch (err) {
       console.error('Failed to delete datacenter:', err);
     }
   }
@@ -201,4 +208,12 @@
     </Card.Root>
     <AttachmentSection targetType="data_center" targetId={datacenter.id} />
   {/if}
+
+    <ConfirmDialog
+      bind:open={confirmOpen}
+      title="确认删除"
+      description={`确定要删除数据中心「${datacenter?.name}」吗？此操作可在回收站恢复。`}
+      confirmLabel="删除"
+      onConfirm={doDelete}
+    />
 </div>

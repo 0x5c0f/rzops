@@ -85,6 +85,7 @@
     return {
       id: ip.id,
       ip_address: ip.ip_address,
+      nic_name: ip.nic_name ?? '',
       ip_type: ip.ip_type ?? '',
       is_primary: ip.is_primary,
       isp_provider_id: ip.isp_provider_id ?? '',

@@ -66,7 +66,6 @@
   }
 
   async function handleDelete(item: DataCenterResponse) {
-    if (!confirm(`确定要删除数据中心 "${item.name}" 吗？`)) return;
     try {
       await datacentersApi.delete(item.id);
       loadData();

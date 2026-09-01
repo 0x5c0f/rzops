@@ -120,7 +120,6 @@
   }
 
   async function handleDelete(item: DictItem) {
-    if (!confirm(`确定要停用字典项 "${item.dict_label}" (${item.dict_code}) 吗？停用后表单中将不再展示。`)) return;
     try {
       await dictsApi.delete(item.id);
       await loadData();
@@ -172,6 +171,8 @@
     {loading}
     onEdit={openEdit}
     onDelete={handleDelete}
+    getDeleteLabel={(item) => `${item.dict_label} (${item.dict_code})`}
+    deleteTitle="确认停用"
   />
 
   <div class="flex items-center justify-between text-sm text-muted-foreground">

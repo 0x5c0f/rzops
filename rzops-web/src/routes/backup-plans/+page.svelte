@@ -72,7 +72,6 @@
   }
 
   async function handleDelete(item: BackupPlanResponse) {
-    if (!confirm(`确定要删除备份计划 "${item.name}" 吗？`)) return;
     try {
       await backupPlansApi.delete(item.id);
       loadData();

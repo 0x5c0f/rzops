@@ -11,8 +11,11 @@
   import StatusBadge from '$lib/components/shared/StatusBadge.svelte';
   import { formatDate, formatBytes } from '$lib/utils/format';
   import { onMount } from 'svelte';
+  import ConfirmDialog from '$lib/components/shared/ConfirmDialog.svelte';
 
   let attachment = $state<AttachmentResponse | null>(null);
+
+  let confirmOpen = $state(false);
   let loading = $state(true);
   let error = $state('');
 
@@ -72,13 +75,17 @@
     }
   }
 
-  async function handleDelete() {
+  function handleDelete() {
     if (!attachment) return;
-    if (!confirm(`确定要删除附件 "${attachment.filename}" 吗？`)) return;
+    confirmOpen = true;
+  }
+
+  async function doDelete() {
+    if (!attachment) return;
     try {
       await attachmentsApi.delete(attachment.id);
       goto('/attachments');
-    } catch (err) {
+      } catch (err) {
       console.error('Failed to delete attachment:', err);
     }
   }
@@ -167,4 +174,12 @@
       </Card.Content>
     </Card.Root>
   {/if}
+
+    <ConfirmDialog
+      bind:open={confirmOpen}
+      title="确认删除"
+      description={`确定要删除附件「${attachment?.filename}」吗？此操作可在回收站恢复。`}
+      confirmLabel="删除"
+      onConfirm={doDelete}
+    />
 </div>

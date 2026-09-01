@@ -64,7 +64,6 @@
   }
 
   async function handleDelete(item: CertificateResponse) {
-    if (!confirm(`确定要删除证书 "${item.name}" 吗？`)) return;
     try {
       await certificatesApi.delete(item.id);
       loadData();

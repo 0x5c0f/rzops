@@ -14,6 +14,7 @@
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import StatusBadge from '$lib/components/shared/StatusBadge.svelte';
   import AttachmentSection from '$lib/components/shared/AttachmentSection.svelte';
+  import ConfirmDialog from '$lib/components/shared/ConfirmDialog.svelte';
   import { siteRelationsApi, type SiteRefByServer } from '$lib/api/site-relations';
   import {
     serverTypeOptions, hostingTypeOptions, serverRoleOptions,
@@ -31,6 +32,7 @@
   let loading = $state(true);
   let dataCenterMap = $state<Record<string, string>>({});
   let providerMap = $state<Record<string, string>>({});
+  let confirmOpen = $state(false);
 
   onMount(async () => {
     const id = $page.params.id;
@@ -58,9 +60,13 @@
     }
   });
 
-  async function handleDelete() {
+  function handleDelete() {
     if (!server) return;
-    if (!confirm(`确定要删除服务器 "${server.name}" 吗？`)) return;
+    confirmOpen = true;
+  }
+
+  async function doDelete() {
+    if (!server) return;
     try {
       await serversApi.delete(server.id);
       goto('/servers');
@@ -292,6 +298,7 @@
             <Table.Header>
               <Table.Row>
                 <Table.Head>IP 地址</Table.Head>
+                <Table.Head>网卡</Table.Head>
                 <Table.Head>类型</Table.Head>
                 <Table.Head>主IP</Table.Head>
                 <Table.Head>状态</Table.Head>
@@ -302,6 +309,7 @@
               {#each ips as ip}
                 <Table.Row>
                   <Table.Cell class="font-mono">{ip.ip_address}</Table.Cell>
+                  <Table.Cell>{ip.nic_name || '-'}</Table.Cell>
                   <Table.Cell>{ip.ip_type}</Table.Cell>
                   <Table.Cell>{ip.is_primary ? '是' : '-'}</Table.Cell>
                   <Table.Cell><StatusBadge status={ip.status} /></Table.Cell>
@@ -384,5 +392,13 @@
       </Card.Content>
     </Card.Root>
     <AttachmentSection targetType="server" targetId={server.id} />
+
+    <ConfirmDialog
+      bind:open={confirmOpen}
+      title="确认删除"
+      description={`确定要删除服务器「${server?.name}」吗？此操作可在回收站恢复。`}
+      confirmLabel="删除"
+      onConfirm={doDelete}
+    />
   {/if}
 </div>

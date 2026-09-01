@@ -10,6 +10,7 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
   import TextArea from '$lib/components/shared/TextArea.svelte';
   import { getProviderOptions } from '$lib/utils/entity-options';
   import { currencyOptions, domainPrivacyStatusOptions } from '$lib/utils/enum-options';
+  import { validateDateRange } from '$lib/utils/validation';
   import { onMount } from 'svelte';
 
   let {
@@ -24,6 +25,7 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
   } = $props();
 
   let saving = $state(false);
+  let formError = $state<string | null>(null);
   let attachmentRef = $state<{ uploadAll: (id: string) => Promise<void> } | null>(null);
   let providerOptions = $state<{ label: string; value: string }[]>([]);
 
@@ -44,6 +46,8 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
   });
 
   async function handleSave() {
+    formError = validateDateRange(form.registered_date, form.expiry_date, '注册日期', '到期日期');
+    if (formError) return;
     saving = true;
     try {
       const id = await onSubmit(form);
@@ -57,6 +61,12 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
 </script>
 
 <div class="space-y-4">
+  {#if formError}
+    <div class="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+      {formError}
+    </div>
+  {/if}
+
   <Card.Root>
     <Card.Header>
       <Card.Title>基本信息</Card.Title>

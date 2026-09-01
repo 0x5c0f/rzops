@@ -7,6 +7,7 @@ use uuid::Uuid;
 pub struct CreateServerIpRequest {
     pub server_id: Option<Uuid>,
     pub ip_address: String,
+    pub nic_name: Option<String>,
     pub ip_type: Option<String>,
     pub is_primary: Option<bool>,
     pub isp_provider_id: Option<Uuid>,
@@ -18,6 +19,7 @@ pub struct CreateServerIpRequest {
 #[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct UpdateServerIpRequest {
     pub ip_address: Option<String>,
+    pub nic_name: Option<String>,
     pub ip_type: Option<String>,
     pub is_primary: Option<bool>,
     pub isp_provider_id: Option<Uuid>,
@@ -41,6 +43,7 @@ pub struct ServerIpResponse {
     pub id: Uuid,
     pub server_id: Option<Uuid>,
     pub ip_address: String,
+    pub nic_name: Option<String>,
     pub ip_type: String,
     pub is_primary: bool,
     pub isp_provider_id: Option<Uuid>,

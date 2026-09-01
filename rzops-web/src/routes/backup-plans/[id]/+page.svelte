@@ -10,8 +10,11 @@
   import StatusBadge from '$lib/components/shared/StatusBadge.svelte';
   import { onMount } from 'svelte';
   import { backupTargetTypeOptions } from '$lib/utils/enum-options';
+  import ConfirmDialog from '$lib/components/shared/ConfirmDialog.svelte';
 
   let plan = $state<BackupPlanResponse | null>(null);
+
+  let confirmOpen = $state(false);
   let loading = $state(true);
   let targetTypeMap = $derived(Object.fromEntries($backupTargetTypeOptions.map(o => [o.value, o.label])));
 
@@ -42,13 +45,17 @@
     }
   });
 
-  async function handleDelete() {
+  function handleDelete() {
     if (!plan) return;
-    if (!confirm(`确定要删除备份计划 "${plan.name}" 吗？`)) return;
+    confirmOpen = true;
+  }
+
+  async function doDelete() {
+    if (!plan) return;
     try {
       await backupPlansApi.delete(plan.id);
       goto('/backup-plans');
-    } catch (err) {
+      } catch (err) {
       console.error('Failed to delete backup-plan:', err);
     }
   }
@@ -120,4 +127,12 @@
     </div>
     <AttachmentSection targetType="backup_plan" targetId={plan.id} />
   {/if}
+
+    <ConfirmDialog
+      bind:open={confirmOpen}
+      title="确认删除"
+      description={`确定要删除备份计划「${plan?.name}」吗？此操作可在回收站恢复。`}
+      confirmLabel="删除"
+      onConfirm={doDelete}
+    />
 </div>

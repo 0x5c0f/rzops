@@ -68,7 +68,6 @@
   }
 
   async function handleDelete(item: ProviderResponse) {
-    if (!confirm(`确定要删除供应商 "${item.name}" 吗？`)) return;
     try {
       await providersApi.delete(item.id);
       loadData();

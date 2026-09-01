@@ -64,7 +64,6 @@
   }
 
   async function handleDelete(item: DatabaseInstanceResponse) {
-    if (!confirm(`确定要删除数据库实例 "${item.name}" 吗？`)) return;
     try {
       await databaseInstancesApi.delete(item.id);
       loadData();

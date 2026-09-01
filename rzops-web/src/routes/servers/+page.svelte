@@ -74,7 +74,6 @@
   }
 
   async function handleDelete(item: ServerResponse) {
-    if (!confirm(`确定要删除服务器 "${item.name}" 吗？`)) return;
     try {
       await serversApi.delete(item.id);
       loadData();

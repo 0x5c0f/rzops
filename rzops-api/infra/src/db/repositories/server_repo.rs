@@ -136,9 +136,8 @@ impl ServerRepository for PgServerRepository {
             idx += 1;
         }
         if let Some(ref q) = filter.q {
-            sql.push_str(&format!(" AND name ILIKE ${}", idx));
+            sql.push_str(&format!(" AND (name ILIKE ${idx} OR primary_ip ILIKE ${idx} OR asset_code ILIKE ${idx})", idx = idx));
             binds.push(format!("%{}%", q));
-            // idx += 1;
         }
 
         sql.push_str(" ORDER BY created_at DESC");
@@ -181,7 +180,7 @@ impl ServerRepository for PgServerRepository {
             idx += 1;
         }
         if let Some(ref q) = filter.q {
-            sql.push_str(&format!(" AND name ILIKE ${}", idx));
+            sql.push_str(&format!(" AND (name ILIKE ${idx} OR primary_ip ILIKE ${idx} OR asset_code ILIKE ${idx})", idx = idx));
             string_binds.push(format!("%{}%", q));
         }
 
@@ -332,7 +331,7 @@ impl PgServerRepository {
         if status_val.is_some() { sql.push_str(&format!(" AND status::text = ${}", idx)); idx += 1; }
         if dc_id_val.is_some() { sql.push_str(&format!(" AND data_center_id = ${}", idx)); idx += 1; }
         if server_type_val.is_some() { sql.push_str(&format!(" AND server_type::text = ${}", idx)); idx += 1; }
-        if q_val.is_some() { sql.push_str(&format!(" AND name ILIKE ${}", idx)); }
+        if q_val.is_some() { sql.push_str(&format!(" AND (name ILIKE ${idx} OR primary_ip ILIKE ${idx} OR asset_code ILIKE ${idx})", idx = idx)); }
 
         sql.push_str(" ORDER BY created_at DESC");
 

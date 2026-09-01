@@ -10,8 +10,11 @@
   import { commonStatusOptions, getOptionLabel } from '$lib/utils/enum-options';
   import { getServerOptions, getProviderOptions } from '$lib/utils/entity-options';
   import { onMount } from 'svelte';
+  import ConfirmDialog from '$lib/components/shared/ConfirmDialog.svelte';
 
   let serverIp = $state<ServerIpResponse | null>(null);
+
+  let confirmOpen = $state(false);
   let loading = $state(true);
   let serverMap = $state<Record<string, string>>({});
   let providerMap = $state<Record<string, string>>({});
@@ -36,13 +39,17 @@
     }
   });
 
-  async function handleDelete() {
+  function handleDelete() {
     if (!serverIp) return;
-    if (!confirm(`确定要删除服务器IP "${serverIp.ip_address}" 吗？`)) return;
+    confirmOpen = true;
+  }
+
+  async function doDelete() {
+    if (!serverIp) return;
     try {
       await serverIpsApi.delete(serverIp.id);
       goto('/server-ips');
-    } catch (err) {
+      } catch (err) {
       console.error('Failed to delete server IP:', err);
     }
   }
@@ -91,6 +98,10 @@
               <dd class="font-mono">{serverIp.ip_address}</dd>
             </div>
             <div class="flex justify-between">
+              <dt class="text-muted-foreground">网卡名称</dt>
+              <dd>{serverIp.nic_name || '-'}</dd>
+            </div>
+            <div class="flex justify-between">
               <dt class="text-muted-foreground">IP类型</dt>
               <dd>{serverIp.ip_type || '-'}</dd>
             </div>
@@ -123,4 +134,12 @@
       </Card.Root>
     </div>
   {/if}
+
+    <ConfirmDialog
+      bind:open={confirmOpen}
+      title="确认删除"
+      description={`确定要删除服务器IP「${serverIp?.ip_address}」吗？此操作可在回收站恢复。`}
+      confirmLabel="删除"
+      onConfirm={doDelete}
+    />
 </div>

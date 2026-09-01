@@ -24,6 +24,7 @@ fn row_to_server_ip(row: &sqlx::postgres::PgRow) -> ServerIP {
         id: row.get("id"),
         server_id: row.get("server_id"),
         ip_address: row.get("ip_address"),
+        nic_name: row.get("nic_name"),
         ip_type: row.get("ip_type"),
         is_primary: row.get("is_primary"),
         isp_provider_id: row.get("isp_provider_id"),
@@ -38,7 +39,7 @@ fn row_to_server_ip(row: &sqlx::postgres::PgRow) -> ServerIP {
 impl ServerIpRepository for PgServerIpRepository {
     async fn find_by_id(&self, id: Uuid) -> Result<Option<ServerIP>, sqlx::Error> {
         let row = sqlx::query(
-            r#"SELECT id, server_id, ip_address, ip_type, is_primary,
+            r#"SELECT id, server_id, ip_address, nic_name, ip_type, is_primary,
                       isp_provider_id, description, status::text, created_at, updated_at
                FROM cmdb_server_ip WHERE id = $1"#,
         )
@@ -50,7 +51,7 @@ impl ServerIpRepository for PgServerIpRepository {
 
     async fn find_all(&self, filter: ServerIpFilter) -> Result<Vec<ServerIP>, sqlx::Error> {
         let mut sql = String::from(
-            r#"SELECT id, server_id, ip_address, ip_type, is_primary,
+            r#"SELECT id, server_id, ip_address, nic_name, ip_type, is_primary,
                       isp_provider_id, description, status::text, created_at, updated_at
                FROM cmdb_server_ip WHERE 1=1"#,
         );
@@ -97,15 +98,16 @@ impl ServerIpRepository for PgServerIpRepository {
     async fn create(&self, ip: &ServerIP) -> Result<ServerIP, sqlx::Error> {
         let row = sqlx::query(
             r#"INSERT INTO cmdb_server_ip
-               (id, server_id, ip_address, ip_type, is_primary, isp_provider_id,
+               (id, server_id, ip_address, nic_name, ip_type, is_primary, isp_provider_id,
                 description, status, created_at, updated_at)
-               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-               RETURNING id, server_id, ip_address, ip_type, is_primary,
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+               RETURNING id, server_id, ip_address, nic_name, ip_type, is_primary,
                          isp_provider_id, description, status::text, created_at, updated_at"#,
         )
         .bind(ip.id)
         .bind(ip.server_id)
         .bind(&ip.ip_address)
+        .bind(&ip.nic_name)
         .bind(&ip.ip_type)
         .bind(ip.is_primary)
         .bind(ip.isp_provider_id)
@@ -121,14 +123,15 @@ impl ServerIpRepository for PgServerIpRepository {
     async fn update(&self, id: Uuid, ip: &ServerIP) -> Result<Option<ServerIP>, sqlx::Error> {
         let row = sqlx::query(
             r#"UPDATE cmdb_server_ip SET
-                ip_address = $2, ip_type = $3, is_primary = $4, isp_provider_id = $5,
-                description = $6, status = $7, updated_at = $8
+                ip_address = $2, nic_name = $3, ip_type = $4, is_primary = $5, isp_provider_id = $6,
+                description = $7, status = $8, updated_at = $9
                WHERE id = $1
-               RETURNING id, server_id, ip_address, ip_type, is_primary,
+               RETURNING id, server_id, ip_address, nic_name, ip_type, is_primary,
                          isp_provider_id, description, status::text, created_at, updated_at"#,
         )
         .bind(id)
         .bind(&ip.ip_address)
+        .bind(&ip.nic_name)
         .bind(&ip.ip_type)
         .bind(ip.is_primary)
         .bind(ip.isp_provider_id)

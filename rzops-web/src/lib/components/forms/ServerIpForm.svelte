@@ -85,6 +85,11 @@
         <Input id="ip_address" bind:value={form.ip_address} required placeholder="如 192.168.1.10" />
       </div>
 
+      <div class="space-y-2">
+        <Label for="nic_name">网卡名称</Label>
+        <Input id="nic_name" bind:value={form.nic_name} placeholder="如 eth0 / ens33 / 内网网卡" />
+      </div>
+
       <FormSelect
         label="IP类型"
         bind:value={form.ip_type}

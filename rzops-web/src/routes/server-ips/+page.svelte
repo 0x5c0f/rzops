@@ -22,6 +22,7 @@
 
   const columns = $derived([
     { key: 'ip_address', label: 'IP地址' , link: (item: ServerIpResponse) => `/server-ips/${item.id}` },
+    { key: 'nic_name', label: '网卡', render: (v: unknown) => v || '-' },
     { key: 'ip_type', label: '类型', valueMap: ipTypeMap },
     { key: 'server_id', label: '服务器', valueMap: serverMap },
     { key: 'is_primary', label: '主IP', render: (v: unknown) => v ? '是' : '否' },
@@ -63,7 +64,6 @@
   }
 
   async function handleDelete(item: ServerIpResponse) {
-    if (!confirm(`确定要删除服务器IP "${item.ip_address}" 吗？`)) return;
     try {
       await serverIpsApi.delete(item.id);
       loadData();

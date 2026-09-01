@@ -60,7 +60,6 @@
   }
 
   async function handleDelete(item: OpsSiteResponse) {
-    if (!confirm(`确定要删除站点 "${item.name}" 吗？`)) return;
     try {
       await opsSitesApi.delete(item.id);
       loadData();
