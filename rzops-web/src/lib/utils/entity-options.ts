@@ -83,6 +83,32 @@ export async function searchServerOptions(keyword: string): Promise<SelectOption
 }
 
 /**
+ * 分页搜索服务器（用于 TableSelectModal，返回完整对象和总数）
+ */
+export async function searchServerPaginated(
+  keyword: string,
+  page: number,
+  perPage: number
+): Promise<{ data: Record<string, unknown>[]; total: number }> {
+  try {
+    const res = await serversApi.list({ q: keyword || undefined, page, per_page: perPage });
+    return {
+      data: res.data.map(item => ({
+        id: item.id,
+        name: item.name,
+        primary_ip: item.primary_ip || '-',
+        status: item.status,
+        server_type: item.server_type || '-',
+      })),
+      total: res.count,
+    };
+  } catch (err) {
+    console.error('Failed to search servers paginated:', err);
+    return { data: [], total: 0 };
+  }
+}
+
+/**
  * 远程搜索数据库实例选项
  */
 export async function searchDatabaseInstanceOptions(keyword: string): Promise<SelectOption[]> {

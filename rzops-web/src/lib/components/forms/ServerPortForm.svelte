@@ -5,10 +5,10 @@
   import { Label } from '$lib/ui/label';
   import * as Card from '$lib/ui/card';
   import FormSelect from '$lib/components/shared/FormSelect.svelte';
-  import RemoteSearchSelect from '$lib/components/shared/RemoteSearchSelect.svelte';
+  import TableSelectModal from '$lib/components/shared/TableSelectModal.svelte';
   import TextArea from '$lib/components/shared/TextArea.svelte';
-  import { searchServerOptions } from '$lib/utils/entity-options';
-  import { protocolOptions } from '$lib/utils/enum-options';
+  import { searchServerPaginated } from '$lib/utils/entity-options';
+  import { protocolOptions, serverStatusOptions, serverTypeOptions, getOptionLabel } from '$lib/utils/enum-options';
 
   let {
     initial = {} as CreateServerPortRequest,
@@ -66,15 +66,32 @@
     </Card.Header>
     <Card.Content class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       <div class="md:col-span-2 lg:col-span-3">
-        <RemoteSearchSelect
+        <TableSelectModal
           label="服务器 *"
           multiple
           bind:value={form.server_ids}
-          searchFn={searchServerOptions}
+          searchFn={searchServerPaginated}
           displayOptions={displayServerOptions}
           placeholder="选择服务器（可多选）"
           searchPlaceholder="输入名称或 IP 搜索..."
+          modalTitle="选择服务器"
           required
+          columns={[
+            { key: 'name', label: '服务器名称' },
+            { key: 'primary_ip', label: '主IP', width: 'w-32' },
+            {
+              key: 'status',
+              label: '状态',
+              width: 'w-20',
+              render: (item) => getOptionLabel($serverStatusOptions, String(item.status ?? '')),
+            },
+            {
+              key: 'server_type',
+              label: '类型',
+              width: 'w-24',
+              render: (item) => getOptionLabel($serverTypeOptions, String(item.server_type ?? '')),
+            },
+          ]}
         />
       </div>
 
