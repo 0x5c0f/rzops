@@ -10,10 +10,6 @@
   import X from '@lucide/svelte/icons/x';
   import Search from '@lucide/svelte/icons/search';
   import Loader2 from '@lucide/svelte/icons/loader-2';
-  import ChevronLeft from '@lucide/svelte/icons/chevron-left';
-  import ChevronRight from '@lucide/svelte/icons/chevron-right';
-  import Inbox from '@lucide/svelte/icons/inbox';
-  import Check from '@lucide/svelte/icons/check';
   import { onMount } from 'svelte';
 
   export interface TableSelectColumn {
@@ -249,151 +245,68 @@
 
   <!-- 选择弹窗 -->
   <Dialog.Root bind:open={modalOpen}>
-    <Dialog.Content class="sm:max-w-4xl p-0 overflow-hidden">
-      <!-- 头部 -->
-      <div class="border-b bg-gradient-to-r from-primary/5 to-transparent px-6 py-4">
-        <div class="flex items-center justify-between">
-          <div>
-            <h2 class="text-lg font-semibold">{modalTitle}</h2>
-            <p class="mt-0.5 text-sm text-muted-foreground">
-              共 <span class="font-medium text-foreground">{total}</span> 条数据
-              {#if tempSelected.size > 0}
-                · 已选 <span class="font-medium text-primary">{tempSelected.size}</span> 项
-              {/if}
-            </p>
-          </div>
-          <button
-            type="button"
-            onclick={closeModal}
-            class="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            aria-label="关闭"
-          >
-            <X class="h-4 w-4" />
-          </button>
-        </div>
-      </div>
+    <Dialog.Content class="sm:max-w-3xl">
+      <Dialog.Header>
+        <Dialog.Title>{modalTitle}</Dialog.Title>
+        <Dialog.Description>
+          共 {total} 条，已选 {tempSelected.size} 项
+        </Dialog.Description>
+      </Dialog.Header>
 
       <!-- 搜索框 -->
-      <div class="border-b px-6 py-3">
-        <div class="relative">
-          <Search class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <input
-            type="text"
-            bind:value={keyword}
-            oninput={onKeywordInput}
-            placeholder={searchPlaceholder}
-            class="h-9 w-full rounded-lg border border-input bg-background pl-9 pr-4 text-sm outline-none transition-colors placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/30"
-          />
-          {#if keyword}
-            <button
-              type="button"
-              onclick={() => { keyword = ''; page = 1; loadData(); }}
-              class="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-              aria-label="清除搜索"
-            >
-              <X class="h-3.5 w-3.5" />
-            </button>
-          {/if}
-        </div>
+      <div class="flex items-center gap-2 border-b px-4 py-3">
+        <Search class="h-4 w-4 shrink-0 text-muted-foreground" />
+        <input
+          type="text"
+          bind:value={keyword}
+          oninput={onKeywordInput}
+          placeholder={searchPlaceholder}
+          class="h-8 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+        />
       </div>
 
-      <!-- 已选标签区 -->
-      {#if tempSelected.size > 0}
-        <div class="flex flex-wrap items-center gap-1.5 border-b bg-muted/30 px-6 py-2.5">
-          <span class="text-xs font-medium text-muted-foreground">已选：</span>
-          {#each Array.from(tempSelected.entries()) as [id, item]}
-            <Badge variant="secondary" class="gap-1 border-primary/20 bg-primary/10 text-primary-foreground">
-              <span class="text-primary">{String(item[labelKey] ?? id)}</span>
-              <button
-                type="button"
-                onclick={() => { tempSelected.delete(id); tempSelected = new Map(tempSelected); }}
-                class="ml-0.5 rounded-full hover:bg-primary/20"
-                aria-label="移除"
-              >
-                <X class="h-3 w-3" />
-              </button>
-            </Badge>
-          {/each}
-          <button
-            type="button"
-            onclick={() => { tempSelected.clear(); tempSelected = new Map(); }}
-            class="ml-auto text-xs text-muted-foreground underline-offset-2 hover:text-destructive hover:underline"
-          >
-            清空全部
-          </button>
-        </div>
-      {/if}
-
       <!-- 表格 -->
-      <div class="max-h-[420px] overflow-auto">
+      <div class="max-h-96 overflow-auto">
         {#if loading}
-          <div class="flex flex-col items-center justify-center gap-3 py-16">
-            <Loader2 class="h-8 w-8 animate-spin text-primary" />
-            <span class="text-sm text-muted-foreground">加载中...</span>
+          <div class="flex items-center justify-center gap-2 py-12 text-sm text-muted-foreground">
+            <Loader2 class="h-4 w-4 animate-spin" />
+            加载中...
           </div>
         {:else if tableData.length === 0}
-          <div class="flex flex-col items-center justify-center gap-3 py-16">
-            <div class="rounded-full bg-muted p-4">
-              <Inbox class="h-8 w-8 text-muted-foreground" />
-            </div>
-            <div class="text-center">
-              <p class="text-sm font-medium">无匹配结果</p>
-              <p class="mt-1 text-xs text-muted-foreground">
-                {#if keyword}
-                  没有找到与「{keyword}」匹配的数据，试试其他关键词
-                {:else}
-                  暂无数据
-                {/if}
-              </p>
-            </div>
-          </div>
+          <div class="py-12 text-center text-sm text-muted-foreground">无匹配结果</div>
         {:else}
           <Table.Root>
-            <Table.Header class="sticky top-0 z-10 bg-muted/80 backdrop-blur">
+            <Table.Header>
               <Table.Row>
-                <Table.Head class="w-12 px-4">
+                <Table.Head class="w-10">
                   <input
                     type="checkbox"
-                    class="h-4 w-4 rounded border-input accent-primary"
+                    class="h-4 w-4"
                     checked={tableData.length > 0 && tableData.every(item => isRowSelected(item))}
                     onchange={toggleAllOnPage}
                   />
                 </Table.Head>
                 {#each columns as col}
-                  <Table.Head class={col.width ? `${col.width} px-4 py-3 text-xs font-semibold uppercase tracking-wide` : 'px-4 py-3 text-xs font-semibold uppercase tracking-wide'}>
-                    {col.label}
-                  </Table.Head>
+                  <Table.Head class={col.width}>{col.label}</Table.Head>
                 {/each}
               </Table.Row>
             </Table.Header>
             <Table.Body>
-              {#each tableData as item, index (String(item[rowKey]))}
+              {#each tableData as item (String(item[rowKey]))}
                 <Table.Row
-                  class={cn(
-                    'cursor-pointer transition-colors',
-                    index % 2 === 1 ? 'bg-muted/20' : '',
-                    isRowSelected(item) ? 'bg-primary/10 hover:bg-primary/15' : 'hover:bg-muted/40'
-                  )}
+                  class={isRowSelected(item) ? 'bg-accent/50 cursor-pointer' : 'cursor-pointer hover:bg-accent/30'}
                   onclick={() => toggleRow(item)}
                 >
-                  <Table.Cell class="px-4 py-3">
-                    <div class={cn(
-                      'flex h-5 w-5 items-center justify-center rounded border transition-colors',
-                      isRowSelected(item) ? 'border-primary bg-primary' : 'border-input bg-background'
-                    )}>
-                      {#if isRowSelected(item)}
-                        <Check class="h-3.5 w-3.5 text-primary-foreground" />
-                      {/if}
-                    </div>
+                  <Table.Cell>
+                    <input
+                      type="checkbox"
+                      class="h-4 w-4"
+                      checked={isRowSelected(item)}
+                      onchange={(e) => { e.stopPropagation(); toggleRow(item); }}
+                    />
                   </Table.Cell>
                   {#each columns as col}
-                    <Table.Cell class="px-4 py-3 text-sm">
-                      {#if col.key === labelKey && isRowSelected(item)}
-                        <span class="font-medium text-primary">{cellValue(item, col)}</span>
-                      {:else}
-                        {cellValue(item, col)}
-                      {/if}
-                    </Table.Cell>
+                    <Table.Cell>{cellValue(item, col)}</Table.Cell>
                   {/each}
                 </Table.Row>
               {/each}
@@ -404,53 +317,27 @@
 
       <!-- 分页 -->
       {#if total > 0}
-        <div class="flex items-center justify-between border-t bg-muted/20 px-6 py-3">
-          <span class="text-xs text-muted-foreground">
-            显示第 {(page - 1) * perPage + 1}-{Math.min(page * perPage, total)} 条，共 {total} 条
+        <div class="flex items-center justify-between border-t px-4 py-3 text-sm">
+          <span class="text-muted-foreground">
+            第 {page} / {totalPages} 页，共 {total} 条
           </span>
-          <div class="flex items-center gap-1">
-            <button
-              type="button"
-              disabled={page <= 1}
-              onclick={() => goPage(page - 1)}
-              class="flex h-8 w-8 items-center justify-center rounded-md border border-input text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
-              aria-label="上一页"
-            >
-              <ChevronLeft class="h-4 w-4" />
-            </button>
-            <span class="px-3 text-sm font-medium">
-              {page} <span class="text-muted-foreground">/ {totalPages}</span>
-            </span>
-            <button
-              type="button"
-              disabled={page >= totalPages}
-              onclick={() => goPage(page + 1)}
-              class="flex h-8 w-8 items-center justify-center rounded-md border border-input text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
-              aria-label="下一页"
-            >
-              <ChevronRight class="h-4 w-4" />
-            </button>
+          <div class="flex gap-1">
+            <Button variant="outline" size="sm" disabled={page <= 1} onclick={() => goPage(page - 1)}>
+              上一页
+            </Button>
+            <Button variant="outline" size="sm" disabled={page >= totalPages} onclick={() => goPage(page + 1)}>
+              下一页
+            </Button>
           </div>
         </div>
       {/if}
 
-      <!-- 底部操作 -->
-      <div class="flex items-center justify-between border-t px-6 py-4">
-        <span class="text-sm text-muted-foreground">
-          {#if tempSelected.size > 0}
-            已选择 <span class="font-semibold text-primary">{tempSelected.size}</span> 项
-          {:else}
-            请从列表中选择
-          {/if}
-        </span>
-        <div class="flex gap-2">
-          <Button variant="outline" onclick={closeModal}>取消</Button>
-          <Button onclick={confirmSelect} disabled={tempSelected.size === 0} class="gap-1.5">
-            <Check class="h-4 w-4" />
-            确认选择
-          </Button>
-        </div>
-      </div>
+      <Dialog.Footer>
+        <Button variant="outline" onclick={closeModal}>取消</Button>
+        <Button onclick={confirmSelect} disabled={tempSelected.size === 0}>
+          确认（已选 {tempSelected.size} 项）
+        </Button>
+      </Dialog.Footer>
     </Dialog.Content>
   </Dialog.Root>
 </div>
