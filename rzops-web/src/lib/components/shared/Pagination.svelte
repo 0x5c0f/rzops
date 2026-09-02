@@ -25,9 +25,9 @@
   let end = $derived(Math.min(page * perPage, total));
 </script>
 
-<div class={cn('flex items-center justify-between text-sm text-muted-foreground', className)}>
+<div class={cn('flex flex-col gap-3 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between', className)}>
   <span>显示 {start}-{end} / 共 {total} 条</span>
-  <div class="flex items-center gap-4">
+  <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
     <div class="flex items-center gap-2">
       <span>每页</span>
       <select
@@ -41,7 +41,7 @@
       </select>
       <span>条</span>
     </div>
-    <div class="flex gap-2">
+    <div class="flex items-center gap-2">
       <Button
         variant="outline"
         size="sm"

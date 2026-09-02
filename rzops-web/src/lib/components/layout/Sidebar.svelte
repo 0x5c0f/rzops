@@ -14,7 +14,16 @@
   import ShieldCheck from '@lucide/svelte/icons/shield-check';
   import ChevronsLeft from '@lucide/svelte/icons/chevrons-left';
   import ChevronsRight from '@lucide/svelte/icons/chevrons-right';
+  import X from '@lucide/svelte/icons/x';
   import { onMount } from 'svelte';
+
+  let {
+    mobileOpen = false,
+    onMobileClose = () => {},
+  }: {
+    mobileOpen?: boolean;
+    onMobileClose?: () => void;
+  } = $props();
 
   const groupIcons: Record<string, typeof Boxes> = {
     基础设施: Boxes,
@@ -131,27 +140,39 @@
 <aside
   class={cn(
     'flex h-screen flex-col border-r border-sidebar-border bg-sidebar-background text-sidebar-foreground transition-[width] duration-300 ease-in-out',
-    collapsed ? 'w-16' : 'w-64'
+    'fixed inset-y-0 left-0 z-40 w-64 transform transition-transform duration-300 ease-in-out md:static md:translate-x-0',
+    collapsed ? 'md:w-16' : 'md:w-64',
+    mobileOpen ? 'translate-x-0' : '-translate-x-full'
   )}
 >
   <div class="border-b border-sidebar-border p-4">
-    <a href="/" class="flex items-center gap-3">
-      <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-sky-500 to-blue-700 shadow-md">
-        <LayoutGrid class="h-5 w-5 text-white" />
-      </div>
-      {#if !collapsed}
-        <div class="min-w-0">
-          <h1 class="text-lg font-bold tracking-tight">RzOps</h1>
-          <p class="text-xs text-sidebar-foreground/85">CMDB 管理平台</p>
+    <div class="flex items-center justify-between">
+      <a href="/" class="flex items-center gap-3" onclick={onMobileClose}>
+        <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-sky-500 to-blue-700 shadow-md">
+          <LayoutGrid class="h-5 w-5 text-white" />
         </div>
-      {/if}
-    </a>
+        {#if !collapsed}
+          <div class="min-w-0">
+            <h1 class="text-lg font-bold tracking-tight">RzOps</h1>
+            <p class="text-xs text-sidebar-foreground/85">CMDB 管理平台</p>
+          </div>
+        {/if}
+      </a>
+      <!-- 移动端关闭按钮 -->
+      <button
+        class="rounded-md p-1 text-sidebar-foreground/80 hover:bg-sidebar-accent md:hidden"
+        onclick={onMobileClose}
+      >
+        <X class="h-5 w-5" />
+      </button>
+    </div>
   </div>
 
   <nav class="flex-1 space-y-1 overflow-y-auto overflow-x-hidden px-2 py-3">
     <!-- Dashboard -->
     <a
       href="/"
+      onclick={onMobileClose}
       class={cn(
         'flex items-center rounded-md text-sm transition-colors hover:bg-sidebar-accent',
         collapsed ? 'justify-center px-2 py-2' : 'gap-2.5 px-3 py-2',
@@ -230,6 +251,7 @@
               {#each group.items as item}
                 <a
                   href={item.href}
+                  onclick={onMobileClose}
                   class={cn(
                     'relative flex items-center rounded-md px-3 py-1.5 text-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
                     isActive(item.href, $page.url.pathname)
@@ -250,8 +272,8 @@
     {/each}
   </nav>
 
-  <!-- 折叠/展开按钮 -->
-  <div class="border-t border-sidebar-border p-2">
+  <!-- 折叠/展开按钮（仅桌面端显示） -->
+  <div class="hidden border-t border-sidebar-border p-2 md:block">
     <button
       class={cn(
         'flex w-full items-center rounded-md py-2 text-sm text-sidebar-foreground/90 transition-colors hover:bg-sidebar-accent',

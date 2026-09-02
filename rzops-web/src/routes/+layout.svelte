@@ -13,6 +13,15 @@
 
   let loading = $state(true);
   let initialized = $state(false);
+  let mobileSidebarOpen = $state(false);
+
+  function toggleMobileSidebar() {
+    mobileSidebarOpen = !mobileSidebarOpen;
+  }
+
+  function closeMobileSidebar() {
+    mobileSidebarOpen = false;
+  }
 
   onMount(async () => {
     // 登录页不加载字典（字典接口需认证，未登录请求会 401 导致整页跳转死循环）
@@ -60,10 +69,17 @@
   {@render children()}
 {:else}
   <div class="flex h-screen">
-    <Sidebar />
+    <Sidebar mobileOpen={mobileSidebarOpen} onMobileClose={closeMobileSidebar} />
+    <!-- 移动端遮罩层 -->
+    {#if mobileSidebarOpen}
+      <div
+        class="fixed inset-0 z-30 bg-black/50 md:hidden"
+        onclick={closeMobileSidebar}
+      ></div>
+    {/if}
     <div class="flex flex-1 flex-col overflow-hidden">
-      <Header />
-      <main class="flex-1 overflow-auto p-6">
+      <Header onMenuToggle={toggleMobileSidebar} />
+      <main class="flex-1 overflow-auto p-4 md:p-6">
         {@render children()}
       </main>
     </div>
