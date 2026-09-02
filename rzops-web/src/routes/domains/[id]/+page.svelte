@@ -10,6 +10,8 @@
   import StatusBadge from '$lib/components/shared/StatusBadge.svelte';
   import { getProviderOptions } from '$lib/utils/entity-options';
   import { domainPrivacyStatusOptions, getOptionLabel } from '$lib/utils/enum-options';
+  import { formatResourceWithStatus, getResourceStatusClass } from '$lib/utils/resource-status';
+  import { providersApi } from '$lib/api/providers';
   import { formatDate } from '$lib/utils/format';
   import { onMount } from 'svelte';
   import ConfirmDialog from '$lib/components/shared/ConfirmDialog.svelte';
@@ -19,17 +21,20 @@
   let confirmOpen = $state(false);
   let loading = $state(true);
   let providerMap = $state<Record<string, string>>({});
+  let providerStatusMap = $state<Record<string, string>>({});
 
   onMount(async () => {
     const id = $page.params.id;
     if (!id) { goto('/domains'); return; }
     try {
-      const [d, provOptions] = await Promise.all([
+      const [d, provOptions, providerList] = await Promise.all([
         domainsApi.getById(id),
         getProviderOptions(),
+        providersApi.list({ per_page: 200 }),
       ]);
       domain = d;
       providerMap = Object.fromEntries(provOptions.map(o => [o.value, o.label]));
+      providerStatusMap = Object.fromEntries(providerList.data.map((p: {id: string, status?: string}) => [p.id, p.status || 'active']));
     } catch (err) {
       console.error('Failed to load domain:', err);
       goto('/domains');
@@ -102,7 +107,9 @@
                 {#if domain.provider_id}
                   {#if providerMap[domain.provider_id]}
                     <a href="/providers/{domain.provider_id}" class="text-primary hover:underline">
-                      {providerMap[domain.provider_id]}
+                      <span class={getResourceStatusClass(providerStatusMap[domain.provider_id], 'provider')}>
+                        {formatResourceWithStatus(providerMap[domain.provider_id], providerStatusMap[domain.provider_id], 'provider')}
+                      </span>
                     </a>
                   {:else}
                     <span class="text-muted-foreground italic">已删除</span>

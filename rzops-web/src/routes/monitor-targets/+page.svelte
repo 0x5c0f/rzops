@@ -1,6 +1,11 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { monitorTargetsApi } from '$lib/api/monitor-targets';
+  import { serversApi } from '$lib/api/servers';
+  import { databaseInstancesApi } from '$lib/api/database-instances';
+  import { opsSitesApi } from '$lib/api/ops-sites';
+  import { domainsApi } from '$lib/api/domains';
+  import { certificatesApi } from '$lib/api/certificates';
   import type { MonitorTargetResponse, ListMonitorTargetsQuery } from '$lib/types/monitor_target';
   import { Button } from '$lib/ui/button';
   import { Input } from '$lib/ui/input';
@@ -8,6 +13,7 @@
   import Pagination from '$lib/components/shared/Pagination.svelte';
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import { formatDate } from '$lib/utils/format';
+  import { formatResourceWithStatus, getResourceStatusClass } from '$lib/utils/resource-status';
   import { onMount } from 'svelte';
   import { commonStatusOptions, monitorTypeOptions, assetTargetTypeOptions } from '$lib/utils/enum-options';
 
@@ -22,6 +28,13 @@
   let monitorTypeMap = $derived(Object.fromEntries($monitorTypeOptions.map(o => [o.value, o.label])));
   let targetTypeMap = $derived(Object.fromEntries($assetTargetTypeOptions.map(o => [o.value, o.label])));
 
+  // 关联目标状态映射
+  let serverStatusMap = $state<Record<string, string>>({});
+  let databaseStatusMap = $state<Record<string, string>>({});
+  let siteStatusMap = $state<Record<string, string>>({});
+  let domainStatusMap = $state<Record<string, string>>({});
+  let certificateStatusMap = $state<Record<string, string>>({});
+
   const targetRoute: Record<string, string> = {
     server: '/servers/',
     database: '/database-instances/',
@@ -35,10 +48,37 @@
     return prefix ? `${prefix}${item.target_id}` : null;
   }
 
+  function getTargetStatus(item: MonitorTargetResponse): string | undefined {
+    if (!item.target_type || !item.target_id) return undefined;
+    if (item.target_type === 'server') return serverStatusMap[item.target_id];
+    if (item.target_type === 'database') return databaseStatusMap[item.target_id];
+    if (item.target_type === 'site') return siteStatusMap[item.target_id];
+    if (item.target_type === 'domain') return domainStatusMap[item.target_id];
+    if (item.target_type === 'certificate') return certificateStatusMap[item.target_id];
+    return undefined;
+  }
+
+  function getTargetResourceType(item: MonitorTargetResponse): string {
+    if (item.target_type === 'server') return 'server';
+    if (item.target_type === 'database') return 'database';
+    if (item.target_type === 'site') return 'site';
+    if (item.target_type === 'domain') return 'ip';
+    if (item.target_type === 'certificate') return 'provider';
+    return '';
+  }
+
   const columns = [
     { key: 'name', label: '名称' , link: (item: MonitorTargetResponse) => `/monitor-targets/${item.id}`, lockVisible: true },
     { key: 'target_type', label: '目标类型', valueMap: targetTypeMap },
-    { key: 'target_name', label: '关联目标', link: targetHref, render: (v: unknown, item: MonitorTargetResponse) => (item.target_name || '-') },
+    { key: 'target_name', label: '关联目标', link: targetHref, render: (v: unknown, item: MonitorTargetResponse) => {
+      const status = getTargetStatus(item);
+      const resType = getTargetResourceType(item);
+      const name = item.target_name || '-';
+      if (status && resType) {
+        return formatResourceWithStatus(name, status, resType);
+      }
+      return name;
+    }},
     { key: 'monitor_type', label: '监控类型', valueMap: monitorTypeMap },
     { key: 'status', label: '状态', valueMap: statusMap },
     { key: 'endpoint', label: '端点', hideInTable: true },
@@ -49,9 +89,21 @@
   async function loadData() {
     loading = true;
     try {
-      const res = await monitorTargetsApi.list(query);
+      const [res, servers, databases, sites, domains, certs] = await Promise.all([
+        monitorTargetsApi.list(query),
+        serversApi.list({ per_page: 200 }),
+        databaseInstancesApi.list({ per_page: 200 }),
+        opsSitesApi.list({ per_page: 200 }),
+        domainsApi.list({ per_page: 200 }),
+        certificatesApi.list({ per_page: 200 }),
+      ]);
       data = res.data;
       total = res.count;
+      serverStatusMap = Object.fromEntries(servers.data.map((s: {id: string, status: string}) => [s.id, s.status]));
+      databaseStatusMap = Object.fromEntries(databases.data.map((d: {id: string, status: string}) => [d.id, d.status]));
+      siteStatusMap = Object.fromEntries(sites.data.map((s: {id: string, status: string}) => [s.id, s.status]));
+      domainStatusMap = Object.fromEntries(domains.data.map((d: {id: string, is_enabled: boolean}) => [d.id, d.is_enabled ? 'enabled' : 'disabled']));
+      certificateStatusMap = Object.fromEntries(certs.data.map((c: {id: string, status: string}) => [c.id, c.status]));
     } catch (err) {
       console.error('Failed to load monitor-targets:', err);
     } finally {

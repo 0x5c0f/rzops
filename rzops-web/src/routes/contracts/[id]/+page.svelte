@@ -8,6 +8,8 @@
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import StatusBadge from '$lib/components/shared/StatusBadge.svelte';
   import { getProviderOptions } from '$lib/utils/entity-options';
+  import { formatResourceWithStatus, getResourceStatusClass } from '$lib/utils/resource-status';
+  import { providersApi } from '$lib/api/providers';
   import { formatDate } from '$lib/utils/format';
   import { onMount } from 'svelte';
   import ConfirmDialog from '$lib/components/shared/ConfirmDialog.svelte';
@@ -17,18 +19,21 @@
   let confirmOpen = $state(false);
   let loading = $state(true);
   let providerMap = $state<Record<string, string>>({});
+  let providerStatusMap = $state<Record<string, string>>({});
 
   onMount(async () => {
     const id = $page.params.id;
     if (!id) { goto('/contracts'); return; }
 
     try {
-      const [contractData, provOptions] = await Promise.all([
+      const [contractData, provOptions, providerList] = await Promise.all([
         contractsApi.getById(id),
         getProviderOptions(),
+        providersApi.list({ per_page: 200 }),
       ]);
       contract = contractData;
       providerMap = Object.fromEntries(provOptions.map(o => [o.value, o.label]));
+      providerStatusMap = Object.fromEntries(providerList.data.map((p: {id: string, status?: string}) => [p.id, p.status || 'active']));
     } catch (err) {
       console.error('Failed to load contract:', err);
       goto('/contracts');
@@ -95,7 +100,9 @@
                 {#if contract.provider_id}
                   {#if providerMap[contract.provider_id]}
                     <a href="/providers/{contract.provider_id}" class="text-primary hover:underline">
-                      {providerMap[contract.provider_id]}
+                      <span class={getResourceStatusClass(providerStatusMap[contract.provider_id], 'provider')}>
+                        {formatResourceWithStatus(providerMap[contract.provider_id], providerStatusMap[contract.provider_id], 'provider')}
+                      </span>
                     </a>
                   {:else}
                     <span class="text-muted-foreground italic">已删除</span>

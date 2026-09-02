@@ -1,5 +1,8 @@
 <script lang="ts">
   import { siteRelationsApi } from '$lib/api/site-relations';
+  import { serversApi } from '$lib/api/servers';
+  import { databaseInstancesApi } from '$lib/api/database-instances';
+  import { domainsApi } from '$lib/api/domains';
   import type {
     SiteServerRelationResponse,
     SiteDatabaseRelationResponse,
@@ -19,6 +22,7 @@
     getDomainOptions,
   } from '$lib/utils/entity-options';
   import { siteServerRoleOptions, siteDatabaseUsageOptions, domainRoleOptions, getOptionLabel } from '$lib/utils/enum-options';
+  import { formatResourceWithStatus, getResourceStatusClass } from '$lib/utils/resource-status';
   import { onMount } from 'svelte';
   import ConfirmDialog from '$lib/components/shared/ConfirmDialog.svelte';
 
@@ -40,6 +44,11 @@
   let serverMap = $derived(Object.fromEntries(serverOptions.map(o => [o.value, o.label])));
   let dbMap = $derived(Object.fromEntries(dbOptions.map(o => [o.value, o.label])));
   let domainMap = $derived(Object.fromEntries(domainOptions.map(o => [o.value, o.label])));
+
+  // 关联资源状态映射
+  let serverStatusMap = $state<Record<string, string>>({});
+  let databaseStatusMap = $state<Record<string, string>>({});
+  let domainStatusMap = $state<Record<string, string>>({});
 
   // 添加对话框状态
   let addDialogOpen = $state(false);
@@ -67,14 +76,20 @@
 
   onMount(async () => {
     try {
-      const [sOpts, dOpts, domOpts] = await Promise.all([
+      const [sOpts, dOpts, domOpts, serverList, dbList, domainList] = await Promise.all([
         getServerOptions(),
         getDatabaseInstanceOptions(),
         getDomainOptions(),
+        serversApi.list({ per_page: 200 }),
+        databaseInstancesApi.list({ per_page: 200 }),
+        domainsApi.list({ per_page: 200 }),
       ]);
       serverOptions = sOpts;
       dbOptions = dOpts;
       domainOptions = domOpts;
+      serverStatusMap = Object.fromEntries(serverList.data.map((s: {id: string, status: string}) => [s.id, s.status]));
+      databaseStatusMap = Object.fromEntries(dbList.data.map((d: {id: string, status: string}) => [d.id, d.status]));
+      domainStatusMap = Object.fromEntries(domainList.data.map((d: {id: string, is_enabled: boolean}) => [d.id, d.is_enabled ? 'enabled' : 'disabled']));
       await loadAll();
     } catch (err) {
       console.error('Failed to load site relations:', err);
@@ -196,7 +211,9 @@
                   <Table.Row>
                     <Table.Cell>
                       <a href="/servers/{rel.server_id}" class="text-primary hover:underline">
-                        {serverMap[rel.server_id] || rel.server_id}
+                        <span class={getResourceStatusClass(serverStatusMap[rel.server_id], 'server')}>
+                          {formatResourceWithStatus(serverMap[rel.server_id] || rel.server_id, serverStatusMap[rel.server_id], 'server')}
+                        </span>
                       </a>
                     </Table.Cell>
                     <Table.Cell>{getOptionLabel($siteServerRoleOptions, rel.deploy_role) || '-'}</Table.Cell>
@@ -236,7 +253,9 @@
                   <Table.Row>
                     <Table.Cell>
                       <a href="/database-instances/{rel.database_instance_id}" class="text-primary hover:underline">
-                        {dbMap[rel.database_instance_id] || rel.database_instance_id}
+                        <span class={getResourceStatusClass(databaseStatusMap[rel.database_instance_id], 'database')}>
+                          {formatResourceWithStatus(dbMap[rel.database_instance_id] || rel.database_instance_id, databaseStatusMap[rel.database_instance_id], 'database')}
+                        </span>
                       </a>
                     </Table.Cell>
                     <Table.Cell>{getOptionLabel($siteDatabaseUsageOptions, rel.usage_type) || '-'}</Table.Cell>
@@ -276,7 +295,9 @@
                   <Table.Row>
                     <Table.Cell>
                       <a href="/domains/{rel.domain_id}" class="text-primary hover:underline">
-                        {domainMap[rel.domain_id] || rel.domain_id}
+                        <span class={getResourceStatusClass(domainStatusMap[rel.domain_id], 'ip')}>
+                          {formatResourceWithStatus(domainMap[rel.domain_id] || rel.domain_id, domainStatusMap[rel.domain_id], 'ip')}
+                        </span>
                       </a>
                     </Table.Cell>
                     <Table.Cell>{getOptionLabel($domainRoleOptions, rel.domain_role) || '-'}</Table.Cell>

@@ -13,6 +13,8 @@
   import StatusBadge from '$lib/components/shared/StatusBadge.svelte';
   import { getOptionLabel, getOptionLabels, commonStatusOptions, lineTypeOptions } from '$lib/utils/enum-options';
   import { getProviderOptions } from '$lib/utils/entity-options';
+  import { formatResourceWithStatus, getResourceStatusClass } from '$lib/utils/resource-status';
+  import { providersApi } from '$lib/api/providers';
   import { formatDate } from '$lib/utils/format';
   import { onMount } from 'svelte';
   import ConfirmDialog from '$lib/components/shared/ConfirmDialog.svelte';
@@ -23,20 +25,23 @@
   let servers = $state<ServerResponse[]>([]);
   let loading = $state(true);
   let providerMap = $state<Record<string, string>>({});
+  let providerStatusMap = $state<Record<string, string>>({});
 
   onMount(async () => {
     const id = $page.params.id;
     if (!id) { goto('/datacenters'); return; }
 
     try {
-      const [dcData, serverData, provOptions] = await Promise.all([
+      const [dcData, serverData, provOptions, providerList] = await Promise.all([
         datacentersApi.getById(id),
         serversApi.list({ data_center_id: id, per_page: 100 }),
         getProviderOptions(),
+        providersApi.list({ per_page: 200 }),
       ]);
       datacenter = dcData;
       servers = serverData.data;
       providerMap = Object.fromEntries(provOptions.map(o => [o.value, o.label]));
+      providerStatusMap = Object.fromEntries(providerList.data.map((p: {id: string, status?: string}) => [p.id, p.status || 'active']));
     } catch (err) {
       console.error('Failed to load datacenter:', err);
       goto('/datacenters');
@@ -103,7 +108,9 @@
                 {#if datacenter.provider_id}
                   {#if providerMap[datacenter.provider_id]}
                     <a href="/providers/{datacenter.provider_id}" class="text-primary hover:underline">
-                      {providerMap[datacenter.provider_id]}
+                      <span class={getResourceStatusClass(providerStatusMap[datacenter.provider_id], 'provider')}>
+                        {formatResourceWithStatus(providerMap[datacenter.provider_id], providerStatusMap[datacenter.provider_id], 'provider')}
+                      </span>
                     </a>
                   {:else}
                     <span class="text-muted-foreground italic">已删除</span>

@@ -13,6 +13,9 @@
   import StatusBadge from '$lib/components/shared/StatusBadge.svelte';
   import { certificateStatusOptions, certificateTypeOptions, getOptionLabel } from '$lib/utils/enum-options';
   import { getProviderOptions, getDomainOptions } from '$lib/utils/entity-options';
+  import { formatResourceWithStatus, getResourceStatusClass } from '$lib/utils/resource-status';
+  import { providersApi } from '$lib/api/providers';
+  import { domainsApi } from '$lib/api/domains';
   import { formatDate } from '$lib/utils/format';
   import { onMount } from 'svelte';
   import ConfirmDialog from '$lib/components/shared/ConfirmDialog.svelte';
@@ -24,20 +27,26 @@
   let loading = $state(true);
   let providerMap = $state<Record<string, string>>({});
   let domainMap = $state<Record<string, string>>({});
+  let providerStatusMap = $state<Record<string, string>>({});
+  let domainStatusMap = $state<Record<string, string>>({});
 
   onMount(async () => {
     const id = $page.params.id;
     if (!id) { goto('/certificates'); return; }
     try {
-      const [cert, providers, domainList, domainsData] = await Promise.all([
+      const [cert, providers, domainList, domainsData, providerList, domainFullList] = await Promise.all([
         certificatesApi.getById(id),
         getProviderOptions(),
         getDomainOptions(),
         certificateDomainsApi.list({ certificate_id: id, per_page: 100 }),
+        providersApi.list({ per_page: 200 }),
+        domainsApi.list({ per_page: 200 }),
       ]);
       certificate = cert;
       providerMap = Object.fromEntries(providers.map(o => [o.value, o.label]));
       domainMap = Object.fromEntries(domainList.map(o => [o.value, o.label]));
+      providerStatusMap = Object.fromEntries(providerList.data.map((p: {id: string, status?: string}) => [p.id, p.status || 'active']));
+      domainStatusMap = Object.fromEntries(domainFullList.data.map((d: {id: string, is_enabled: boolean}) => [d.id, d.is_enabled ? 'enabled' : 'disabled']));
       domains = domainsData.data;
     } catch (err) {
       console.error('Failed to load certificate:', err);
@@ -111,7 +120,9 @@
                 {#if certificate.provider_id}
                   {#if providerMap[certificate.provider_id]}
                     <a href="/providers/{certificate.provider_id}" class="text-primary hover:underline">
-                      {providerMap[certificate.provider_id]}
+                      <span class={getResourceStatusClass(providerStatusMap[certificate.provider_id], 'provider')}>
+                        {formatResourceWithStatus(providerMap[certificate.provider_id], providerStatusMap[certificate.provider_id], 'provider')}
+                      </span>
                     </a>
                   {:else}
                     <span class="text-muted-foreground italic">已删除</span>
@@ -163,7 +174,9 @@
                     {#if d.domain_id}
                       {#if domainMap[d.domain_id]}
                         <a href="/domains/{d.domain_id}" class="text-primary hover:underline">
-                          {domainMap[d.domain_id]}
+                          <span class={getResourceStatusClass(domainStatusMap[d.domain_id], 'ip')}>
+                            {formatResourceWithStatus(domainMap[d.domain_id], domainStatusMap[d.domain_id], 'ip')}
+                          </span>
                         </a>
                       {:else}
                         <span class="text-muted-foreground italic">已删除</span>

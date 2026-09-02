@@ -2,10 +2,12 @@
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import { serverPortsApi } from '$lib/api/server-ports';
+  import { serversApi } from '$lib/api/servers';
   import type { ServerPortResponse } from '$lib/types/server_port';
   import { Button } from '$lib/ui/button';
   import * as Card from '$lib/ui/card';
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
+  import { formatResourceWithStatus, getResourceStatusClass } from '$lib/utils/resource-status';
   import { onMount } from 'svelte';
   import ConfirmDialog from '$lib/components/shared/ConfirmDialog.svelte';
 
@@ -13,12 +15,18 @@
 
   let confirmOpen = $state(false);
   let loading = $state(true);
+  let serverStatusMap = $state<Record<string, string>>({});
 
   onMount(async () => {
     const id = $page.params.id;
     if (!id) { goto('/server-ports'); return; }
     try {
-      serverPort = await serverPortsApi.getById(id);
+      const [port, serverList] = await Promise.all([
+        serverPortsApi.getById(id),
+        serversApi.list({ per_page: 200 }),
+      ]);
+      serverPort = port;
+      serverStatusMap = Object.fromEntries(serverList.data.map((s: {id: string, status: string}) => [s.id, s.status]));
     } catch (err) {
       console.error('Failed to load server port:', err);
       goto('/server-ports');
@@ -82,7 +90,9 @@
                   <div class="flex flex-col items-end gap-1">
                     {#each serverPort.servers as s}
                       <a href="/servers/{s.id}" class="text-primary hover:underline">
-                        {s.name}
+                        <span class={getResourceStatusClass(serverStatusMap[s.id], 'server')}>
+                          {formatResourceWithStatus(s.name, serverStatusMap[s.id], 'server')}
+                        </span>
                       </a>
                     {/each}
                   </div>
