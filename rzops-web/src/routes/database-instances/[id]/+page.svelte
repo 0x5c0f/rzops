@@ -197,7 +197,6 @@
             <Table.Row>
               <Table.Head>站点</Table.Head>
               <Table.Head>用途</Table.Head>
-              <Table.Head>主用</Table.Head>
             </Table.Row>
           </Table.Header>
           <Table.Body>
@@ -207,11 +206,10 @@
                   <a href="/ops-sites/{s.site_id}" class="text-primary hover:underline">{s.site_name}</a>
                 </Table.Cell>
                 <Table.Cell>{getOptionLabel($siteDatabaseUsageOptions, s.usage_type) || '-'}</Table.Cell>
-                <Table.Cell>{s.is_primary ? '是' : '-'}</Table.Cell>
               </Table.Row>
             {:else}
               <Table.Row>
-                <Table.Cell colspan={3} class="text-center text-muted-foreground">
+                <Table.Cell colspan={2} class="text-center text-muted-foreground">
                   暂未关联站点
                 </Table.Cell>
               </Table.Row>

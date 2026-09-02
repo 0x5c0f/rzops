@@ -360,7 +360,7 @@
     <Card.Root>
       <Card.Header>
         <Card.Title>关联站点</Card.Title>
-        <Card.Description>该服务器部署承载的站点（部署角色 / 主备节点）</Card.Description>
+        <Card.Description>该服务器部署承载的站点（部署角色）</Card.Description>
       </Card.Header>
       <Card.Content>
         <Table.Root>
@@ -368,7 +368,6 @@
             <Table.Row>
               <Table.Head>站点</Table.Head>
               <Table.Head>部署角色</Table.Head>
-              <Table.Head>主备</Table.Head>
             </Table.Row>
           </Table.Header>
           <Table.Body>
@@ -378,11 +377,10 @@
                   <a href="/ops-sites/{s.site_id}" class="text-primary hover:underline">{s.site_name}</a>
                 </Table.Cell>
                 <Table.Cell>{getOptionLabel($siteServerRoleOptions, s.deploy_role) || '-'}</Table.Cell>
-                <Table.Cell>{s.is_primary ? '主' : '备'}</Table.Cell>
               </Table.Row>
             {:else}
               <Table.Row>
-                <Table.Cell colspan={3} class="text-center text-muted-foreground">
+                <Table.Cell colspan={2} class="text-center text-muted-foreground">
                   暂未关联站点
                 </Table.Cell>
               </Table.Row>
