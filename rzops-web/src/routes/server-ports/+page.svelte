@@ -19,6 +19,9 @@
   let protocolMap = $derived(Object.fromEntries($protocolOptions.map(o => [o.value, o.label])));
 
   const columns = $derived([
+    { key: 'service_name', label: '服务名称' , link: (item: ServerPortResponse) => `/server-ports/${item.id}`, lockVisible: true },
+    { key: 'protocol', label: '协议', valueMap: protocolMap },
+    { key: 'port', label: '端口' },
     {
       key: 'servers',
       label: '服务器',
@@ -29,10 +32,7 @@
         return list.length > 3 ? `${shown}, … +${list.length - 3}` : shown;
       },
     },
-    { key: 'protocol', label: '协议', valueMap: protocolMap },
-    { key: 'port', label: '端口' },
-    { key: 'service_name', label: '服务名称' , link: (item: ServerPortResponse) => `/server-ports/${item.id}` },
-    { key: 'is_enabled', label: '启用', render: (v: unknown) => v ? '是' : '否' },
+    { key: 'is_enabled', label: '启用', render: (v: unknown) => v ? '是' : '否', hideInTable: true },
   ]);
 
   async function loadData() {
@@ -107,8 +107,7 @@
     {data}
     {loading}
     onEdit={handleEdit}
-    onDelete={handleDelete}
-  />
+    onDelete={handleDelete} storageKey="server-ports" />
 
   <Pagination
     {page}

@@ -192,8 +192,7 @@
     {data}
     {loading}
     onEdit={handleView}
-    editLabel="详情"
-  />
+    editLabel="详情" storageKey="change-records" />
 
   <div class="flex items-center justify-between text-sm text-muted-foreground">
     <span>显示 {total === 0 ? 0 : offset + 1}-{Math.min(offset + perPage, total)} / 共 {total} 条</span>

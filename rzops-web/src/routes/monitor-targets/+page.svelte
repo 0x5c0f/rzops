@@ -36,14 +36,14 @@
   }
 
   const columns = [
-    { key: 'name', label: '名称' , link: (item: MonitorTargetResponse) => `/monitor-targets/${item.id}` },
+    { key: 'name', label: '名称' , link: (item: MonitorTargetResponse) => `/monitor-targets/${item.id}`, lockVisible: true },
     { key: 'target_type', label: '目标类型', valueMap: targetTypeMap },
     { key: 'target_name', label: '关联目标', link: targetHref, render: (v: unknown, item: MonitorTargetResponse) => (item.target_name || '-') },
     { key: 'monitor_type', label: '监控类型', valueMap: monitorTypeMap },
-    { key: 'endpoint', label: '端点' },
-    { key: 'interval_seconds', label: '间隔(秒)' },
     { key: 'status', label: '状态', valueMap: statusMap },
-    { key: 'created_at', label: '创建时间', render: (v: unknown) => formatDate(v as string) },
+    { key: 'endpoint', label: '端点', hideInTable: true },
+    { key: 'interval_seconds', label: '间隔(秒)', hideInTable: true },
+    { key: 'created_at', label: '创建时间', render: (v: unknown) => formatDate(v as string), hideInTable: true },
   ];
 
   async function loadData() {
@@ -116,8 +116,7 @@
     {data}
     {loading}
     onEdit={handleEdit}
-    onDelete={handleDelete}
-  />
+    onDelete={handleDelete} storageKey="monitor-targets" />
 
   <Pagination
     {page}

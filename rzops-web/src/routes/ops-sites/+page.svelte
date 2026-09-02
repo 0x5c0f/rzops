@@ -23,13 +23,13 @@
   let environmentMap = $derived(Object.fromEntries($environmentOptions.map(o => [o.value, o.label])));
 
   const columns = $derived([
-    { key: 'name', label: '名称' , link: (item: OpsSiteResponse) => `/ops-sites/${item.id}` },
+    { key: 'name', label: '名称' , link: (item: OpsSiteResponse) => `/ops-sites/${item.id}`, lockVisible: true },
     { key: 'url', label: 'URL' },
-    { key: 'service_target', label: '服务目标', valueMap: serviceTargetMap },
     { key: 'environment', label: '环境', valueMap: environmentMap },
-    { key: 'importance', label: '重要性', valueMap: importanceMap },
     { key: 'status', label: '状态', valueMap: siteStatusMap },
-    { key: 'created_at', label: '创建时间', render: (v: unknown) => formatDate(v as string) },
+    { key: 'service_target', label: '服务目标', valueMap: serviceTargetMap, hideInTable: true },
+    { key: 'importance', label: '重要性', valueMap: importanceMap, hideInTable: true },
+    { key: 'created_at', label: '创建时间', render: (v: unknown) => formatDate(v as string), hideInTable: true },
   ]);
 
   async function loadData() {
@@ -113,6 +113,7 @@
     {loading}
     onEdit={handleEdit}
     onDelete={handleDelete}
+    storageKey="ops-sites"
   />
 
   <Pagination

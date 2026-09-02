@@ -148,8 +148,7 @@
     {loading}
     editLabel="下载"
     onEdit={handleDownload}
-    onDelete={handleDelete}
-  />
+    onDelete={handleDelete} storageKey="attachments" />
 
   <Pagination
     {page}

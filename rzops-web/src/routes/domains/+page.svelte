@@ -21,11 +21,11 @@
   let providerMap = $state<Record<string, string>>({});
 
   const columns = $derived([
-    { key: 'domain_name', label: '域名' , link: (item: DomainResponse) => `/domains/${item.id}` },
+    { key: 'domain_name', label: '域名' , link: (item: DomainResponse) => `/domains/${item.id}`, lockVisible: true },
     { key: 'provider_id', label: '注册商', valueMap: providerMap },
     { key: 'expiry_date', label: '到期日期', render: (v: unknown) => formatDate(v as string) },
     { key: 'is_enabled', label: '启用状态', render: (v: unknown) => (v ? '启用' : '停用') },
-    { key: 'created_at', label: '创建时间', render: (v: unknown) => formatDate(v as string) },
+    { key: 'created_at', label: '创建时间', render: (v: unknown) => formatDate(v as string), hideInTable: true },
   ]);
 
   async function loadData() {
@@ -102,8 +102,7 @@
     {data}
     {loading}
     onEdit={handleEdit}
-    onDelete={handleDelete}
-  />
+    onDelete={handleDelete} storageKey="domains" />
 
   <Pagination
     {page}

@@ -177,7 +177,7 @@
     {loading}
     onEdit={openEdit}
     onDelete={handleDelete}
-    getDeleteLabel={(item) => `${item.dict_label} (${item.dict_code})`}
+    getDeleteLabel={(item) = storageKey="dicts"> `${item.dict_label} (${item.dict_code})`}
     deleteTitle="确认停用"
   />
 

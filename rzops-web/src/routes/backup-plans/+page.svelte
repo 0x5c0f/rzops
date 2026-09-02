@@ -33,13 +33,13 @@
   }
 
   const columns = [
-    { key: 'name', label: '名称' , link: (item: BackupPlanResponse) => `/backup-plans/${item.id}` },
+    { key: 'name', label: '名称' , link: (item: BackupPlanResponse) => `/backup-plans/${item.id}`, lockVisible: true },
     { key: 'target_type', label: '目标类型', valueMap: targetTypeMap },
     { key: 'target_name', label: '关联目标', link: targetHref, render: (v: unknown, item: BackupPlanResponse) => (item.target_name || '-') },
-    { key: 'schedule', label: '调度计划' },
-    { key: 'retention_days', label: '保留天数' },
     { key: 'status', label: '状态', valueMap: statusMap },
-    { key: 'created_at', label: '创建时间', render: (v: unknown) => formatDate(v as string) },
+    { key: 'schedule', label: '调度计划', hideInTable: true },
+    { key: 'retention_days', label: '保留天数', hideInTable: true },
+    { key: 'created_at', label: '创建时间', render: (v: unknown) => formatDate(v as string), hideInTable: true },
   ];
 
   async function loadData() {
@@ -112,8 +112,7 @@
     {data}
     {loading}
     onEdit={handleEdit}
-    onDelete={handleDelete}
-  />
+    onDelete={handleDelete} storageKey="backup-plans" />
 
   <Pagination
     {page}

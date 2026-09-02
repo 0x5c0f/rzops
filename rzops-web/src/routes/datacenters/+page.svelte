@@ -25,11 +25,11 @@
   let commonStatusMap = $derived(Object.fromEntries($commonStatusOptions.map(o => [o.value, o.label])));
 
   const columns = $derived([
-    { key: 'name', label: '名称' , link: (item: DataCenterResponse) => `/datacenters/${item.id}` },
+    { key: 'name', label: '名称' , link: (item: DataCenterResponse) => `/datacenters/${item.id}`, lockVisible: true },
     { key: 'country', label: '国家', valueMap: countryMap },
     { key: 'status', label: '状态', valueMap: commonStatusMap },
-    { key: 'provider_id', label: '供应商', valueMap: providerMap },
-    { key: 'created_at', label: '创建时间', render: (v: unknown) => formatDate(v as string) },
+    { key: 'provider_id', label: '供应商', valueMap: providerMap, hideInTable: true },
+    { key: 'created_at', label: '创建时间', render: (v: unknown) => formatDate(v as string), hideInTable: true },
   ]);
 
   async function loadData() {
@@ -106,8 +106,7 @@
     {data}
     {loading}
     onEdit={handleEdit}
-    onDelete={handleDelete}
-  />
+    onDelete={handleDelete} storageKey="datacenters" />
 
   <Pagination
     {page}

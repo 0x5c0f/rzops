@@ -108,8 +108,7 @@
     {data}
     {loading}
     onEdit={handleEdit}
-    onDelete={handleDelete}
-  />
+    onDelete={handleDelete} storageKey="contracts" />
 
   <Pagination
     {page}

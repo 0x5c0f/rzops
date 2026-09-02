@@ -24,12 +24,12 @@
   let environmentMap = $derived(Object.fromEntries($environmentOptions.map(o => [o.value, o.label])));
 
   const columns = $derived([
-    { key: 'name', label: '名称' , link: (item: DatabaseInstanceResponse) => `/database-instances/${item.id}` },
+    { key: 'name', label: '名称' , link: (item: DatabaseInstanceResponse) => `/database-instances/${item.id}`, lockVisible: true },
     { key: 'db_type', label: '数据库类型', valueMap: dbTypeMap },
     { key: 'environment', label: '环境', valueMap: environmentMap },
     { key: 'server_id', label: '服务器', valueMap: serverMap },
     { key: 'status', label: '状态', valueMap: dbStatusMap },
-    { key: 'importance', label: '重要性', valueMap: importanceMap },
+    { key: 'importance', label: '重要性', valueMap: importanceMap, hideInTable: true },
   ]);
 
   async function loadData() {
@@ -117,6 +117,7 @@
     {loading}
     onEdit={handleEdit}
     onDelete={handleDelete}
+    storageKey="database-instances"
   />
 
   <Pagination

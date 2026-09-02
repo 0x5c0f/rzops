@@ -24,7 +24,7 @@
   let commonStatusMap = $derived(Object.fromEntries($commonStatusOptions.map(o => [o.value, o.label])));
 
   const columns = $derived([
-    { key: 'name', label: '名称' , link: (item: ProviderResponse) => `/providers/${item.id}` },
+    { key: 'name', label: '名称' , link: (item: ProviderResponse) => `/providers/${item.id}`, lockVisible: true },
     {
       key: 'provider_types', label: '类型',
       render: (v: unknown) => {
@@ -32,10 +32,10 @@
         return (arr || []).map(t => providerTypeMap[t] || t).join(', ') || '-';
       }
     },
-    { key: 'contact_name', label: '联系人' },
-    { key: 'contact_phone', label: '电话' },
     { key: 'status', label: '状态', valueMap: commonStatusMap },
-    { key: 'created_at', label: '创建时间', render: (v: unknown) => formatDate(v as string) },
+    { key: 'contact_name', label: '联系人', hideInTable: true },
+    { key: 'contact_phone', label: '电话', hideInTable: true },
+    { key: 'created_at', label: '创建时间', render: (v: unknown) => formatDate(v as string), hideInTable: true },
   ]);
 
   async function loadData() {
@@ -108,8 +108,7 @@
     {data}
     {loading}
     onEdit={handleEdit}
-    onDelete={handleDelete}
-  />
+    onDelete={handleDelete} storageKey="providers" />
 
   <Pagination
     {page}

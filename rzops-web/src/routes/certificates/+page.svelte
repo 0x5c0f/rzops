@@ -23,11 +23,11 @@
   let certificateStatusMap = $derived(Object.fromEntries($certificateStatusOptions.map(o => [o.value, o.label])));
 
   const columns = $derived([
-    { key: 'name', label: '名称' , link: (item: CertificateResponse) => `/certificates/${item.id}` },
+    { key: 'name', label: '名称' , link: (item: CertificateResponse) => `/certificates/${item.id}`, lockVisible: true },
     { key: 'certificate_type', label: '类型', valueMap: certificateTypeMap },
-    { key: 'provider_id', label: '供应商', valueMap: providerMap },
     { key: 'status', label: '状态', valueMap: certificateStatusMap },
     { key: 'lease_end_date', label: '到期日期' },
+    { key: 'provider_id', label: '供应商', valueMap: providerMap, hideInTable: true },
   ]);
 
   async function loadData() {
@@ -104,8 +104,7 @@
     {data}
     {loading}
     onEdit={handleEdit}
-    onDelete={handleDelete}
-  />
+    onDelete={handleDelete} storageKey="certificates" />
 
   <Pagination
     {page}

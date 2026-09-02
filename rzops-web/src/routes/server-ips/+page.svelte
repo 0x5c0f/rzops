@@ -22,12 +22,12 @@
   let ipStatusMap = $derived(Object.fromEntries($ipStatusOptions.map(o => [o.value, o.label])));
 
   const columns = $derived([
-    { key: 'ip_address', label: 'IP地址' , link: (item: ServerIpResponse) => `/server-ips/${item.id}` },
-    { key: 'nic_name', label: '网卡', render: (v: unknown) => v || '-' },
-    { key: 'ip_type', label: '类型', valueMap: ipTypeMap },
+    { key: 'ip_address', label: 'IP地址' , link: (item: ServerIpResponse) => `/server-ips/${item.id}`, lockVisible: true },
     { key: 'server_id', label: '服务器', valueMap: serverMap },
-    { key: 'is_primary', label: '主IP', render: (v: unknown) => v ? '是' : '否' },
+    { key: 'ip_type', label: '类型', valueMap: ipTypeMap },
     { key: 'status', label: '状态', valueMap: ipStatusMap },
+    { key: 'nic_name', label: '网卡', render: (v: unknown) => v || '-', hideInTable: true },
+    { key: 'is_primary', label: '主IP', render: (v: unknown) => v ? '是' : '否', hideInTable: true },
   ]);
 
   async function loadData() {
@@ -104,8 +104,7 @@
     {data}
     {loading}
     onEdit={handleEdit}
-    onDelete={handleDelete}
-  />
+    onDelete={handleDelete} storageKey="server-ips" />
 
   <Pagination
     {page}

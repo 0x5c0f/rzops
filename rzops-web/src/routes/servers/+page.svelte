@@ -27,15 +27,15 @@
   let environmentMap = $derived(Object.fromEntries($environmentOptions.map(o => [o.value, o.label])));
 
   const columns = $derived([
-    { key: 'name', label: '名称' , link: (item: ServerResponse) => `/servers/${item.id}` },
+    { key: 'name', label: '名称' , link: (item: ServerResponse) => `/servers/${item.id}`, lockVisible: true },
     { key: 'primary_ip', label: '主IP' },
     { key: 'server_type', label: '类型', valueMap: serverTypeMap },
     { key: 'environment', label: '环境', valueMap: environmentMap },
     { key: 'status', label: '状态', valueMap: serverStatusMap },
-    { key: 'data_center_id', label: '数据中心', valueMap: dataCenterMap },
-    { key: 'isp_provider_id', label: 'ISP供应商', valueMap: providerMap },
-    { key: 'server_provider_id', label: '服务器供应商', valueMap: providerMap },
-    { key: 'created_at', label: '创建时间', render: (v: unknown) => formatDate(v as string) },
+    { key: 'data_center_id', label: '数据中心', valueMap: dataCenterMap, hideInTable: true },
+    { key: 'isp_provider_id', label: 'ISP供应商', valueMap: providerMap, hideInTable: true },
+    { key: 'server_provider_id', label: '服务器供应商', valueMap: providerMap, hideInTable: true },
+    { key: 'created_at', label: '创建时间', render: (v: unknown) => formatDate(v as string), hideInTable: true },
   ]);
 
   async function loadData() {
@@ -129,6 +129,7 @@
     {loading}
     onEdit={handleEdit}
     onDelete={handleDelete}
+    storageKey="servers"
   />
 
   <Pagination
