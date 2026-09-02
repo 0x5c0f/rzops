@@ -274,11 +274,11 @@
         {:else if tableData.length === 0}
           <div class="py-12 text-center text-sm text-muted-foreground">无匹配结果</div>
         {:else}
-          <table class="w-full text-sm">
+          <table class="w-full border-collapse text-sm">
             <thead>
-              <tr>
+              <tr class="border-b border-border">
                 {#if multiple}
-                  <th class="sticky top-0 z-10 w-10 bg-background px-2 py-2 text-left font-medium">
+                  <th class="sticky top-0 z-10 w-10 bg-muted/50 px-3 py-2.5 text-left font-medium text-foreground">
                     <input
                       type="checkbox"
                       class="h-4 w-4"
@@ -288,18 +288,21 @@
                   </th>
                 {/if}
                 {#each columns as col}
-                  <th class={cn('sticky top-0 z-10 bg-background px-2 py-2 text-left font-medium whitespace-nowrap', col.width)}>{col.label}</th>
+                  <th class={cn('sticky top-0 z-10 bg-muted/50 px-3 py-2.5 text-left font-medium text-foreground whitespace-nowrap', col.width)}>{col.label}</th>
                 {/each}
               </tr>
             </thead>
             <tbody>
               {#each tableData as item (String(item[rowKey]))}
                 <tr
-                  class={isRowSelected(item) ? 'bg-accent/50 cursor-pointer' : 'cursor-pointer hover:bg-accent/30'}
+                  class={cn(
+                    'border-b border-border/50 transition-colors',
+                    isRowSelected(item) ? 'bg-primary/10 cursor-pointer' : 'cursor-pointer hover:bg-accent/50'
+                  )}
                   onclick={() => toggleRow(item)}
                 >
                   {#if multiple}
-                    <td class="px-2 py-2">
+                    <td class="px-3 py-2.5">
                       <input
                         type="checkbox"
                         class="h-4 w-4"
@@ -309,7 +312,7 @@
                     </td>
                   {/if}
                   {#each columns as col}
-                    <td class="px-2 py-2">{cellValue(item, col)}</td>
+                    <td class="px-3 py-2.5 text-muted-foreground">{cellValue(item, col)}</td>
                   {/each}
                 </tr>
               {/each}

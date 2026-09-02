@@ -109,6 +109,110 @@ export async function searchServerPaginated(
 }
 
 /**
+ * 分页搜索数据库实例（用于 TableSelectModal）
+ */
+export async function searchDatabasePaginated(
+  keyword: string,
+  page: number,
+  perPage: number
+): Promise<{ data: Record<string, unknown>[]; total: number }> {
+  try {
+    const res = await databaseInstancesApi.list({ q: keyword || undefined, page, per_page: perPage });
+    return {
+      data: res.data.map(item => ({
+        id: item.id,
+        name: item.name,
+        db_type: item.db_type || '-',
+        status: item.status,
+        port: item.port || '-',
+      })),
+      total: res.count,
+    };
+  } catch (err) {
+    console.error('Failed to search databases paginated:', err);
+    return { data: [], total: 0 };
+  }
+}
+
+/**
+ * 分页搜索站点（用于 TableSelectModal）
+ */
+export async function searchSitePaginated(
+  keyword: string,
+  page: number,
+  perPage: number
+): Promise<{ data: Record<string, unknown>[]; total: number }> {
+  try {
+    const res = await opsSitesApi.list({ q: keyword || undefined, page, per_page: perPage });
+    return {
+      data: res.data.map(item => ({
+        id: item.id,
+        name: item.name,
+        url: item.url || '-',
+        status: item.status,
+        service_target: item.service_target || '-',
+      })),
+      total: res.count,
+    };
+  } catch (err) {
+    console.error('Failed to search sites paginated:', err);
+    return { data: [], total: 0 };
+  }
+}
+
+/**
+ * 分页搜索域名（用于 TableSelectModal）
+ */
+export async function searchDomainPaginated(
+  keyword: string,
+  page: number,
+  perPage: number
+): Promise<{ data: Record<string, unknown>[]; total: number }> {
+  try {
+    const res = await domainsApi.list({ q: keyword || undefined, page, per_page: perPage });
+    return {
+      data: res.data.map(item => ({
+        id: item.id,
+        name: item.domain_name,
+        registrar: item.provider_id || '-',
+        status: item.is_enabled ? 'enabled' : 'disabled',
+        expire_date: item.expiry_date || '-',
+      })),
+      total: res.count,
+    };
+  } catch (err) {
+    console.error('Failed to search domains paginated:', err);
+    return { data: [], total: 0 };
+  }
+}
+
+/**
+ * 分页搜索证书（用于 TableSelectModal）
+ */
+export async function searchCertificatePaginated(
+  keyword: string,
+  page: number,
+  perPage: number
+): Promise<{ data: Record<string, unknown>[]; total: number }> {
+  try {
+    const res = await certificatesApi.list({ q: keyword || undefined, page, per_page: perPage });
+    return {
+      data: res.data.map(item => ({
+        id: item.id,
+        name: item.name,
+        issuer: item.provider_id || '-',
+        status: item.status,
+        expire_date: item.lease_end_date || '-',
+      })),
+      total: res.count,
+    };
+  } catch (err) {
+    console.error('Failed to search certificates paginated:', err);
+    return { data: [], total: 0 };
+  }
+}
+
+/**
  * 远程搜索数据库实例选项
  */
 export async function searchDatabaseInstanceOptions(keyword: string): Promise<SelectOption[]> {

@@ -6,14 +6,15 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
   import { Label } from '$lib/ui/label';
   import * as Card from '$lib/ui/card';
   import FormSelect from '$lib/components/shared/FormSelect.svelte';
+  import TableSelectModal from '$lib/components/shared/TableSelectModal.svelte';
   import TextArea from '$lib/components/shared/TextArea.svelte';
-  import { monitorTypeOptions, commonStatusOptions, assetTargetTypeOptions } from '$lib/utils/enum-options';
+  import { monitorTypeOptions, commonStatusOptions, assetTargetTypeOptions, serverStatusOptions, serverTypeOptions, databaseStatusOptions, siteStatusOptions, certificateStatusOptions, getOptionLabel } from '$lib/utils/enum-options';
   import {
-    getServerOptions,
-    getOpsSiteOptions,
-    getDomainOptions,
-    getDatabaseInstanceOptions,
-    getCertificateOptions,
+    searchServerPaginated,
+    searchDatabasePaginated,
+    searchSitePaginated,
+    searchDomainPaginated,
+    searchCertificatePaginated,
   } from '$lib/utils/entity-options';
   import { validate } from '$lib/utils/validation';
   import { onMount } from 'svelte';
@@ -32,9 +33,68 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
   let saving = $state(false);
   let formError = $state<string | null>(null);
   let attachmentRef = $state<{ uploadAll: (id: string) => Promise<void> } | null>(null);
-  let targetOptions = $state<{ label: string; value: string }[]>([]);
+  let targetIds = $state<string[]>([]);
+  let displayTargetOptions = $state<{ label: string; value: string }[]>([]);
 
   let form = $state<CreateMonitorTargetRequest>(createInitial(initial));
+
+  // 根据目标类型获取搜索函数和列配置
+  let targetSearchFn = $derived.by(() => {
+    const map: Record<string, (keyword: string, page: number, perPage: number) => Promise<{ data: Record<string, unknown>[]; total: number }>> = {
+      server: searchServerPaginated,
+      database: searchDatabasePaginated,
+      site: searchSitePaginated,
+      domain: searchDomainPaginated,
+      certificate: searchCertificatePaginated,
+    };
+    return map[form.target_type] || null;
+  });
+
+  let targetColumns = $derived.by(() => {
+    if (form.target_type === 'server') {
+      return [
+        { key: 'name', label: '服务器名称' },
+        { key: 'primary_ip', label: '主IP', width: 'w-32' },
+        { key: 'status', label: '状态', width: 'w-20', render: (item: Record<string, unknown>) => getOptionLabel($serverStatusOptions, String(item.status ?? '')) },
+        { key: 'server_type', label: '类型', width: 'w-24', render: (item: Record<string, unknown>) => getOptionLabel($serverTypeOptions, String(item.server_type ?? '')) },
+      ];
+    }
+    if (form.target_type === 'database') {
+      return [
+        { key: 'name', label: '实例名称' },
+        { key: 'db_type', label: '类型', width: 'w-24' },
+        { key: 'port', label: '端口', width: 'w-20' },
+        { key: 'status', label: '状态', width: 'w-20', render: (item: Record<string, unknown>) => getOptionLabel($databaseStatusOptions, String(item.status ?? '')) },
+      ];
+    }
+    if (form.target_type === 'site') {
+      return [
+        { key: 'name', label: '站点名称' },
+        { key: 'url', label: 'URL', width: 'w-48' },
+        { key: 'status', label: '状态', width: 'w-20', render: (item: Record<string, unknown>) => getOptionLabel($siteStatusOptions, String(item.status ?? '')) },
+      ];
+    }
+    if (form.target_type === 'domain') {
+      return [
+        { key: 'name', label: '域名' },
+        { key: 'registrar', label: '注册商', width: 'w-32' },
+        { key: 'expire_date', label: '到期时间', width: 'w-28' },
+      ];
+    }
+    if (form.target_type === 'certificate') {
+      return [
+        { key: 'name', label: '证书名称' },
+        { key: 'issuer', label: '颁发者', width: 'w-32' },
+        { key: 'expire_date', label: '到期时间', width: 'w-28' },
+      ];
+    }
+    return [];
+  });
+
+  let targetModalTitle = $derived.by(() => {
+    const map: Record<string, string> = { server: '选择服务器', database: '选择数据库实例', site: '选择站点', domain: '选择域名', certificate: '选择证书' };
+    return map[form.target_type] || '选择目标';
+  });
 
   function createInitial(initial?: CreateMonitorTargetRequest): CreateMonitorTargetRequest {
     return {
@@ -48,31 +108,21 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
     };
   }
 
-  // 根据目标类型联动加载可选项
+  // 目标类型改变时清空已选目标
   $effect(() => {
-    const t = form.target_type;
-    if (!t) { targetOptions = []; return; }
-    const loader: Record<string, () => Promise<{ label: string; value: string }[]>> = {
-      server: getServerOptions,
-      database: getDatabaseInstanceOptions,
-      site: getOpsSiteOptions,
-      domain: getDomainOptions,
-      certificate: getCertificateOptions,
-    };
-    const fn = loader[t];
-    if (fn) {
-      fn().then((opts) => { targetOptions = opts; });
-    } else {
-      targetOptions = [];
+    if (form.target_type) {
+      targetIds = [];
+      displayTargetOptions = [];
     }
   });
 
-  // 编辑时确保已选值可见（选项未加载/已被删除时兜底显示当前值）
-  let targetIdOptions = $derived(
-    form.target_id && !targetOptions.some(o => o.value === form.target_id)
-      ? [...targetOptions, { label: form.target_id, value: form.target_id }]
-      : targetOptions
-  );
+  // 编辑时初始化已选目标
+  onMount(() => {
+    if (form.target_id) {
+      targetIds = [form.target_id];
+      displayTargetOptions = [{ label: form.target_id, value: form.target_id }];
+    }
+  });
 
   async function handleSave() {
     formError = validate([
@@ -87,7 +137,7 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
     try {
       const id = await onSubmit({
         ...form,
-        target_id: form.target_id || undefined,
+        target_id: targetIds[0] || undefined,
         target_type: form.target_type || undefined,
       });
       if (id) await attachmentRef?.uploadAll(id);
@@ -158,15 +208,19 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
         options={$assetTargetTypeOptions}
         placeholder="选择目标类型"
       />
-      <div class="space-y-2">
-        <Label for="target_id">目标对象</Label>
-        <FormSelect
-          label=""
-          bind:value={form.target_id}
-          options={targetIdOptions}
+      {#if targetSearchFn && targetColumns.length > 0}
+        <TableSelectModal
+          label="目标对象"
+          multiple={false}
+          bind:value={targetIds}
+          searchFn={targetSearchFn}
+          displayOptions={displayTargetOptions}
           placeholder="选择目标对象"
+          searchPlaceholder="输入名称搜索..."
+          modalTitle={targetModalTitle}
+          columns={targetColumns}
         />
-      </div>
+      {/if}
     </Card.Content>
   </Card.Root>
 
