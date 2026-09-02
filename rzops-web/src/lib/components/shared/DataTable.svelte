@@ -35,6 +35,9 @@
     deleteTitle = '确认删除',
     storageKey = '',
     getRowClass,
+    showIndex = true,
+    page = 1,
+    perPage = 20,
   }: {
     columns: Column[];
     data: T[];
@@ -47,6 +50,12 @@
     storageKey?: string;
     /** 自定义行样式类名，根据行数据返回 */
     getRowClass?: (item: T) => string;
+    /** 是否显示序号列，默认显示 */
+    showIndex?: boolean;
+    /** 当前页码，用于计算序号 */
+    page?: number;
+    /** 每页条数，用于计算序号 */
+    perPage?: number;
   } = $props();
 
   let hasActions = $derived(onEdit || onDelete);
@@ -181,6 +190,9 @@
     <Table.Root>
       <Table.Header>
         <Table.Row>
+          {#if showIndex}
+            <Table.Head class="w-[60px] sticky top-0 z-10 bg-background shadow-[0_1px_0_0_var(--border)] text-center">#</Table.Head>
+          {/if}
           {#each visibleColumns as col}
             <Table.Head class={cn('sticky top-0 z-10 bg-background shadow-[0_1px_0_0_var(--border)]', col.class)}>{col.label}</Table.Head>
           {/each}
@@ -192,19 +204,22 @@
       <Table.Body>
         {#if loading || !storageInitialized}
           <Table.Row>
-            <Table.Cell colspan={visibleColumns.length + (hasActions ? 1 : 0)} class="h-24 text-center text-muted-foreground">
+            <Table.Cell colspan={visibleColumns.length + (hasActions ? 1 : 0) + (showIndex ? 1 : 0)} class="h-24 text-center text-muted-foreground">
               加载中...
             </Table.Cell>
           </Table.Row>
         {:else if data.length === 0}
           <Table.Row>
-            <Table.Cell colspan={visibleColumns.length + (hasActions ? 1 : 0)} class="h-24 text-center text-muted-foreground">
+            <Table.Cell colspan={visibleColumns.length + (hasActions ? 1 : 0) + (showIndex ? 1 : 0)} class="h-24 text-center text-muted-foreground">
               暂无数据
             </Table.Cell>
           </Table.Row>
         {:else}
-          {#each data as item}
+          {#each data as item, index}
             <Table.Row class={getRowClass ? getRowClass(item) : ''}>
+              {#if showIndex}
+                <Table.Cell class="text-center text-muted-foreground">{(page - 1) * perPage + index + 1}</Table.Cell>
+              {/if}
               {#each visibleColumns as col}
                 <Table.Cell class={col.class}>
                   {#if col.link}
