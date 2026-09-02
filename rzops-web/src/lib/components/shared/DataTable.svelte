@@ -207,7 +207,7 @@
                   {#if col.link}
                     {@const href = col.link(item)}
                     {#if href}
-                      <a href={href} class="text-primary hover:underline" onclick={(e) => e.stopPropagation()}>
+                      <a href={href} class="text-primary hover:underline">
                         {col.display ? col.display(item) : displayValue(item, col)}
                       </a>
                     {:else}
