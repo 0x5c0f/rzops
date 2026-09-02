@@ -277,17 +277,19 @@
         {:else}
           <Table.Root>
             <Table.Header>
-              <Table.Row class="sticky top-0 z-10 bg-background">
-                <Table.Head class="w-10">
-                  <input
-                    type="checkbox"
-                    class="h-4 w-4"
-                    checked={tableData.length > 0 && tableData.every(item => isRowSelected(item))}
-                    onchange={toggleAllOnPage}
-                  />
-                </Table.Head>
+              <Table.Row>
+                {#if multiple}
+                  <Table.Head class="w-10 sticky top-0 z-10 bg-background">
+                    <input
+                      type="checkbox"
+                      class="h-4 w-4"
+                      checked={tableData.length > 0 && tableData.every(item => isRowSelected(item))}
+                      onchange={toggleAllOnPage}
+                    />
+                  </Table.Head>
+                {/if}
                 {#each columns as col}
-                  <Table.Head class={cn('bg-background', col.width)}>{col.label}</Table.Head>
+                  <Table.Head class={cn('sticky top-0 z-10 bg-background', col.width)}>{col.label}</Table.Head>
                 {/each}
               </Table.Row>
             </Table.Header>
@@ -297,14 +299,16 @@
                   class={isRowSelected(item) ? 'bg-accent/50 cursor-pointer' : 'cursor-pointer hover:bg-accent/30'}
                   onclick={() => toggleRow(item)}
                 >
-                  <Table.Cell>
-                    <input
-                      type="checkbox"
-                      class="h-4 w-4"
-                      checked={isRowSelected(item)}
-                      onchange={(e) => { e.stopPropagation(); toggleRow(item); }}
-                    />
-                  </Table.Cell>
+                  {#if multiple}
+                    <Table.Cell>
+                      <input
+                        type="checkbox"
+                        class="h-4 w-4"
+                        checked={isRowSelected(item)}
+                        onchange={(e) => { e.stopPropagation(); toggleRow(item); }}
+                      />
+                    </Table.Cell>
+                  {/if}
                   {#each columns as col}
                     <Table.Cell>{cellValue(item, col)}</Table.Cell>
                   {/each}
