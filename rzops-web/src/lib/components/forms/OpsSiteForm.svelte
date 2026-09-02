@@ -6,6 +6,7 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
   import { Label } from '$lib/ui/label';
   import * as Card from '$lib/ui/card';
   import FormSelect from '$lib/components/shared/FormSelect.svelte';
+  import SiteRelationsSection from '$lib/components/shared/SiteRelationsSection.svelte';
   import DateField from '$lib/components/shared/DateField.svelte';
   import TextArea from '$lib/components/shared/TextArea.svelte';
   import { siteStatusOptions, importanceOptions, serviceTargetOptions, codeRepoTypeOptions, monitorTypeOptions, commonStatusOptions } from '$lib/utils/enum-options';
@@ -275,6 +276,23 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
         <Label for="remarks">备注</Label>
         <TextArea id="remarks" bind:value={form.remarks} rows={3} />
       </div>
+    </Card.Content>
+  </Card.Root>
+
+  <!-- 关联资源 -->
+  <Card.Root>
+    <Card.Header>
+      <Card.Title>关联资源</Card.Title>
+      <Card.Description>站点与服务器、数据库实例、域名的关联关系</Card.Description>
+    </Card.Header>
+    <Card.Content>
+      {#if entityId}
+        <SiteRelationsSection siteId={entityId} />
+      {:else}
+        <div class="py-6 text-center text-sm text-muted-foreground">
+          保存站点后可管理关联资源
+        </div>
+      {/if}
     </Card.Content>
   </Card.Root>
 

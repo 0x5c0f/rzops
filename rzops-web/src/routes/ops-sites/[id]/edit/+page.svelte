@@ -9,7 +9,6 @@
   import type { MonitorTargetResponse } from '$lib/types/monitor_target';
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import OpsSiteForm from '$lib/components/forms/OpsSiteForm.svelte';
-  import SiteRelationsSection from '$lib/components/shared/SiteRelationsSection.svelte';
   import { onMount } from 'svelte';
 
   let site = $state<OpsSiteResponse | null>(null);
@@ -112,6 +111,5 @@
       submitLabel="保存"
       onSubmit={handleUpdate}
     />
-    <SiteRelationsSection siteId={site.id} />
   {/if}
 </div>

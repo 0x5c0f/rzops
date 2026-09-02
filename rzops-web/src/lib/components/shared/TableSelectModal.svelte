@@ -4,7 +4,6 @@
   import { Label } from '$lib/ui/label';
   import { Badge } from '$lib/ui/badge';
   import * as Dialog from '$lib/ui/dialog';
-  import * as Table from '$lib/ui/table';
   import { cn } from '$lib/utils';
   import ChevronDown from '@lucide/svelte/icons/chevron-down';
   import X from '@lucide/svelte/icons/x';
@@ -275,47 +274,47 @@
         {:else if tableData.length === 0}
           <div class="py-12 text-center text-sm text-muted-foreground">无匹配结果</div>
         {:else}
-          <Table.Root>
-            <Table.Header>
-              <Table.Row>
+          <table class="w-full text-sm">
+            <thead>
+              <tr>
                 {#if multiple}
-                  <Table.Head class="w-10 sticky top-0 z-10 bg-background">
+                  <th class="sticky top-0 z-10 w-10 bg-background px-2 py-2 text-left font-medium">
                     <input
                       type="checkbox"
                       class="h-4 w-4"
                       checked={tableData.length > 0 && tableData.every(item => isRowSelected(item))}
                       onchange={toggleAllOnPage}
                     />
-                  </Table.Head>
+                  </th>
                 {/if}
                 {#each columns as col}
-                  <Table.Head class={cn('sticky top-0 z-10 bg-background', col.width)}>{col.label}</Table.Head>
+                  <th class={cn('sticky top-0 z-10 bg-background px-2 py-2 text-left font-medium whitespace-nowrap', col.width)}>{col.label}</th>
                 {/each}
-              </Table.Row>
-            </Table.Header>
-            <Table.Body>
+              </tr>
+            </thead>
+            <tbody>
               {#each tableData as item (String(item[rowKey]))}
-                <Table.Row
+                <tr
                   class={isRowSelected(item) ? 'bg-accent/50 cursor-pointer' : 'cursor-pointer hover:bg-accent/30'}
                   onclick={() => toggleRow(item)}
                 >
                   {#if multiple}
-                    <Table.Cell>
+                    <td class="px-2 py-2">
                       <input
                         type="checkbox"
                         class="h-4 w-4"
                         checked={isRowSelected(item)}
                         onchange={(e) => { e.stopPropagation(); toggleRow(item); }}
                       />
-                    </Table.Cell>
+                    </td>
                   {/if}
                   {#each columns as col}
-                    <Table.Cell>{cellValue(item, col)}</Table.Cell>
+                    <td class="px-2 py-2">{cellValue(item, col)}</td>
                   {/each}
-                </Table.Row>
+                </tr>
               {/each}
-            </Table.Body>
-          </Table.Root>
+            </tbody>
+          </table>
         {/if}
       </div>
 
