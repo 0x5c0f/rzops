@@ -121,10 +121,10 @@
       // 构建到期提醒列表
       const items: ExpiryItem[] = [];
 
-      // 服务器租赁到期
+      // 服务器租赁到期（过滤已退役服务器）
       if (servers.data) {
         for (const s of servers.data) {
-          if (s.lease_end_date) {
+          if (s.lease_end_date && s.status !== 'retired') {
             const daysLeft = calcDaysLeft(s.lease_end_date);
             if (daysLeft <= 90) {
               items.push({
@@ -142,10 +142,10 @@
         }
       }
 
-      // 域名到期
+      // 域名到期（过滤未启用域名）
       if (domains.data) {
         for (const d of domains.data) {
-          if (d.expiry_date) {
+          if (d.expiry_date && d.is_enabled !== false) {
             const daysLeft = calcDaysLeft(d.expiry_date);
             if (daysLeft <= 90) {
               items.push({
