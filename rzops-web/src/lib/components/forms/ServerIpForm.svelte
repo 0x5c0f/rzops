@@ -30,6 +30,8 @@
 
   let form = $state<CreateServerIpRequest>(createInitial(initial));
 
+  let serverName = $derived(serverOptions.find(o => o.value === form.server_id)?.label || form.server_id || '-');
+
   function createInitial(initial?: CreateServerIpRequest): CreateServerIpRequest {
     return {
       server_id: '',
@@ -83,7 +85,7 @@
       {#if editing}
         <div class="space-y-2">
           <Label for="server_id">服务器</Label>
-          <Input id="server_id" value={form.server_id} disabled />
+          <Input id="server_id" value={serverName} disabled />
         </div>
       {:else}
         <FormSelect
