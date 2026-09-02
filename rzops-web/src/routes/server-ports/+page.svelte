@@ -24,7 +24,8 @@
       render: (v: unknown) => {
         const list = v as { id: string; name: string }[] | null | undefined;
         if (!list || list.length === 0) return '-';
-        return list.map(s => s.name).join(', ');
+        const shown = list.slice(0, 3).map(s => s.name).join(', ');
+        return list.length > 3 ? `${shown} +${list.length - 3}` : shown;
       },
     },
     { key: 'protocol', label: '协议', valueMap: protocolMap },
