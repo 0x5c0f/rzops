@@ -134,6 +134,10 @@
       console.error('Failed to delete dict:', err);
     }
   }
+
+  function getDeleteLabelText(item: DictItem): string {
+    return `${item.dict_label} (${item.dict_code})`;
+  }
 </script>
 
 <div class="space-y-4">
@@ -177,7 +181,7 @@
     {loading}
     onEdit={openEdit}
     onDelete={handleDelete}
-    getDeleteLabel={(item) = storageKey="dicts"> `${item.dict_label} (${item.dict_code})`}
+    getDeleteLabel={getDeleteLabelText}
     deleteTitle="确认停用"
   />
 
