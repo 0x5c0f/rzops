@@ -203,126 +203,126 @@
   });
 </script>
 
-<div class="space-y-6">
-  <h1 class="text-3xl font-bold">Dashboard</h1>
+<div class="space-y-4 md:space-y-6">
+  <h1 class="text-2xl md:text-3xl font-bold">Dashboard</h1>
 
   <!-- Stats cards -->
-  <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-    <Card>
-      <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle class="text-sm font-medium">服务器</CardTitle>
+  <div class="grid grid-cols-2 gap-2 md:gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <Card class="p-2 md:p-0">
+      <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-1 md:pb-2 px-3 md:px-6 pt-3 md:pt-6">
+        <CardTitle class="text-xs md:text-sm font-medium">服务器</CardTitle>
       </CardHeader>
-      <CardContent>
-        <div class="text-2xl font-bold">{loading ? '...' : stats.servers}</div>
-        <p class="text-xs text-muted-foreground">管理中的服务器</p>
+      <CardContent class="px-3 md:px-6 pb-3 md:pb-6">
+        <div class="text-xl md:text-2xl font-bold">{loading ? '...' : stats.servers}</div>
+        <p class="text-[10px] md:text-xs text-muted-foreground">管理中的服务器</p>
       </CardContent>
     </Card>
 
-    <Card>
-      <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle class="text-sm font-medium">站点</CardTitle>
+    <Card class="p-2 md:p-0">
+      <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-1 md:pb-2 px-3 md:px-6 pt-3 md:pt-6">
+        <CardTitle class="text-xs md:text-sm font-medium">站点</CardTitle>
       </CardHeader>
-      <CardContent>
-        <div class="text-2xl font-bold">{loading ? '...' : stats.sites}</div>
-        <p class="text-xs text-muted-foreground">运维站点总数</p>
+      <CardContent class="px-3 md:px-6 pb-3 md:pb-6">
+        <div class="text-xl md:text-2xl font-bold">{loading ? '...' : stats.sites}</div>
+        <p class="text-[10px] md:text-xs text-muted-foreground">运维站点总数</p>
       </CardContent>
     </Card>
 
-    <Card>
-      <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle class="text-sm font-medium">域名</CardTitle>
+    <Card class="p-2 md:p-0">
+      <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-1 md:pb-2 px-3 md:px-6 pt-3 md:pt-6">
+        <CardTitle class="text-xs md:text-sm font-medium">域名</CardTitle>
       </CardHeader>
-      <CardContent>
-        <div class="text-2xl font-bold">{loading ? '...' : stats.domains}</div>
-        <p class="text-xs text-muted-foreground">已注册域名</p>
+      <CardContent class="px-3 md:px-6 pb-3 md:pb-6">
+        <div class="text-xl md:text-2xl font-bold">{loading ? '...' : stats.domains}</div>
+        <p class="text-[10px] md:text-xs text-muted-foreground">已注册域名</p>
       </CardContent>
     </Card>
 
-    <Card>
-      <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle class="text-sm font-medium">证书</CardTitle>
+    <Card class="p-2 md:p-0">
+      <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-1 md:pb-2 px-3 md:px-6 pt-3 md:pt-6">
+        <CardTitle class="text-xs md:text-sm font-medium">证书</CardTitle>
       </CardHeader>
-      <CardContent>
-        <div class="text-2xl font-bold">{loading ? '...' : stats.certificates}</div>
-        <p class="text-xs text-muted-foreground">SSL 证书</p>
+      <CardContent class="px-3 md:px-6 pb-3 md:pb-6">
+        <div class="text-xl md:text-2xl font-bold">{loading ? '...' : stats.certificates}</div>
+        <p class="text-[10px] md:text-xs text-muted-foreground">SSL 证书</p>
       </CardContent>
     </Card>
   </div>
 
   <!-- More stats -->
-  <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-    <Card>
-      <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle class="text-sm font-medium">供应商</CardTitle>
+  <div class="grid grid-cols-2 gap-2 md:gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <Card class="p-2 md:p-0">
+      <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-1 md:pb-2 px-3 md:px-6 pt-3 md:pt-6">
+        <CardTitle class="text-xs md:text-sm font-medium">供应商</CardTitle>
       </CardHeader>
-      <CardContent>
-        <div class="text-2xl font-bold">{loading ? '...' : stats.providers}</div>
-        <p class="text-xs text-muted-foreground">服务供应商</p>
+      <CardContent class="px-3 md:px-6 pb-3 md:pb-6">
+        <div class="text-xl md:text-2xl font-bold">{loading ? '...' : stats.providers}</div>
+        <p class="text-[10px] md:text-xs text-muted-foreground">服务供应商</p>
       </CardContent>
     </Card>
 
-    <Card>
-      <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle class="text-sm font-medium">数据中心</CardTitle>
+    <Card class="p-2 md:p-0">
+      <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-1 md:pb-2 px-3 md:px-6 pt-3 md:pt-6">
+        <CardTitle class="text-xs md:text-sm font-medium">数据中心</CardTitle>
       </CardHeader>
-      <CardContent>
-        <div class="text-2xl font-bold">{loading ? '...' : stats.datacenters}</div>
-        <p class="text-xs text-muted-foreground">数据中心数量</p>
+      <CardContent class="px-3 md:px-6 pb-3 md:pb-6">
+        <div class="text-xl md:text-2xl font-bold">{loading ? '...' : stats.datacenters}</div>
+        <p class="text-[10px] md:text-xs text-muted-foreground">数据中心数量</p>
       </CardContent>
     </Card>
 
-    <Card>
-      <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle class="text-sm font-medium">数据库实例</CardTitle>
+    <Card class="p-2 md:p-0">
+      <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-1 md:pb-2 px-3 md:px-6 pt-3 md:pt-6">
+        <CardTitle class="text-xs md:text-sm font-medium">数据库实例</CardTitle>
       </CardHeader>
-      <CardContent>
-        <div class="text-2xl font-bold">{loading ? '...' : stats.databases}</div>
-        <p class="text-xs text-muted-foreground">数据库实例数量</p>
+      <CardContent class="px-3 md:px-6 pb-3 md:pb-6">
+        <div class="text-xl md:text-2xl font-bold">{loading ? '...' : stats.databases}</div>
+        <p class="text-[10px] md:text-xs text-muted-foreground">数据库实例数量</p>
       </CardContent>
     </Card>
   </div>
 
   <!-- 到期提醒统计 -->
-  <div class="space-y-4">
-    <h2 class="text-xl font-semibold">到期提醒</h2>
-    <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      <Card class="border-l-4 border-l-red-500">
-        <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle class="text-sm font-medium">已过期</CardTitle>
+  <div class="space-y-3 md:space-y-4">
+    <h2 class="text-lg md:text-xl font-semibold">到期提醒</h2>
+    <div class="grid grid-cols-2 gap-2 md:gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <Card class="border-l-4 border-l-red-500 p-2 md:p-0">
+        <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-1 md:pb-2 px-3 md:px-6 pt-3 md:pt-6">
+          <CardTitle class="text-xs md:text-sm font-medium">已过期</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div class="text-2xl font-bold text-red-600">{loading ? '...' : expiryStats.expired}</div>
-          <p class="text-xs text-muted-foreground">需立即处理</p>
+        <CardContent class="px-3 md:px-6 pb-3 md:pb-6">
+          <div class="text-xl md:text-2xl font-bold text-red-600">{loading ? '...' : expiryStats.expired}</div>
+          <p class="text-[10px] md:text-xs text-muted-foreground">需立即处理</p>
         </CardContent>
       </Card>
 
-      <Card class="border-l-4 border-l-orange-500">
-        <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle class="text-sm font-medium">7天内到期</CardTitle>
+      <Card class="border-l-4 border-l-orange-500 p-2 md:p-0">
+        <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-1 md:pb-2 px-3 md:px-6 pt-3 md:pt-6">
+          <CardTitle class="text-xs md:text-sm font-medium">7天内到期</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div class="text-2xl font-bold text-orange-600">{loading ? '...' : expiryStats.urgent}</div>
-          <p class="text-xs text-muted-foreground">紧急续费</p>
+        <CardContent class="px-3 md:px-6 pb-3 md:pb-6">
+          <div class="text-xl md:text-2xl font-bold text-orange-600">{loading ? '...' : expiryStats.urgent}</div>
+          <p class="text-[10px] md:text-xs text-muted-foreground">紧急续费</p>
         </CardContent>
       </Card>
 
-      <Card class="border-l-4 border-l-yellow-500">
-        <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle class="text-sm font-medium">30天内到期</CardTitle>
+      <Card class="border-l-4 border-l-yellow-500 p-2 md:p-0">
+        <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-1 md:pb-2 px-3 md:px-6 pt-3 md:pt-6">
+          <CardTitle class="text-xs md:text-sm font-medium">30天内到期</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div class="text-2xl font-bold text-yellow-600">{loading ? '...' : expiryStats.warning}</div>
-          <p class="text-xs text-muted-foreground">近期关注</p>
+        <CardContent class="px-3 md:px-6 pb-3 md:pb-6">
+          <div class="text-xl md:text-2xl font-bold text-yellow-600">{loading ? '...' : expiryStats.warning}</div>
+          <p class="text-[10px] md:text-xs text-muted-foreground">近期关注</p>
         </CardContent>
       </Card>
 
-      <Card class="border-l-4 border-l-blue-500">
-        <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle class="text-sm font-medium">90天内到期</CardTitle>
+      <Card class="border-l-4 border-l-blue-500 p-2 md:p-0">
+        <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-1 md:pb-2 px-3 md:px-6 pt-3 md:pt-6">
+          <CardTitle class="text-xs md:text-sm font-medium">90天内到期</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div class="text-2xl font-bold text-blue-600">{loading ? '...' : expiryStats.soon}</div>
-          <p class="text-xs text-muted-foreground">提前规划</p>
+        <CardContent class="px-3 md:px-6 pb-3 md:pb-6">
+          <div class="text-xl md:text-2xl font-bold text-blue-600">{loading ? '...' : expiryStats.soon}</div>
+          <p class="text-[10px] md:text-xs text-muted-foreground">提前规划</p>
         </CardContent>
       </Card>
     </div>
@@ -369,21 +369,21 @@
         {:else}
           <div class="space-y-2">
             {#each filteredExpiryItems as item}
-              <div class="flex items-center justify-between rounded-md border p-3 hover:bg-accent/50">
-                <div class="flex items-center gap-3">
-                  <span class={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${getTypeClass(item.type)}`}>
+              <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-1 md:gap-3 rounded-md border p-2 md:p-3 hover:bg-accent/50">
+                <div class="flex items-center gap-2 md:gap-3">
+                  <span class={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] md:text-xs font-medium ${getTypeClass(item.type)}`}>
                     {item.typeLabel}
                   </span>
-                  <a href={item.href} class="font-medium text-primary hover:underline">
+                  <a href={item.href} class="font-medium text-primary hover:underline text-sm md:text-base truncate max-w-[180px] md:max-w-none">
                     {item.name}
                   </a>
                 </div>
-                <div class="flex items-center gap-3">
-                  <span class="text-sm text-muted-foreground">{formatDate(item.expiryDate)}</span>
-                  <span class={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${getLevelClass(item.level)}`}>
+                <div class="flex items-center gap-2 md:gap-3 flex-wrap">
+                  <span class="text-[10px] md:text-sm text-muted-foreground">{formatDate(item.expiryDate)}</span>
+                  <span class={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] md:text-xs font-medium ${getLevelClass(item.level)}`}>
                     {getLevelLabel(item.level)}
                   </span>
-                  <span class={`text-sm font-medium ${item.daysLeft < 0 ? 'text-red-600' : item.daysLeft <= 7 ? 'text-orange-600' : 'text-muted-foreground'}`}>
+                  <span class={`text-[10px] md:text-sm font-medium ${item.daysLeft < 0 ? 'text-red-600' : item.daysLeft <= 7 ? 'text-orange-600' : 'text-muted-foreground'}`}>
                     {item.daysLeft < 0 ? `已过期${Math.abs(item.daysLeft)}天` : `还剩${item.daysLeft}天`}
                   </span>
                 </div>
