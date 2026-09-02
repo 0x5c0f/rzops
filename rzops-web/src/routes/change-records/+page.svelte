@@ -100,10 +100,9 @@
     await Promise.allSettled(
       Array.from(grouped.values()).map(async (g) => {
         const label = await resolveResourceLabel(g.type, g.id);
-        if (label) {
-          for (const rid of g.rowIds) {
-            resourceNames[rid] = label;
-          }
+        const display = label || `${g.id.slice(0, 8)}…`;
+        for (const rid of g.rowIds) {
+          resourceNames[rid] = display;
         }
       })
     );
