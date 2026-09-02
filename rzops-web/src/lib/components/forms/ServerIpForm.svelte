@@ -8,6 +8,7 @@
   import TextArea from '$lib/components/shared/TextArea.svelte';
   import { commonStatusOptions, ipTypeOptions } from '$lib/utils/enum-options';
   import { getServerOptions, getProviderOptions } from '$lib/utils/entity-options';
+  import { validate } from '$lib/utils/validation';
   import { onMount } from 'svelte';
 
   let {
@@ -23,6 +24,7 @@
   } = $props();
 
   let saving = $state(false);
+  let formError = $state<string | null>(null);
   let serverOptions = $state<{ label: string; value: string }[]>([]);
   let providerOptions = $state<{ label: string; value: string }[]>([]);
 
@@ -49,11 +51,18 @@
   });
 
   async function handleSave() {
+    formError = validate([
+      { value: form.ip_address, label: 'IP地址', required: true, format: 'ip' },
+      { value: form.ip_type, label: 'IP类型', required: true },
+      { value: form.nic_name, label: '网卡名称', maxLength: 100 },
+    ]);
+    if (formError) return;
     saving = true;
     try {
       await onSubmit(form);
     } catch (err) {
       console.error('Failed to save server IP:', err);
+      formError = '保存失败，请重试';
     } finally {
       saving = false;
     }
@@ -61,6 +70,11 @@
 </script>
 
 <div class="space-y-4">
+  {#if formError}
+    <div class="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+      {formError}
+    </div>
+  {/if}
   <Card.Root>
     <Card.Header>
       <Card.Title>基本信息</Card.Title>

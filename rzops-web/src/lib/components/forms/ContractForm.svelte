@@ -9,7 +9,7 @@
   import TextArea from '$lib/components/shared/TextArea.svelte';
   import { contractStatusOptions } from '$lib/utils/enum-options';
   import { getProviderOptions } from '$lib/utils/entity-options';
-  import { validateDateRange } from '$lib/utils/validation';
+  import { validate, validateDateRange } from '$lib/utils/validation';
   import { onMount } from 'svelte';
 
   let {
@@ -42,6 +42,12 @@
   });
 
   async function handleSave() {
+    formError = validate([
+      { value: form.name, label: '合同名称', required: true, maxLength: 200 },
+      { value: form.contract_no, label: '合同编号', maxLength: 100 },
+      { value: form.amount, label: '合同金额', format: 'positiveNumber' },
+    ]);
+    if (formError) return;
     formError = validateDateRange(form.start_date, form.end_date, '开始日期', '结束日期');
     if (formError) return;
     saving = true;
@@ -49,6 +55,7 @@
       await onSubmit(form);
     } catch (err) {
       console.error('Failed to save contract:', err);
+      formError = '保存失败，请重试';
     } finally {
       saving = false;
     }

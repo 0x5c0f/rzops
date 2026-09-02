@@ -9,6 +9,7 @@
   import TextArea from '$lib/components/shared/TextArea.svelte';
   import { searchServerPaginated } from '$lib/utils/entity-options';
   import { protocolOptions, serverStatusOptions, serverTypeOptions, getOptionLabel } from '$lib/utils/enum-options';
+  import { validate } from '$lib/utils/validation';
 
   let {
     initial = {} as CreateServerPortRequest,
@@ -26,6 +27,7 @@
   } = $props();
 
   let saving = $state(false);
+  let formError = $state<string | null>(null);
 
   let form = $state<CreateServerPortRequest>(createInitial(initial));
 
@@ -48,11 +50,19 @@
   );
 
   async function handleSave() {
+    formError = validate([
+      { value: form.server_ids, label: '服务器', required: true, custom: (v) => Array.isArray(v) && v.length > 0 ? null : '请至少选择一个服务器' },
+      { value: form.protocol, label: '协议', required: true },
+      { value: form.port, label: '端口号', required: true, format: 'port' },
+      { value: form.service_name, label: '服务名称', required: true, maxLength: 100 },
+    ]);
+    if (formError) return;
     saving = true;
     try {
       await onSubmit(form);
     } catch (err) {
       console.error('Failed to save server port:', err);
+      formError = '保存失败，请重试';
     } finally {
       saving = false;
     }
@@ -60,6 +70,11 @@
 </script>
 
 <div class="space-y-4">
+  {#if formError}
+    <div class="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+      {formError}
+    </div>
+  {/if}
   <Card.Root>
     <Card.Header>
       <Card.Title>基本信息</Card.Title>

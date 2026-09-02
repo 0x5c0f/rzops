@@ -10,7 +10,7 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
   import TextArea from '$lib/components/shared/TextArea.svelte';
   import { getProviderOptions } from '$lib/utils/entity-options';
   import { currencyOptions, domainPrivacyStatusOptions } from '$lib/utils/enum-options';
-  import { validateDateRange } from '$lib/utils/validation';
+  import { validate, validateDateRange } from '$lib/utils/validation';
   import { onMount } from 'svelte';
 
   let {
@@ -46,6 +46,14 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
   });
 
   async function handleSave() {
+    formError = validate([
+      { value: form.domain_name, label: '域名', required: true, format: 'domain' },
+      { value: form.provider_id, label: '注册商', required: true },
+      { value: form.renewal_amount, label: '续费金额', format: 'positiveNumber' },
+      { value: form.platform_phone, label: '平台电话', maxLength: 30 },
+      { value: form.domain_email, label: '域名邮箱', format: 'email' },
+    ]);
+    if (formError) return;
     formError = validateDateRange(form.registered_date, form.expiry_date, '注册日期', '到期日期');
     if (formError) return;
     saving = true;

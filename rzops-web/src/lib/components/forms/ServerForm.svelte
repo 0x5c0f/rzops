@@ -32,7 +32,7 @@
   import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.svelte';
   import { getProviderOptions, getDataCenterOptions, getOpsSiteOptions } from '$lib/utils/entity-options';
   import { siteServerRoleOptions } from '$lib/utils/enum-options';
-  import { validateDateRange } from '$lib/utils/validation';
+  import { validate, validateDateRange } from '$lib/utils/validation';
   import { onMount } from 'svelte';
 
   // IP / 端口 明细草稿行（id 存在 = 已有记录，用于编辑增量同步）
@@ -211,23 +211,20 @@
     }
   }
 
-  function validateRows(): boolean {
-    if (ips.some(i => !i.ip_address.trim())) {
-      alert('IP 地址为必填，请填写完整或删除空行');
-      return false;
+  function validateRows(): string | null {
+    for (const ip of ips) {
+      if (!ip.ip_address.trim()) return 'IP 地址为必填，请填写完整或删除空行';
     }
     for (const p of ports) {
       const portNum = Number(p.port);
       if (!p.port || !Number.isInteger(portNum) || portNum < 1 || portNum > 65535) {
-        alert('端口号必须是 1-65535 的整数');
-        return false;
+        return '端口号必须是 1-65535 的整数';
       }
       if (!p.protocol || !p.service_name.trim()) {
-        alert('端口记录中协议和服务名为必填');
-        return false;
+        return '端口记录中协议和服务名为必填';
       }
     }
-    return true;
+    return null;
   }
 
   // 增量同步 IP：删除表单中已移除的、更新有 id 的、新增无 id 的
@@ -328,12 +325,23 @@
   }
 
   async function handleSave() {
+    // 基本字段校验
+    formError = validate([
+      { value: form.name, label: '服务器名称', required: true, maxLength: 100 },
+      { value: form.primary_ip, label: '主IP', format: 'ip' },
+      { value: form.asset_code, label: '资产编号', maxLength: 50 },
+      { value: form.lease_amount, label: '租赁金额', format: 'positiveNumber' },
+    ]);
+    if (formError) return;
+    // 日期范围校验
     formError = validateDateRange(form.lease_start_date, form.lease_end_date, '租赁开始日期', '租赁结束日期');
     if (formError) return;
-    if (!validateRows()) return;
-    // 校验数据库实例行
+    // 行校验
+    formError = validateRows();
+    if (formError) return;
+    // 数据库实例行校验
     if (dbInstances.some(r => !r.name.trim() || !r.db_type)) {
-      alert('数据库实例的实例名和类型为必填，请填写完整或删除空行');
+      formError = '数据库实例的实例名和类型为必填，请填写完整或删除空行';
       return;
     }
     syncPrimaryIp();
@@ -350,7 +358,7 @@
       }
     } catch (err) {
       console.error('Failed to save server:', err);
-      alert('保存失败，请重试');
+      formError = '保存失败，请重试';
     } finally {
       saving = false;
     }

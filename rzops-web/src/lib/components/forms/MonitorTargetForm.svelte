@@ -15,6 +15,7 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
     getDatabaseInstanceOptions,
     getCertificateOptions,
   } from '$lib/utils/entity-options';
+  import { validate } from '$lib/utils/validation';
   import { onMount } from 'svelte';
 
   let {
@@ -29,6 +30,7 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
   } = $props();
 
   let saving = $state(false);
+  let formError = $state<string | null>(null);
   let attachmentRef = $state<{ uploadAll: (id: string) => Promise<void> } | null>(null);
   let targetOptions = $state<{ label: string; value: string }[]>([]);
 
@@ -73,7 +75,14 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
   );
 
   async function handleSave() {
-    if (!form.name.trim()) return;
+    formError = validate([
+      { value: form.name, label: '监控目标名称', required: true, maxLength: 100 },
+      { value: form.target_type, label: '目标类型', required: true },
+      { value: form.monitor_type, label: '监控类型', required: true },
+      { value: form.endpoint, label: '监控地址', maxLength: 500 },
+      { value: form.interval_seconds, label: '间隔时间(秒)', format: 'positiveNumber' },
+    ]);
+    if (formError) return;
     saving = true;
     try {
       const id = await onSubmit({
@@ -84,6 +93,7 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
       if (id) await attachmentRef?.uploadAll(id);
     } catch (err) {
       console.error('Failed to save monitor target:', err);
+      formError = '保存失败，请重试';
     } finally {
       saving = false;
     }
@@ -91,6 +101,11 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
 </script>
 
 <div class="space-y-4">
+  {#if formError}
+    <div class="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+      {formError}
+    </div>
+  {/if}
   <Card.Root>
     <Card.Header>
       <Card.Title>基本信息</Card.Title>

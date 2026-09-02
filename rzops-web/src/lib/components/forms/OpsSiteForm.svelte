@@ -11,6 +11,7 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
   import { siteStatusOptions, importanceOptions, serviceTargetOptions, codeRepoTypeOptions, monitorTypeOptions, commonStatusOptions } from '$lib/utils/enum-options';
   import { backupPlansApi } from '$lib/api/backup-plans';
   import { monitorTargetsApi } from '$lib/api/monitor-targets';
+  import { validate } from '$lib/utils/validation';
 
   interface BackupDraft {
     id?: string;
@@ -45,6 +46,7 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
   } = $props();
 
   let saving = $state(false);
+  let formError = $state<string | null>(null);
   let attachmentRef = $state<{ uploadAll: (id: string) => Promise<void> } | null>(null);
 
   let form = $state<CreateOpsSiteRequest>(createInitial(initial));
@@ -144,12 +146,18 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
   }
 
   async function handleSave() {
+    formError = validate([
+      { value: form.name, label: '站点名称', required: true, maxLength: 100 },
+      { value: form.url, label: '站点URL', required: true, format: 'url' },
+      { value: form.status, label: '状态', required: true },
+    ]);
+    if (formError) return;
     if (backupPlans.some(r => !r.name.trim())) {
-      alert('备份计划的名称必填，请填写完整或删除空行');
+      formError = '备份计划的名称必填，请填写完整或删除空行';
       return;
     }
     if (monitorTargets.some(r => !r.name.trim())) {
-      alert('监控目标的名称必填，请填写完整或删除空行');
+      formError = '监控目标的名称必填，请填写完整或删除空行';
       return;
     }
     saving = true;
@@ -162,7 +170,7 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
       }
     } catch (err) {
       console.error('Failed to save ops site:', err);
-      alert('保存失败，请重试');
+      formError = '保存失败，请重试';
     } finally {
       saving = false;
     }
@@ -170,6 +178,11 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
 </script>
 
 <div class="space-y-4">
+  {#if formError}
+    <div class="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+      {formError}
+    </div>
+  {/if}
   <Card.Root>
     <Card.Header>
       <Card.Title>基本信息</Card.Title>

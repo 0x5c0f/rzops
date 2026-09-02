@@ -11,6 +11,7 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
   import { getServerOptions } from '$lib/utils/entity-options';
   import { backupPlansApi } from '$lib/api/backup-plans';
   import { monitorTargetsApi } from '$lib/api/monitor-targets';
+  import { validate } from '$lib/utils/validation';
   import { onMount } from 'svelte';
 
   interface BackupDraft {
@@ -46,6 +47,7 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
   } = $props();
 
   let saving = $state(false);
+  let formError = $state<string | null>(null);
   let attachmentRef = $state<{ uploadAll: (id: string) => Promise<void> } | null>(null);
   let serverOptions = $state<{ label: string; value: string }[]>([]);
 
@@ -138,12 +140,19 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
   }
 
   async function handleSave() {
+    formError = validate([
+      { value: form.name, label: '实例名称', required: true, maxLength: 100 },
+      { value: form.db_type, label: '数据库类型', required: true },
+      { value: form.port, label: '端口', format: 'port' },
+      { value: form.version, label: '版本', maxLength: 50 },
+    ]);
+    if (formError) return;
     if (backupPlans.some(r => !r.name.trim())) {
-      alert('备份计划的名称必填，请填写完整或删除空行');
+      formError = '备份计划的名称必填，请填写完整或删除空行';
       return;
     }
     if (monitorTargets.some(r => !r.name.trim())) {
-      alert('监控目标的名称必填，请填写完整或删除空行');
+      formError = '监控目标的名称必填，请填写完整或删除空行';
       return;
     }
     saving = true;
@@ -156,7 +165,7 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
       }
     } catch (err) {
       console.error('Failed to save database instance:', err);
-      alert('保存失败，请重试');
+      formError = '保存失败，请重试';
     } finally {
       saving = false;
     }
@@ -164,6 +173,11 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
 </script>
 
 <div class="space-y-4">
+  {#if formError}
+    <div class="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+      {formError}
+    </div>
+  {/if}
   <Card.Root>
     <Card.Header>
       <Card.Title>基本信息</Card.Title>

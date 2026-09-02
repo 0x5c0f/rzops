@@ -8,6 +8,7 @@
   import * as Select from '$lib/ui/select';
   import DataTable from '$lib/components/shared/DataTable.svelte';
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
+  import { validate } from '$lib/utils/validation';
   import { onMount } from 'svelte';
 
   let data = $state<DictItem[]>([]);
@@ -91,10 +92,14 @@
   }
 
   async function handleSave() {
-    if (!form.dict_type.trim() || !form.dict_code.trim() || !form.dict_label.trim()) {
-      error = '字典类型、编码和显示名称均为必填项';
-      return;
-    }
+    error = validate([
+      { value: form.dict_type, label: '字典类型', required: true, maxLength: 50, pattern: /^[a-z_][a-z0-9_]*$/ },
+      { value: form.dict_code, label: '字典编码', required: true, maxLength: 50, pattern: /^[a-zA-Z0-9_-]+$/ },
+      { value: form.dict_label, label: '显示名称', required: true, maxLength: 100 },
+      { value: form.sort_order, label: '排序', min: 0, max: 9999 },
+      { value: form.remark, label: '备注', maxLength: 500 },
+    ]) ?? '';
+    if (error) return;
     saving = true;
     error = '';
     try {

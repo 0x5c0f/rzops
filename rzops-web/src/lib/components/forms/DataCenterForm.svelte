@@ -10,6 +10,7 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
   import TextArea from '$lib/components/shared/TextArea.svelte';
   import { getProviderOptions } from '$lib/utils/entity-options';
   import { commonStatusOptions, countryOptions, lineTypeOptions } from '$lib/utils/enum-options';
+  import { validate } from '$lib/utils/validation';
   import { onMount } from 'svelte';
 
   let {
@@ -24,6 +25,7 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
   } = $props();
 
   let saving = $state(false);
+  let formError = $state<string | null>(null);
   let attachmentRef = $state<{ uploadAll: (id: string) => Promise<void> } | null>(null);
   let providerOptions = $state<{ label: string; value: string }[]>([]);
 
@@ -42,12 +44,19 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
   });
 
   async function handleSave() {
+    formError = validate([
+      { value: form.name, label: '数据中心名称', required: true, maxLength: 100 },
+      { value: form.country, label: '国家', maxLength: 50 },
+      { value: form.address, label: '地址', maxLength: 200 },
+    ]);
+    if (formError) return;
     saving = true;
     try {
       const id = await onSubmit(form);
       if (id) await attachmentRef?.uploadAll(id);
     } catch (err) {
       console.error('Failed to save datacenter:', err);
+      formError = '保存失败，请重试';
     } finally {
       saving = false;
     }
@@ -55,6 +64,11 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
 </script>
 
 <div class="space-y-4">
+  {#if formError}
+    <div class="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+      {formError}
+    </div>
+  {/if}
   <Card.Root>
     <Card.Header>
       <Card.Title>基本信息</Card.Title>

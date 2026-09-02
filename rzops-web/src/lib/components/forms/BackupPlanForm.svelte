@@ -13,6 +13,7 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
     getServerOptions,
     getOpsSiteOptions,
   } from '$lib/utils/entity-options';
+  import { validate } from '$lib/utils/validation';
 
   let {
     initial = {} as CreateBackupPlanRequest,
@@ -26,6 +27,7 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
   } = $props();
 
   let saving = $state(false);
+  let formError = $state<string | null>(null);
   let attachmentRef = $state<{ uploadAll: (id: string) => Promise<void> } | null>(null);
   let targetOptions = $state<{ label: string; value: string }[]>([]);
 
@@ -66,6 +68,13 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
   );
 
   async function handleSave() {
+    formError = validate([
+      { value: form.name, label: '备份计划名称', required: true, maxLength: 100 },
+      { value: form.target_type, label: '目标类型', required: true },
+      { value: form.schedule, label: '执行计划', required: true, maxLength: 100 },
+      { value: form.retention_days, label: '保留天数', format: 'positiveNumber' },
+    ]);
+    if (formError) return;
     saving = true;
     try {
       const id = await onSubmit({
@@ -76,6 +85,7 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
       if (id) await attachmentRef?.uploadAll(id);
     } catch (err) {
       console.error('Failed to save backup plan:', err);
+      formError = '保存失败，请重试';
     } finally {
       saving = false;
     }
@@ -83,6 +93,11 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
 </script>
 
 <div class="space-y-4">
+  {#if formError}
+    <div class="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+      {formError}
+    </div>
+  {/if}
   <Card.Root>
     <Card.Header>
       <Card.Title>基本信息</Card.Title>

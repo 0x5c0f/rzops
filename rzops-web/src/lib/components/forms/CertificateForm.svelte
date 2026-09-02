@@ -13,7 +13,7 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
   import { certificateStatusOptions, certificateTypeOptions } from '$lib/utils/enum-options';
   import { getProviderOptions, getDomainOptions } from '$lib/utils/entity-options';
   import { certificateDomainsApi } from '$lib/api/certificate-domains';
-  import { validateDateRange } from '$lib/utils/validation';
+  import { validate, validateDateRange } from '$lib/utils/validation';
   import { onMount } from 'svelte';
 
   // 域名绑定草稿行（id 存在 = 已有记录，用于编辑增量同步）
@@ -111,6 +111,12 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
   }
 
   async function handleSave() {
+    formError = validate([
+      { value: form.name, label: '证书名称', required: true, maxLength: 200 },
+      { value: form.certificate_type, label: '证书类型', required: true },
+      { value: form.issuer, label: '颁发机构', maxLength: 100 },
+    ]);
+    if (formError) return;
     if (domains.some(d => !d.domain_pattern.trim())) {
       formError = '域名绑定中"域名/模式"为必填，请填写完整或删除空行';
       return;
@@ -127,7 +133,7 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
       }
     } catch (err) {
       console.error('Failed to save certificate:', err);
-      alert('保存失败，请重试');
+      formError = '保存失败，请重试';
     } finally {
       saving = false;
     }

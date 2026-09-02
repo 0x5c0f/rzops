@@ -9,6 +9,7 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
   import FormMultiSelect from '$lib/components/shared/FormMultiSelect.svelte';
   import TextArea from '$lib/components/shared/TextArea.svelte';
   import { providerTypeOptions, commonStatusOptions } from '$lib/utils/enum-options';
+  import { validate } from '$lib/utils/validation';
 
   let {
     initial = {} as CreateProviderRequest,
@@ -22,6 +23,7 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
   } = $props();
 
   let saving = $state(false);
+  let formError = $state<string | null>(null);
   let attachmentRef = $state<{ uploadAll: (id: string) => Promise<void> } | null>(null);
 
   let form = $state<CreateProviderRequest>(createInitial(initial));
@@ -36,12 +38,20 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
   }
 
   async function handleSave() {
+    formError = validate([
+      { value: form.name, label: '供应商名称', required: true, maxLength: 100 },
+      { value: form.provider_types, label: '供应商类型', required: true, custom: (v) => Array.isArray(v) && v.length > 0 ? null : '请至少选择一个供应商类型' },
+      { value: form.contact_email, label: '联系邮箱', format: 'email' },
+      { value: form.contact_phone, label: '联系电话', maxLength: 30 },
+    ]);
+    if (formError) return;
     saving = true;
     try {
       const id = await onSubmit(form);
       if (id) await attachmentRef?.uploadAll(id);
     } catch (err) {
       console.error('Failed to save provider:', err);
+      formError = '保存失败，请重试';
     } finally {
       saving = false;
     }
@@ -49,6 +59,11 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
 </script>
 
 <div class="space-y-4">
+  {#if formError}
+    <div class="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+      {formError}
+    </div>
+  {/if}
   <Card.Root>
     <Card.Header>
       <Card.Title>基本信息</Card.Title>
