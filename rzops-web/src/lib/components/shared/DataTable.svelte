@@ -191,7 +191,7 @@
       <Table.Header>
         <Table.Row>
           {#if showIndex}
-            <Table.Head class="w-[60px] sticky top-0 z-10 bg-background shadow-[0_1px_0_0_var(--border)] text-center">#</Table.Head>
+            <Table.Head class="w-[60px] sticky top-0 left-0 z-20 bg-background shadow-[1px_0_0_0_var(--border),0_1px_0_0_var(--border)] text-center">#</Table.Head>
           {/if}
           {#each visibleColumns as col}
             <Table.Head class={cn('sticky top-0 z-10 bg-background shadow-[0_1px_0_0_var(--border)]', col.class)}>{col.label}</Table.Head>
@@ -218,7 +218,7 @@
           {#each data as item, index}
             <Table.Row class={getRowClass ? getRowClass(item) : ''}>
               {#if showIndex}
-                <Table.Cell class="text-center text-muted-foreground">{(page - 1) * perPage + index + 1}</Table.Cell>
+                <Table.Cell class="sticky left-0 z-10 bg-background shadow-[1px_0_0_0_var(--border)] text-center text-muted-foreground">{(page - 1) * perPage + index + 1}</Table.Cell>
               {/if}
               {#each visibleColumns as col}
                 <Table.Cell class={col.class}>
