@@ -38,6 +38,7 @@
     rowKey = 'id',
     labelKey = 'name',
     perPage = 10,
+    onConfirm,
   }: {
     label?: string;
     value?: string[];
@@ -53,6 +54,7 @@
     rowKey?: string;
     labelKey?: string;
     perPage?: number;
+    onConfirm?: (items: Record<string, unknown>[]) => void;
   } = $props();
 
   let modalOpen = $state(false);
@@ -176,10 +178,15 @@
 
   function confirmSelect() {
     const ids = Array.from(tempSelected.keys());
+    const items = Array.from(tempSelected.values());
     value = multiple ? ids : ids.slice(0, 1);
     // 更新 labelCache
     for (const [id, item] of tempSelected) {
       labelCache[id] = String(item[labelKey] ?? id);
+    }
+    // 调用 onConfirm 回调，传入选中项详细信息
+    if (onConfirm) {
+      onConfirm(multiple ? items : items.slice(0, 1));
     }
     modalOpen = false;
   }

@@ -90,9 +90,26 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
   let addRelationOpen = $state(false);
   let addRelationType = $state<'server' | 'database' | 'domain'>('server');
   let addRelationIds = $state<string[]>([]);
+  let addRelationItems = $state<Record<string, unknown>[]>([]);
   let addRelationRole = $state('');
   let addRelationIsPrimary = $state(false);
   let addRelationSaving = $state(false);
+
+  // 名称映射：id -> name，用于显示关联资源名称
+  let serverNameMap = $state<Record<string, string>>({});
+  let databaseNameMap = $state<Record<string, string>>({});
+  let domainNameMap = $state<Record<string, string>>({});
+
+  function handleRelationConfirm(items: Record<string, unknown>[]) {
+    addRelationItems = items;
+    for (const item of items) {
+      const id = String(item.id ?? '');
+      const name = String(item.name ?? id);
+      if (addRelationType === 'server') serverNameMap[id] = name;
+      else if (addRelationType === 'database') databaseNameMap[id] = name;
+      else domainNameMap[id] = name;
+    }
+  }
 
   // 编辑时加载已有关联
   onMount(async () => {
@@ -119,6 +136,44 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
         id: d.id,
         domain_id: d.domain_id,
         is_primary: d.is_primary,
+      }));
+
+      // 加载名称映射
+      const serverIds = servers.map(s => s.server_id);
+      const dbIds = databases.map(d => d.database_instance_id);
+      const domainIds = domains.map(d => d.domain_id);
+
+      if (serverIds.length > 0) {
+        const res = await searchServerPaginated('', 1, 1000);
+        for (const item of res.data) {
+          serverNameMap[String(item.id)] = String(item.name ?? item.id);
+        }
+      }
+      if (dbIds.length > 0) {
+        const res = await searchDatabasePaginated('', 1, 1000);
+        for (const item of res.data) {
+          databaseNameMap[String(item.id)] = String(item.name ?? item.id);
+        }
+      }
+      if (domainIds.length > 0) {
+        const res = await searchDomainPaginated('', 1, 1000);
+        for (const item of res.data) {
+          domainNameMap[String(item.id)] = String(item.name ?? item.id);
+        }
+      }
+
+      // 填充名称到关联数据
+      serverRelations = serverRelations.map(r => ({
+        ...r,
+        server_name: serverNameMap[r.server_id] || r.server_id,
+      }));
+      databaseRelations = databaseRelations.map(r => ({
+        ...r,
+        database_name: databaseNameMap[r.database_instance_id] || r.database_instance_id,
+      }));
+      domainRelations = domainRelations.map(r => ({
+        ...r,
+        domain_name: domainNameMap[r.domain_id] || r.domain_id,
       }));
     } catch (err) {
       console.error('Failed to load site relations:', err);
@@ -287,6 +342,7 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
             serverRelations = [...serverRelations, {
               id: created.id,
               server_id: targetId,
+              server_name: serverNameMap[targetId],
               deploy_role: addRelationRole,
               is_primary: addRelationIsPrimary,
             }];
@@ -300,6 +356,7 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
             databaseRelations = [...databaseRelations, {
               id: created.id,
               database_instance_id: targetId,
+              database_name: databaseNameMap[targetId],
               usage_type: addRelationRole,
               is_primary: addRelationIsPrimary,
             }];
@@ -312,6 +369,7 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
             domainRelations = [...domainRelations, {
               id: created.id,
               domain_id: targetId,
+              domain_name: domainNameMap[targetId],
               is_primary: addRelationIsPrimary,
             }];
           }
@@ -322,18 +380,21 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
           if (addRelationType === 'server') {
             serverRelations = [...serverRelations, {
               server_id: targetId,
+              server_name: serverNameMap[targetId],
               deploy_role: addRelationRole,
               is_primary: addRelationIsPrimary,
             }];
           } else if (addRelationType === 'database') {
             databaseRelations = [...databaseRelations, {
               database_instance_id: targetId,
+              database_name: databaseNameMap[targetId],
               usage_type: addRelationRole,
               is_primary: addRelationIsPrimary,
             }];
           } else {
             domainRelations = [...domainRelations, {
               domain_id: targetId,
+              domain_name: domainNameMap[targetId],
               is_primary: addRelationIsPrimary,
             }];
           }
@@ -620,6 +681,7 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
             searchPlaceholder="输入名称或 IP 搜索..."
             modalTitle="选择服务器"
             required
+            onConfirm={handleRelationConfirm}
             columns={[
               { key: 'name', label: '服务器名称' },
               { key: 'primary_ip', label: '主IP', width: 'w-32' },
@@ -641,6 +703,7 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
             searchPlaceholder="输入名称搜索..."
             modalTitle="选择数据库实例"
             required
+            onConfirm={handleRelationConfirm}
             columns={[
               { key: 'name', label: '实例名称' },
               { key: 'db_type', label: '类型', width: 'w-24' },
@@ -662,6 +725,7 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
             searchPlaceholder="输入域名搜索..."
             modalTitle="选择域名"
             required
+            onConfirm={handleRelationConfirm}
             columns={[
               { key: 'name', label: '域名' },
               { key: 'registrar', label: '注册商', width: 'w-32' },
