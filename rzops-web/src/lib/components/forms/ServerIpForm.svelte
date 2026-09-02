@@ -5,9 +5,10 @@
   import { Label } from '$lib/ui/label';
   import * as Card from '$lib/ui/card';
   import FormSelect from '$lib/components/shared/FormSelect.svelte';
+  import TableSelectModal from '$lib/components/shared/TableSelectModal.svelte';
   import TextArea from '$lib/components/shared/TextArea.svelte';
-  import { ipStatusOptions, ipTypeOptions } from '$lib/utils/enum-options';
-  import { getServerOptions, getProviderOptions } from '$lib/utils/entity-options';
+  import { ipStatusOptions, ipTypeOptions, serverStatusOptions, serverTypeOptions, getOptionLabel } from '$lib/utils/enum-options';
+  import { searchServerPaginated, getProviderOptions } from '$lib/utils/entity-options';
   import { validate } from '$lib/utils/validation';
   import { onMount } from 'svelte';
 
@@ -25,12 +26,17 @@
 
   let saving = $state(false);
   let formError = $state<string | null>(null);
-  let serverOptions = $state<{ label: string; value: string }[]>([]);
+  let displayServerOptions = $state<{ label: string; value: string }[]>([]);
   let providerOptions = $state<{ label: string; value: string }[]>([]);
+  let serverIds = $state<string[]>([]);
 
   let form = $state<CreateServerIpRequest>(createInitial(initial));
 
-  let serverName = $derived(serverOptions.length > 0 ? (serverOptions.find(o => o.value === form.server_id)?.label || '-') : '-');
+  let serverName = $derived(
+    serverIds.length > 0
+      ? (displayServerOptions.find(o => o.value === serverIds[0])?.label || serverIds[0])
+      : '-'
+  );
 
   function createInitial(initial?: CreateServerIpRequest): CreateServerIpRequest {
     return {
@@ -44,12 +50,18 @@
   }
 
   onMount(async () => {
-    const [servers, providers] = await Promise.all([
-      getServerOptions(),
-      getProviderOptions(),
-    ]);
-    serverOptions = servers;
-    providerOptions = providers;
+    providerOptions = await getProviderOptions();
+    // 初始化服务器选中项
+    if (form.server_id) {
+      serverIds = [form.server_id];
+      try {
+        const res = await searchServerPaginated('', 1, 100);
+        const found = res.data.find(s => s.id === form.server_id);
+        if (found) {
+          displayServerOptions = [{ label: String(found.name), value: form.server_id }];
+        }
+      } catch { /* ignore */ }
+    }
   });
 
   async function handleSave() {
@@ -61,6 +73,7 @@
     if (formError) return;
     saving = true;
     try {
+      form.server_id = serverIds[0] || '';
       await onSubmit(form);
     } catch (err) {
       console.error('Failed to save server IP:', err);
@@ -88,11 +101,31 @@
           <Input id="server_id" value={serverName} disabled />
         </div>
       {:else}
-        <FormSelect
+        <TableSelectModal
           label="服务器"
-          bind:value={form.server_id}
-          options={serverOptions}
+          multiple={false}
+          bind:value={serverIds}
+          searchFn={searchServerPaginated}
+          displayOptions={displayServerOptions}
           placeholder="选择服务器（可留空，如未绑定的EIP）"
+          searchPlaceholder="输入名称或 IP 搜索..."
+          modalTitle="选择服务器"
+          columns={[
+            { key: 'name', label: '服务器名称' },
+            { key: 'primary_ip', label: '主IP', width: 'w-32' },
+            {
+              key: 'status',
+              label: '状态',
+              width: 'w-20',
+              render: (item) => getOptionLabel($serverStatusOptions, String(item.status ?? '')),
+            },
+            {
+              key: 'server_type',
+              label: '类型',
+              width: 'w-24',
+              render: (item) => getOptionLabel($serverTypeOptions, String(item.server_type ?? '')),
+            },
+          ]}
         />
       {/if}
 

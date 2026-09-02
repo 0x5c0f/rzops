@@ -6,9 +6,10 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
   import { Label } from '$lib/ui/label';
   import * as Card from '$lib/ui/card';
   import FormSelect from '$lib/components/shared/FormSelect.svelte';
+  import TableSelectModal from '$lib/components/shared/TableSelectModal.svelte';
   import TextArea from '$lib/components/shared/TextArea.svelte';
-  import { databaseStatusOptions, databaseTypeOptions, importanceOptions, monitorTypeOptions, commonStatusOptions } from '$lib/utils/enum-options';
-  import { getServerOptions } from '$lib/utils/entity-options';
+  import { databaseStatusOptions, databaseTypeOptions, importanceOptions, monitorTypeOptions, commonStatusOptions, serverStatusOptions, serverTypeOptions, getOptionLabel } from '$lib/utils/enum-options';
+  import { searchServerPaginated } from '$lib/utils/entity-options';
   import { backupPlansApi } from '$lib/api/backup-plans';
   import { monitorTargetsApi } from '$lib/api/monitor-targets';
   import { validate } from '$lib/utils/validation';
@@ -49,14 +50,15 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
   let saving = $state(false);
   let formError = $state<string | null>(null);
   let attachmentRef = $state<{ uploadAll: (id: string) => Promise<void> } | null>(null);
-  let serverOptions = $state<{ label: string; value: string }[]>([]);
+  let displayServerOptions = $state<{ label: string; value: string }[]>([]);
+  let serverIds = $state<string[]>([]);
 
   let form = $state<CreateDatabaseInstanceRequest>(createInitial(initial));
   let backupPlans = $state<BackupDraft[]>(JSON.parse(JSON.stringify(initialBackupPlans)));
   let monitorTargets = $state<MonitorDraft[]>(JSON.parse(JSON.stringify(initialMonitorTargets)));
 
   function createInitial(initial?: CreateDatabaseInstanceRequest): CreateDatabaseInstanceRequest {
-    return {
+    const init = {
       name: '',
       db_type: '',
       server_id: '',
@@ -65,10 +67,22 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
       status: 'active',
       ...JSON.parse(JSON.stringify(initial ?? {})),
     };
+    return init;
   }
 
   onMount(async () => {
-    serverOptions = await getServerOptions();
+    // 初始化服务器选中项
+    if (form.server_id) {
+      serverIds = [form.server_id];
+      // 尝试获取服务器名称用于回显
+      try {
+        const res = await searchServerPaginated('', 1, 100);
+        const found = res.data.find(s => s.id === form.server_id);
+        if (found) {
+          displayServerOptions = [{ label: String(found.name), value: form.server_id }];
+        }
+      } catch { /* ignore */ }
+    }
   });
 
   function emptyBackup(): BackupDraft {
@@ -157,6 +171,7 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
     }
     saving = true;
     try {
+      form.server_id = serverIds[0] || '';
       const id = await onSubmit(form);
       if (id) {
         await syncBackupPlans(id);
@@ -196,11 +211,31 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
         required
       />
 
-      <FormSelect
+      <TableSelectModal
         label="服务器"
-        bind:value={form.server_id}
-        options={serverOptions}
+        multiple={false}
+        bind:value={serverIds}
+        searchFn={searchServerPaginated}
+        displayOptions={displayServerOptions}
         placeholder="选择服务器"
+        searchPlaceholder="输入名称或 IP 搜索..."
+        modalTitle="选择服务器"
+        columns={[
+          { key: 'name', label: '服务器名称' },
+          { key: 'primary_ip', label: '主IP', width: 'w-32' },
+          {
+            key: 'status',
+            label: '状态',
+            width: 'w-20',
+            render: (item) => getOptionLabel($serverStatusOptions, String(item.status ?? '')),
+          },
+          {
+            key: 'server_type',
+            label: '类型',
+            width: 'w-24',
+            render: (item) => getOptionLabel($serverTypeOptions, String(item.server_type ?? '')),
+          },
+        ]}
       />
 
       <FormSelect

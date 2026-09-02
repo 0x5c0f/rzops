@@ -277,7 +277,7 @@
         {:else}
           <Table.Root>
             <Table.Header>
-              <Table.Row>
+              <Table.Row class="sticky top-0 z-10 bg-background">
                 <Table.Head class="w-10">
                   <input
                     type="checkbox"
@@ -287,7 +287,7 @@
                   />
                 </Table.Head>
                 {#each columns as col}
-                  <Table.Head class={col.width}>{col.label}</Table.Head>
+                  <Table.Head class={cn('bg-background', col.width)}>{col.label}</Table.Head>
                 {/each}
               </Table.Row>
             </Table.Header>
