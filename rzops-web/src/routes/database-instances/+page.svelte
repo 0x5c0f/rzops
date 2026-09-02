@@ -1,6 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { databaseInstancesApi } from '$lib/api/database-instances';
+  import { serversApi } from '$lib/api/servers';
   import type { DatabaseInstanceResponse, ListDatabaseInstancesQuery } from '$lib/types/database_instance';
   import { Button } from '$lib/ui/button';
   import { Input } from '$lib/ui/input';
@@ -10,6 +11,7 @@
   import { onMount } from 'svelte';
   import { getServerOptions } from '$lib/utils/entity-options';
   import { databaseTypeOptions, databaseStatusOptions, importanceOptions, environmentOptions } from '$lib/utils/enum-options';
+  import { formatResourceWithStatus, isResourceOffline } from '$lib/utils/resource-status';
 
   let data = $state<DatabaseInstanceResponse[]>([]);
   let total = $state(0);
@@ -18,6 +20,7 @@
   let page = $derived(query.page ?? 1);
   let perPage = $derived(query.per_page ?? 20);
   let serverMap = $state<Record<string, string>>({});
+  let serverStatusMap = $state<Record<string, string>>({});
   let dbTypeMap = $derived(Object.fromEntries($databaseTypeOptions.map(o => [o.value, o.label])));
   let dbStatusMap = $derived(Object.fromEntries($databaseStatusOptions.map(o => [o.value, o.label])));
   let importanceMap = $derived(Object.fromEntries($importanceOptions.map(o => [o.value, o.label])));
@@ -27,10 +30,21 @@
     { key: 'name', label: '名称' , link: (item: DatabaseInstanceResponse) => `/database-instances/${item.id}`, lockVisible: true },
     { key: 'db_type', label: '数据库类型', valueMap: dbTypeMap },
     { key: 'environment', label: '环境', valueMap: environmentMap },
-    { key: 'server_id', label: '服务器', valueMap: serverMap },
+    { key: 'server_id', label: '服务器', render: (v: unknown, item: DatabaseInstanceResponse) => {
+      if (!item.server_id) return '-';
+      if (!serverMap[item.server_id]) return '已删除';
+      return formatResourceWithStatus(serverMap[item.server_id], serverStatusMap[item.server_id], 'server');
+    }},
     { key: 'status', label: '状态', valueMap: dbStatusMap },
     { key: 'importance', label: '重要性', valueMap: importanceMap, hideInTable: true },
   ]);
+
+  function getRowClass(item: DatabaseInstanceResponse): string {
+    if (item.server_id && isResourceOffline('server', serverStatusMap[item.server_id])) {
+      return 'opacity-60 bg-gray-50';
+    }
+    return '';
+  }
 
   async function loadData() {
     loading = true;
@@ -46,8 +60,12 @@
   }
 
   onMount(async () => {
-    const srvOptions = await getServerOptions();
+    const [srvOptions, serverList] = await Promise.all([
+      getServerOptions(),
+      serversApi.list({ per_page: 200 }),
+    ]);
     Object.assign(serverMap, Object.fromEntries(srvOptions.map(o => [o.value, o.label])));
+    serverStatusMap = Object.fromEntries(serverList.data.map((s: {id: string, status: string}) => [s.id, s.status]));
     await loadData();
   });
 
@@ -117,6 +135,7 @@
     {loading}
     onEdit={handleEdit}
     onDelete={handleDelete}
+    {getRowClass}
     storageKey="database-instances"
   />
 

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { certificatesApi } from '$lib/api/certificates';
+  import { providersApi } from '$lib/api/providers';
   import type { CertificateResponse, ListCertificatesQuery } from '$lib/types/certificate';
   import { Button } from '$lib/ui/button';
   import { Input } from '$lib/ui/input';
@@ -10,6 +11,7 @@
   import { onMount } from 'svelte';
   import { getProviderOptions } from '$lib/utils/entity-options';
   import { certificateStatusOptions, certificateTypeOptions } from '$lib/utils/enum-options';
+  import { formatResourceWithStatus, isResourceOffline } from '$lib/utils/resource-status';
 
   let data = $state<CertificateResponse[]>([]);
   let total = $state(0);
@@ -18,6 +20,7 @@
   let page = $derived(query.page ?? 1);
   let perPage = $derived(query.per_page ?? 20);
   let providerMap = $state<Record<string, string>>({});
+  let providerStatusMap = $state<Record<string, string>>({});
 
   let certificateTypeMap = $derived(Object.fromEntries($certificateTypeOptions.map(o => [o.value, o.label])));
   let certificateStatusMap = $derived(Object.fromEntries($certificateStatusOptions.map(o => [o.value, o.label])));
@@ -27,8 +30,19 @@
     { key: 'certificate_type', label: '类型', valueMap: certificateTypeMap },
     { key: 'status', label: '状态', valueMap: certificateStatusMap },
     { key: 'lease_end_date', label: '到期日期' },
-    { key: 'provider_id', label: '供应商', valueMap: providerMap, hideInTable: true },
+    { key: 'provider_id', label: '供应商', render: (v: unknown, item: CertificateResponse) => {
+      if (!item.provider_id) return '-';
+      if (!providerMap[item.provider_id]) return '已删除';
+      return formatResourceWithStatus(providerMap[item.provider_id], providerStatusMap[item.provider_id], 'provider');
+    }, hideInTable: true },
   ]);
+
+  function getRowClass(item: CertificateResponse): string {
+    if (item.provider_id && isResourceOffline('provider', providerStatusMap[item.provider_id])) {
+      return 'opacity-60 bg-gray-50';
+    }
+    return '';
+  }
 
   async function loadData() {
     loading = true;
@@ -44,8 +58,12 @@
   }
 
   onMount(async () => {
-    const provOptions = await getProviderOptions();
+    const [provOptions, providerList] = await Promise.all([
+      getProviderOptions(),
+      providersApi.list({ per_page: 200 }),
+    ]);
     Object.assign(providerMap, Object.fromEntries(provOptions.map(o => [o.value, o.label])));
+    providerStatusMap = Object.fromEntries(providerList.data.map((p: {id: string, status?: string}) => [p.id, p.status || 'active']));
     await loadData();
   });
 
@@ -104,7 +122,9 @@
     {data}
     {loading}
     onEdit={handleEdit}
-    onDelete={handleDelete} storageKey="certificates" />
+    onDelete={handleDelete}
+    {getRowClass}
+    storageKey="certificates" />
 
   <Pagination
     {page}

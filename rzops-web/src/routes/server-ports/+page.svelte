@@ -1,6 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { serverPortsApi } from '$lib/api/server-ports';
+  import { serversApi } from '$lib/api/servers';
   import type { ServerPortResponse, ListServerPortsQuery } from '$lib/types/server_port';
   import { Button } from '$lib/ui/button';
   import { Input } from '$lib/ui/input';
@@ -9,6 +10,7 @@
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import { onMount } from 'svelte';
   import { protocolOptions } from '$lib/utils/enum-options';
+  import { formatResourceWithStatus, isResourceOffline } from '$lib/utils/resource-status';
 
   let data = $state<ServerPortResponse[]>([]);
   let total = $state(0);
@@ -16,6 +18,7 @@
   let query = $state<ListServerPortsQuery>({ page: 1, per_page: 20 });
   let page = $derived(query.page ?? 1);
   let perPage = $derived(query.per_page ?? 20);
+  let serverStatusMap = $state<Record<string, string>>({});
   let protocolMap = $derived(Object.fromEntries($protocolOptions.map(o => [o.value, o.label])));
 
   const columns = $derived([
@@ -28,12 +31,17 @@
       render: (v: unknown) => {
         const list = v as { id: string; name: string }[] | null | undefined;
         if (!list || list.length === 0) return '-';
-        const shown = list.slice(0, 3).map(s => s.name).join(', ');
+        const shown = list.slice(0, 3).map(s => formatResourceWithStatus(s.name, serverStatusMap[s.id], 'server')).join(', ');
         return list.length > 3 ? `${shown}, … +${list.length - 3}` : shown;
       },
     },
     { key: 'is_enabled', label: '启用', render: (v: unknown) => v ? '是' : '否', hideInTable: true },
   ]);
+
+  function getRowClass(item: ServerPortResponse): string {
+    const hasOffline = item.servers?.some(s => isResourceOffline('server', serverStatusMap[s.id]));
+    return hasOffline ? 'opacity-60 bg-gray-50' : '';
+  }
 
   async function loadData() {
     loading = true;
@@ -49,6 +57,8 @@
   }
 
   onMount(async () => {
+    const serverList = await serversApi.list({ per_page: 200 });
+    serverStatusMap = Object.fromEntries(serverList.data.map((s: {id: string, status: string}) => [s.id, s.status]));
     await loadData();
   });
 
@@ -107,7 +117,9 @@
     {data}
     {loading}
     onEdit={handleEdit}
-    onDelete={handleDelete} storageKey="server-ports" />
+    onDelete={handleDelete}
+    {getRowClass}
+    storageKey="server-ports" />
 
   <Pagination
     {page}

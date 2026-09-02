@@ -1,6 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { serverIpsApi } from '$lib/api/server-ips';
+  import { serversApi } from '$lib/api/servers';
   import type { ServerIpResponse, ListServerIpsQuery } from '$lib/types/server_ip';
   import { Button } from '$lib/ui/button';
   import { Input } from '$lib/ui/input';
@@ -10,6 +11,7 @@
   import { onMount } from 'svelte';
   import { getServerOptions } from '$lib/utils/entity-options';
   import { ipStatusOptions, ipTypeOptions } from '$lib/utils/enum-options';
+  import { formatResourceWithStatus, isResourceOffline } from '$lib/utils/resource-status';
 
   let data = $state<ServerIpResponse[]>([]);
   let total = $state(0);
@@ -18,17 +20,31 @@
   let page = $derived(query.page ?? 1);
   let perPage = $derived(query.per_page ?? 20);
   let serverMap = $state<Record<string, string>>({});
+  let serverStatusMap = $state<Record<string, string>>({});
   let ipTypeMap = $derived(Object.fromEntries($ipTypeOptions.map(o => [o.value, o.label])));
   let ipStatusMap = $derived(Object.fromEntries($ipStatusOptions.map(o => [o.value, o.label])));
 
   const columns = $derived([
     { key: 'ip_address', label: 'IP地址' , link: (item: ServerIpResponse) => `/server-ips/${item.id}`, lockVisible: true },
-    { key: 'server_id', label: '服务器', valueMap: serverMap },
+    { key: 'server_id', label: '服务器', render: (v: unknown, item: ServerIpResponse) => {
+      if (!item.server_id) return '-';
+      if (!serverMap[item.server_id]) return '已删除';
+      const name = serverMap[item.server_id];
+      const status = serverStatusMap[item.server_id];
+      return formatResourceWithStatus(name, status, 'server');
+    }},
     { key: 'ip_type', label: '类型', valueMap: ipTypeMap },
     { key: 'status', label: '状态', valueMap: ipStatusMap },
     { key: 'nic_name', label: '网卡', render: (v: unknown) => v || '-', hideInTable: true },
     { key: 'is_primary', label: '主IP', render: (v: unknown) => v ? '是' : '否', hideInTable: true },
   ]);
+
+  function getRowClass(item: ServerIpResponse): string {
+    if (item.server_id && isResourceOffline('server', serverStatusMap[item.server_id])) {
+      return 'opacity-60 bg-gray-50';
+    }
+    return '';
+  }
 
   async function loadData() {
     loading = true;
@@ -44,8 +60,12 @@
   }
 
   onMount(async () => {
-    const srvOptions = await getServerOptions();
+    const [srvOptions, serverList] = await Promise.all([
+      getServerOptions(),
+      serversApi.list({ per_page: 200 }),
+    ]);
     Object.assign(serverMap, Object.fromEntries(srvOptions.map(o => [o.value, o.label])));
+    serverStatusMap = Object.fromEntries(serverList.data.map((s: {id: string, status: string}) => [s.id, s.status]));
     await loadData();
   });
 
@@ -104,7 +124,9 @@
     {data}
     {loading}
     onEdit={handleEdit}
-    onDelete={handleDelete} storageKey="server-ips" />
+    onDelete={handleDelete}
+    {getRowClass}
+    storageKey="server-ips" />
 
   <Pagination
     {page}

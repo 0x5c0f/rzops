@@ -1,6 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { domainsApi } from '$lib/api/domains';
+  import { providersApi } from '$lib/api/providers';
   import type { DomainResponse, ListDomainsQuery } from '$lib/types/domain';
   import { Button } from '$lib/ui/button';
   import { Input } from '$lib/ui/input';
@@ -10,6 +11,7 @@
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import { formatDate } from '$lib/utils/format';
   import { getProviderOptions } from '$lib/utils/entity-options';
+  import { formatResourceWithStatus, isResourceOffline } from '$lib/utils/resource-status';
   import { onMount } from 'svelte';
 
   let data = $state<DomainResponse[]>([]);
@@ -19,14 +21,26 @@
   let page = $derived(query.page ?? 1);
   let perPage = $derived(query.per_page ?? 20);
   let providerMap = $state<Record<string, string>>({});
+  let providerStatusMap = $state<Record<string, string>>({});
 
   const columns = $derived([
     { key: 'domain_name', label: '域名' , link: (item: DomainResponse) => `/domains/${item.id}`, lockVisible: true },
-    { key: 'provider_id', label: '注册商', valueMap: providerMap },
+    { key: 'provider_id', label: '注册商', render: (v: unknown, item: DomainResponse) => {
+      if (!item.provider_id) return '-';
+      if (!providerMap[item.provider_id]) return '已删除';
+      return formatResourceWithStatus(providerMap[item.provider_id], providerStatusMap[item.provider_id], 'provider');
+    }},
     { key: 'expiry_date', label: '到期日期', render: (v: unknown) => formatDate(v as string) },
     { key: 'is_enabled', label: '启用状态', render: (v: unknown) => (v ? '启用' : '停用') },
     { key: 'created_at', label: '创建时间', render: (v: unknown) => formatDate(v as string), hideInTable: true },
   ]);
+
+  function getRowClass(item: DomainResponse): string {
+    if (item.provider_id && isResourceOffline('provider', providerStatusMap[item.provider_id])) {
+      return 'opacity-60 bg-gray-50';
+    }
+    return '';
+  }
 
   async function loadData() {
     loading = true;
@@ -42,8 +56,12 @@
   }
 
   onMount(async () => {
-    const provOptions = await getProviderOptions();
+    const [provOptions, providerList] = await Promise.all([
+      getProviderOptions(),
+      providersApi.list({ per_page: 200 }),
+    ]);
     providerMap = Object.fromEntries(provOptions.map(o => [o.value, o.label]));
+    providerStatusMap = Object.fromEntries(providerList.data.map((p: {id: string, status?: string}) => [p.id, p.status || 'active']));
     await loadData();
   });
 
@@ -102,7 +120,9 @@
     {data}
     {loading}
     onEdit={handleEdit}
-    onDelete={handleDelete} storageKey="domains" />
+    onDelete={handleDelete}
+    {getRowClass}
+    storageKey="domains" />
 
   <Pagination
     {page}

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { datacentersApi } from '$lib/api/datacenters';
+  import { providersApi } from '$lib/api/providers';
   import type { DataCenterResponse, ListDataCentersQuery } from '$lib/types/datacenter';
   import { Button } from '$lib/ui/button';
   import { Input } from '$lib/ui/input';
@@ -11,6 +12,7 @@
   import { formatDate } from '$lib/utils/format';
   import { getProviderOptions } from '$lib/utils/entity-options';
   import { commonStatusOptions, countryOptions } from '$lib/utils/enum-options';
+  import { formatResourceWithStatus, isResourceOffline } from '$lib/utils/resource-status';
   import { onMount } from 'svelte';
 
   let data = $state<DataCenterResponse[]>([]);
@@ -20,6 +22,7 @@
   let page = $derived(query.page ?? 1);
   let perPage = $derived(query.per_page ?? 20);
   let providerMap = $state<Record<string, string>>({});
+  let providerStatusMap = $state<Record<string, string>>({});
   let countryMap = $derived(Object.fromEntries($countryOptions.map(o => [o.value, o.label])));
 
   let commonStatusMap = $derived(Object.fromEntries($commonStatusOptions.map(o => [o.value, o.label])));
@@ -28,9 +31,20 @@
     { key: 'name', label: '名称' , link: (item: DataCenterResponse) => `/datacenters/${item.id}`, lockVisible: true },
     { key: 'country', label: '国家', valueMap: countryMap },
     { key: 'status', label: '状态', valueMap: commonStatusMap },
-    { key: 'provider_id', label: '供应商', valueMap: providerMap, hideInTable: true },
+    { key: 'provider_id', label: '供应商', render: (v: unknown, item: DataCenterResponse) => {
+      if (!item.provider_id) return '-';
+      if (!providerMap[item.provider_id]) return '已删除';
+      return formatResourceWithStatus(providerMap[item.provider_id], providerStatusMap[item.provider_id], 'provider');
+    }, hideInTable: true },
     { key: 'created_at', label: '创建时间', render: (v: unknown) => formatDate(v as string), hideInTable: true },
   ]);
+
+  function getRowClass(item: DataCenterResponse): string {
+    if (item.provider_id && isResourceOffline('provider', providerStatusMap[item.provider_id])) {
+      return 'opacity-60 bg-gray-50';
+    }
+    return '';
+  }
 
   async function loadData() {
     loading = true;
@@ -46,8 +60,12 @@
   }
 
   onMount(async () => {
-    const provOptions = await getProviderOptions();
+    const [provOptions, providerList] = await Promise.all([
+      getProviderOptions(),
+      providersApi.list({ per_page: 200 }),
+    ]);
     providerMap = Object.fromEntries(provOptions.map(o => [o.value, o.label]));
+    providerStatusMap = Object.fromEntries(providerList.data.map((p: {id: string, status?: string}) => [p.id, p.status || 'active']));
     await loadData();
   });
 
@@ -106,7 +124,9 @@
     {data}
     {loading}
     onEdit={handleEdit}
-    onDelete={handleDelete} storageKey="datacenters" />
+    onDelete={handleDelete}
+    {getRowClass}
+    storageKey="datacenters" />
 
   <Pagination
     {page}

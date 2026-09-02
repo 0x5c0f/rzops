@@ -1,6 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { contractsApi } from '$lib/api/contracts';
+  import { providersApi } from '$lib/api/providers';
   import type { ContractResponse, ListContractsQuery } from '$lib/types/contract';
   import { Button } from '$lib/ui/button';
   import { Input } from '$lib/ui/input';
@@ -12,6 +13,7 @@
   import { onMount } from 'svelte';
   import { contractStatusOptions } from '$lib/utils/enum-options';
   import { getProviderOptions } from '$lib/utils/entity-options';
+  import { formatResourceWithStatus, isResourceOffline } from '$lib/utils/resource-status';
 
   let data = $state<ContractResponse[]>([]);
   let total = $state(0);
@@ -20,12 +22,17 @@
   let page = $derived(query.page ?? 1);
   let perPage = $derived(query.per_page ?? 20);
   let providerMap = $state<Record<string, string>>({});
+  let providerStatusMap = $state<Record<string, string>>({});
 
   let statusMap = $derived(Object.fromEntries($contractStatusOptions.map(o => [o.value, o.label])));
 
   const columns = $derived([
     { key: 'name', label: '名称' },
-    { key: 'provider_id', label: '供应商', valueMap: providerMap },
+    { key: 'provider_id', label: '供应商', render: (v: unknown, item: ContractResponse) => {
+      if (!item.provider_id) return '-';
+      if (!providerMap[item.provider_id]) return '已删除';
+      return formatResourceWithStatus(providerMap[item.provider_id], providerStatusMap[item.provider_id], 'provider');
+    }},
     { key: 'contract_no', label: '合同编号' },
     { key: 'start_date', label: '开始日期', render: (v: unknown) => formatDate(v as string) },
     { key: 'end_date', label: '结束日期', render: (v: unknown) => formatDate(v as string) },
@@ -33,6 +40,13 @@
     { key: 'amount', label: '金额' },
     { key: 'created_at', label: '创建时间', render: (v: unknown) => formatDate(v as string) },
   ]);
+
+  function getRowClass(item: ContractResponse): string {
+    if (item.provider_id && isResourceOffline('provider', providerStatusMap[item.provider_id])) {
+      return 'opacity-60 bg-gray-50';
+    }
+    return '';
+  }
 
   async function loadData() {
     loading = true;
@@ -48,8 +62,12 @@
   }
 
   onMount(async () => {
-    const provOptions = await getProviderOptions();
+    const [provOptions, providerList] = await Promise.all([
+      getProviderOptions(),
+      providersApi.list({ per_page: 200 }),
+    ]);
     providerMap = Object.fromEntries(provOptions.map(o => [o.value, o.label]));
+    providerStatusMap = Object.fromEntries(providerList.data.map((p: {id: string, status?: string}) => [p.id, p.status || 'active']));
     await loadData();
   });
 
@@ -108,7 +126,9 @@
     {data}
     {loading}
     onEdit={handleEdit}
-    onDelete={handleDelete} storageKey="contracts" />
+    onDelete={handleDelete}
+    {getRowClass}
+    storageKey="contracts" />
 
   <Pagination
     {page}

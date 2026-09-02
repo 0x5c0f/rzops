@@ -34,6 +34,7 @@
     getDeleteLabel,
     deleteTitle = '确认删除',
     storageKey = '',
+    getRowClass,
   }: {
     columns: Column[];
     data: T[];
@@ -44,6 +45,8 @@
     getDeleteLabel?: (item: T) => string;
     deleteTitle?: string;
     storageKey?: string;
+    /** 自定义行样式类名，根据行数据返回 */
+    getRowClass?: (item: T) => string;
   } = $props();
 
   let hasActions = $derived(onEdit || onDelete);
@@ -201,7 +204,7 @@
           </Table.Row>
         {:else}
           {#each data as item}
-            <Table.Row>
+            <Table.Row class={getRowClass ? getRowClass(item) : ''}>
               {#each visibleColumns as col}
                 <Table.Cell class={col.class}>
                   {#if col.link}
