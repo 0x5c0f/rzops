@@ -158,9 +158,13 @@
               <dt class="text-muted-foreground">数据中心</dt>
               <dd>
                 {#if server.data_center_id}
-                  <a href="/datacenters/{server.data_center_id}" class="text-primary hover:underline">
-                    {dataCenterMap[server.data_center_id] || server.data_center_id}
-                  </a>
+                  {#if dataCenterMap[server.data_center_id]}
+                    <a href="/datacenters/{server.data_center_id}" class="text-primary hover:underline">
+                      {dataCenterMap[server.data_center_id]}
+                    </a>
+                  {:else}
+                    <span class="text-muted-foreground italic">已删除</span>
+                  {/if}
                 {:else}
                   -
                 {/if}
@@ -170,9 +174,13 @@
               <dt class="text-muted-foreground">ISP供应商</dt>
               <dd>
                 {#if server.isp_provider_id}
-                  <a href="/providers/{server.isp_provider_id}" class="text-primary hover:underline">
-                    {providerMap[server.isp_provider_id] || server.isp_provider_id}
-                  </a>
+                  {#if providerMap[server.isp_provider_id]}
+                    <a href="/providers/{server.isp_provider_id}" class="text-primary hover:underline">
+                      {providerMap[server.isp_provider_id]}
+                    </a>
+                  {:else}
+                    <span class="text-muted-foreground italic">已删除</span>
+                  {/if}
                 {:else}
                   -
                 {/if}
@@ -182,9 +190,13 @@
               <dt class="text-muted-foreground">服务器供应商</dt>
               <dd>
                 {#if server.server_provider_id}
-                  <a href="/providers/{server.server_provider_id}" class="text-primary hover:underline">
-                    {providerMap[server.server_provider_id] || server.server_provider_id}
-                  </a>
+                  {#if providerMap[server.server_provider_id]}
+                    <a href="/providers/{server.server_provider_id}" class="text-primary hover:underline">
+                      {providerMap[server.server_provider_id]}
+                    </a>
+                  {:else}
+                    <span class="text-muted-foreground italic">已删除</span>
+                  {/if}
                 {:else}
                   -
                 {/if}
@@ -194,9 +206,13 @@
               <dt class="text-muted-foreground">软件供应商</dt>
               <dd>
                 {#if server.software_provider_id}
-                  <a href="/providers/{server.software_provider_id}" class="text-primary hover:underline">
-                    {providerMap[server.software_provider_id] || server.software_provider_id}
-                  </a>
+                  {#if providerMap[server.software_provider_id]}
+                    <a href="/providers/{server.software_provider_id}" class="text-primary hover:underline">
+                      {providerMap[server.software_provider_id]}
+                    </a>
+                  {:else}
+                    <span class="text-muted-foreground italic">已删除</span>
+                  {/if}
                 {:else}
                   -
                 {/if}

@@ -104,9 +104,13 @@
               <dt class="text-muted-foreground">服务器</dt>
               <dd>
                 {#if instance.server_id}
-                  <a href="/servers/{instance.server_id}" class="text-primary hover:underline">
-                    {serverMap[instance.server_id] || instance.server_id}
-                  </a>
+                  {#if serverMap[instance.server_id]}
+                    <a href="/servers/{instance.server_id}" class="text-primary hover:underline">
+                      {serverMap[instance.server_id]}
+                    </a>
+                  {:else}
+                    <span class="text-muted-foreground italic">已删除</span>
+                  {/if}
                 {:else}
                   -
                 {/if}

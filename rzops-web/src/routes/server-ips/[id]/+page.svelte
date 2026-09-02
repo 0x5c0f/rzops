@@ -88,9 +88,17 @@
             <div class="flex justify-between">
               <dt class="text-muted-foreground">服务器</dt>
               <dd>
-                <a href="/servers/{serverIp.server_id}" class="text-primary hover:underline">
-                  {serverMap[serverIp.server_id] || serverIp.server_id}
-                </a>
+                {#if serverIp.server_id}
+                  {#if serverMap[serverIp.server_id]}
+                    <a href="/servers/{serverIp.server_id}" class="text-primary hover:underline">
+                      {serverMap[serverIp.server_id]}
+                    </a>
+                  {:else}
+                    <span class="text-muted-foreground italic">已删除</span>
+                  {/if}
+                {:else}
+                  -
+                {/if}
               </dd>
             </div>
             <div class="flex justify-between">

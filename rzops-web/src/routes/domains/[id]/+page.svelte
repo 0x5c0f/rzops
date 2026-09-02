@@ -100,9 +100,13 @@
               <dt class="text-muted-foreground">注册商</dt>
               <dd>
                 {#if domain.provider_id}
-                  <a href="/providers/{domain.provider_id}" class="text-primary hover:underline">
-                    {providerMap[domain.provider_id] || domain.provider_id}
-                  </a>
+                  {#if providerMap[domain.provider_id]}
+                    <a href="/providers/{domain.provider_id}" class="text-primary hover:underline">
+                      {providerMap[domain.provider_id]}
+                    </a>
+                  {:else}
+                    <span class="text-muted-foreground italic">已删除</span>
+                  {/if}
                 {:else}
                   -
                 {/if}

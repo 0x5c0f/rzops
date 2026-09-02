@@ -101,9 +101,13 @@
               <dt class="text-muted-foreground">供应商</dt>
               <dd>
                 {#if datacenter.provider_id}
-                  <a href="/providers/{datacenter.provider_id}" class="text-primary hover:underline">
-                    {providerMap[datacenter.provider_id] || datacenter.provider_id}
-                  </a>
+                  {#if providerMap[datacenter.provider_id]}
+                    <a href="/providers/{datacenter.provider_id}" class="text-primary hover:underline">
+                      {providerMap[datacenter.provider_id]}
+                    </a>
+                  {:else}
+                    <span class="text-muted-foreground italic">已删除</span>
+                  {/if}
                 {:else}
                   -
                 {/if}

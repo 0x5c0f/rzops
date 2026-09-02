@@ -109,9 +109,13 @@
               <dt class="text-muted-foreground">供应商</dt>
               <dd>
                 {#if certificate.provider_id}
-                  <a href="/providers/{certificate.provider_id}" class="text-primary hover:underline">
-                    {providerMap[certificate.provider_id] || certificate.provider_id}
-                  </a>
+                  {#if providerMap[certificate.provider_id]}
+                    <a href="/providers/{certificate.provider_id}" class="text-primary hover:underline">
+                      {providerMap[certificate.provider_id]}
+                    </a>
+                  {:else}
+                    <span class="text-muted-foreground italic">已删除</span>
+                  {/if}
                 {:else}
                   -
                 {/if}
@@ -157,9 +161,13 @@
                   <Table.Cell class="font-mono">{d.domain_pattern}</Table.Cell>
                   <Table.Cell>
                     {#if d.domain_id}
-                      <a href="/domains/{d.domain_id}" class="text-primary hover:underline">
-                        {domainMap[d.domain_id] || d.domain_id}
-                      </a>
+                      {#if domainMap[d.domain_id]}
+                        <a href="/domains/{d.domain_id}" class="text-primary hover:underline">
+                          {domainMap[d.domain_id]}
+                        </a>
+                      {:else}
+                        <span class="text-muted-foreground italic">已删除</span>
+                      {/if}
                     {:else}
                       -
                     {/if}
