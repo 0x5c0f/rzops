@@ -39,6 +39,19 @@
     warning: 0,
     soon: 0,
   });
+  let activeExpiryTab = $state<'all' | 'server' | 'domain' | 'certificate'>('all');
+
+  let filteredExpiryItems = $derived.by(() => {
+    if (activeExpiryTab === 'all') return expiryItems;
+    return expiryItems.filter(item => item.type === activeExpiryTab);
+  });
+
+  let expiryTabCounts = $derived.by(() => ({
+    all: expiryItems.length,
+    server: expiryItems.filter(i => i.type === 'server').length,
+    domain: expiryItems.filter(i => i.type === 'domain').length,
+    certificate: expiryItems.filter(i => i.type === 'certificate').length,
+  }));
 
   let loading = $state(true);
 
@@ -321,13 +334,41 @@
         <p class="text-sm text-muted-foreground">按到期时间排序，仅展示90天内到期及已过期资源</p>
       </CardHeader>
       <CardContent>
+        <!-- 标签页切换 -->
+        <div class="mb-4 flex gap-2 border-b">
+          <button
+            class={`px-4 py-2 text-sm font-medium transition-colors ${activeExpiryTab === 'all' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+            onclick={() => (activeExpiryTab = 'all')}
+          >
+            全部 ({expiryTabCounts.all})
+          </button>
+          <button
+            class={`px-4 py-2 text-sm font-medium transition-colors ${activeExpiryTab === 'server' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+            onclick={() => (activeExpiryTab = 'server')}
+          >
+            服务器 ({expiryTabCounts.server})
+          </button>
+          <button
+            class={`px-4 py-2 text-sm font-medium transition-colors ${activeExpiryTab === 'domain' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+            onclick={() => (activeExpiryTab = 'domain')}
+          >
+            域名 ({expiryTabCounts.domain})
+          </button>
+          <button
+            class={`px-4 py-2 text-sm font-medium transition-colors ${activeExpiryTab === 'certificate' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+            onclick={() => (activeExpiryTab = 'certificate')}
+          >
+            证书 ({expiryTabCounts.certificate})
+          </button>
+        </div>
+
         {#if loading}
           <div class="py-8 text-center text-muted-foreground">加载中...</div>
-        {:else if expiryItems.length === 0}
-          <div class="py-8 text-center text-muted-foreground">暂无即将到期的资源</div>
+        {:else if filteredExpiryItems.length === 0}
+          <div class="py-8 text-center text-muted-foreground">该类型暂无即将到期的资源</div>
         {:else}
           <div class="space-y-2">
-            {#each expiryItems as item}
+            {#each filteredExpiryItems as item}
               <div class="flex items-center justify-between rounded-md border p-3 hover:bg-accent/50">
                 <div class="flex items-center gap-3">
                   <span class={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${getTypeClass(item.type)}`}>
