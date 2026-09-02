@@ -11,6 +11,7 @@ pub struct DatabaseInstance {
     pub db_type: String,
     pub description: Option<String>,
     pub status: String,
+    pub environment: Option<String>,
     pub offline_time: Option<DateTime<Utc>>,
     pub is_self_installed: bool,
     pub importance: Option<String>,

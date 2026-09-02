@@ -13,14 +13,12 @@ export interface SiteRefByServer {
   site_id: string;
   site_name: string;
   deploy_role: string | null;
-  is_primary: boolean;
 }
 
 export interface SiteRefByDatabase {
   site_id: string;
   site_name: string;
   usage_type: string | null;
-  is_primary: boolean;
 }
 
 export const siteRelationsApi = {
@@ -38,7 +36,7 @@ export const siteRelationsApi = {
   createServer: (data: CreateSiteServerRelationRequest) =>
     api.post<SiteServerRelationResponse>('/api/v1/site-relations/site-servers', data),
 
-  updateServer: (id: string, data: { deploy_role?: string; is_primary?: boolean }) =>
+  updateServer: (id: string, data: { deploy_role?: string }) =>
     api.put<{ id: string }>(`/api/v1/site-relations/site-servers/by-id/${id}`, data),
 
   deleteServer: (id: string) =>

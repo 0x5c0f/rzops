@@ -9,7 +9,7 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
   import TableSelectModal from '$lib/components/shared/TableSelectModal.svelte';
   import DateField from '$lib/components/shared/DateField.svelte';
   import TextArea from '$lib/components/shared/TextArea.svelte';
-  import { siteStatusOptions, importanceOptions, serviceTargetOptions, codeRepoTypeOptions, monitorTypeOptions, commonStatusOptions, serverStatusOptions, serverTypeOptions, databaseStatusOptions, getOptionLabel } from '$lib/utils/enum-options';
+  import { siteStatusOptions, importanceOptions, serviceTargetOptions, codeRepoTypeOptions, monitorTypeOptions, commonStatusOptions, serverStatusOptions, serverTypeOptions, databaseStatusOptions, getOptionLabel, environmentOptions, domainRoleOptions } from '$lib/utils/enum-options';
   import { backupPlansApi } from '$lib/api/backup-plans';
   import { monitorTargetsApi } from '$lib/api/monitor-targets';
   import { siteRelationsApi } from '$lib/api/site-relations';
@@ -24,20 +24,18 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
     server_id: string;
     server_name?: string;
     deploy_role: string;
-    is_primary: boolean;
   }
   interface DatabaseRelationDraft {
     id?: string;
     database_instance_id: string;
     database_name?: string;
     usage_type: string;
-    is_primary: boolean;
   }
   interface DomainRelationDraft {
     id?: string;
     domain_id: string;
     domain_name?: string;
-    is_primary: boolean;
+    domain_role: string;
   }
 
   interface BackupDraft {
@@ -92,7 +90,7 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
   let addRelationIds = $state<string[]>([]);
   let addRelationItems = $state<Record<string, unknown>[]>([]);
   let addRelationRole = $state('');
-  let addRelationIsPrimary = $state(false);
+  let addRelationDomainRole = $state('');
   let addRelationSaving = $state(false);
 
   // 名称映射：id -> name，用于显示关联资源名称
@@ -124,18 +122,16 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
         id: s.id,
         server_id: s.server_id,
         deploy_role: s.deploy_role || '',
-        is_primary: s.is_primary,
       }));
       databaseRelations = databases.map(d => ({
         id: d.id,
         database_instance_id: d.database_instance_id,
         usage_type: d.usage_type || '',
-        is_primary: d.is_primary,
       }));
       domainRelations = domains.map(d => ({
         id: d.id,
         domain_id: d.domain_id,
-        is_primary: d.is_primary,
+        domain_role: d.domain_role || '',
       }));
 
       // 加载名称映射
@@ -290,7 +286,6 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
           site_id: siteId,
           server_id: rel.server_id,
           deploy_role: rel.deploy_role || undefined,
-          is_primary: rel.is_primary,
         });
       }
     }
@@ -300,7 +295,6 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
           site_id: siteId,
           database_instance_id: rel.database_instance_id,
           usage_type: rel.usage_type || undefined,
-          is_primary: rel.is_primary,
         });
       }
     }
@@ -309,7 +303,7 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
         await siteRelationsApi.createDomain({
           site_id: siteId,
           domain_id: rel.domain_id,
-          is_primary: rel.is_primary,
+          domain_role: rel.domain_role || undefined,
         });
       }
     }
@@ -320,7 +314,7 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
     addRelationType = type;
     addRelationIds = [];
     addRelationRole = '';
-    addRelationIsPrimary = false;
+    addRelationDomainRole = '';
     addRelationOpen = true;
   }
 
@@ -337,40 +331,36 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
               site_id: entityId,
               server_id: targetId,
               deploy_role: addRelationRole || undefined,
-              is_primary: addRelationIsPrimary,
             });
             serverRelations = [...serverRelations, {
               id: created.id,
               server_id: targetId,
               server_name: serverNameMap[targetId],
               deploy_role: addRelationRole,
-              is_primary: addRelationIsPrimary,
             }];
           } else if (addRelationType === 'database') {
             const created = await siteRelationsApi.createDatabase({
               site_id: entityId,
               database_instance_id: targetId,
               usage_type: addRelationRole || undefined,
-              is_primary: addRelationIsPrimary,
             });
             databaseRelations = [...databaseRelations, {
               id: created.id,
               database_instance_id: targetId,
               database_name: databaseNameMap[targetId],
               usage_type: addRelationRole,
-              is_primary: addRelationIsPrimary,
             }];
           } else {
             const created = await siteRelationsApi.createDomain({
               site_id: entityId,
               domain_id: targetId,
-              is_primary: addRelationIsPrimary,
+              domain_role: addRelationDomainRole || undefined,
             });
             domainRelations = [...domainRelations, {
               id: created.id,
               domain_id: targetId,
               domain_name: domainNameMap[targetId],
-              is_primary: addRelationIsPrimary,
+              domain_role: addRelationDomainRole,
             }];
           }
         }
@@ -382,20 +372,18 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
               server_id: targetId,
               server_name: serverNameMap[targetId],
               deploy_role: addRelationRole,
-              is_primary: addRelationIsPrimary,
             }];
           } else if (addRelationType === 'database') {
             databaseRelations = [...databaseRelations, {
               database_instance_id: targetId,
               database_name: databaseNameMap[targetId],
               usage_type: addRelationRole,
-              is_primary: addRelationIsPrimary,
             }];
           } else {
             domainRelations = [...domainRelations, {
               domain_id: targetId,
               domain_name: domainNameMap[targetId],
-              is_primary: addRelationIsPrimary,
+              domain_role: addRelationDomainRole,
             }];
           }
         }
@@ -486,6 +474,13 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
         bind:value={form.status}
         options={$siteStatusOptions}
         required
+      />
+
+      <FormSelect
+        label="环境"
+        bind:value={form.environment}
+        options={$environmentOptions}
+        placeholder="选择环境"
       />
 
       <div class="space-y-2">
@@ -595,9 +590,6 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
                     {#if rel.deploy_role}
                       <span class="text-xs text-muted-foreground">角色: {rel.deploy_role}</span>
                     {/if}
-                    {#if rel.is_primary}
-                      <span class="rounded bg-primary/10 px-2 py-0.5 text-xs text-primary">主用</span>
-                    {/if}
                   </div>
                   <Button variant="ghost" size="sm" onclick={() => removeRelation('server', i)}>删除</Button>
                 </div>
@@ -621,9 +613,6 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
                     {#if rel.usage_type}
                       <span class="text-xs text-muted-foreground">用途: {rel.usage_type}</span>
                     {/if}
-                    {#if rel.is_primary}
-                      <span class="rounded bg-primary/10 px-2 py-0.5 text-xs text-primary">主用</span>
-                    {/if}
                   </div>
                   <Button variant="ghost" size="sm" onclick={() => removeRelation('database', i)}>删除</Button>
                 </div>
@@ -644,8 +633,8 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
                 <div class="flex items-center justify-between rounded-lg border p-3">
                   <div class="flex items-center gap-3">
                     <a href="/domains/{rel.domain_id}" class="text-primary hover:underline">{rel.domain_name || rel.domain_id}</a>
-                    {#if rel.is_primary}
-                      <span class="rounded bg-primary/10 px-2 py-0.5 text-xs text-primary">主用</span>
+                    {#if rel.domain_role}
+                      <span class="text-xs text-muted-foreground">角色: {getOptionLabel($domainRoleOptions, rel.domain_role)}</span>
                     {/if}
                   </div>
                   <Button variant="ghost" size="sm" onclick={() => removeRelation('domain', i)}>删除</Button>
@@ -732,12 +721,16 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
               { key: 'expire_date', label: '到期时间', width: 'w-28' },
             ]}
           />
+          <div class="space-y-2">
+            <Label for="add-domain-role">域名角色</Label>
+            <FormSelect
+              id="add-domain-role"
+              bind:value={addRelationDomainRole}
+              options={$domainRoleOptions}
+              placeholder="选择域名角色"
+            />
+          </div>
         {/if}
-
-        <div class="flex items-center gap-2">
-          <input type="checkbox" id="add-primary" bind:checked={addRelationIsPrimary} class="h-4 w-4" />
-          <Label for="add-primary">主用</Label>
-        </div>
       </div>
 
       <Dialog.Footer>

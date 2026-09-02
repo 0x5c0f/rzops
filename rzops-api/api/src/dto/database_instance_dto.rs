@@ -9,6 +9,7 @@ pub struct CreateDatabaseInstanceRequest {
     pub db_type: String,
     pub description: Option<String>,
     pub status: Option<String>,
+    pub environment: Option<String>,
     pub offline_time: Option<DateTime<Utc>>,
     pub is_self_installed: Option<bool>,
     pub importance: Option<String>,
@@ -24,6 +25,7 @@ pub struct UpdateDatabaseInstanceRequest {
     pub db_type: Option<String>,
     pub description: Option<String>,
     pub status: Option<String>,
+    pub environment: Option<String>,
     pub offline_time: Option<DateTime<Utc>>,
     pub is_self_installed: Option<bool>,
     pub importance: Option<String>,
@@ -35,6 +37,7 @@ pub struct UpdateDatabaseInstanceRequest {
 #[derive(Debug, Deserialize, utoipa::ToSchema, utoipa::IntoParams)]
 pub struct ListDatabaseInstancesQuery {
     pub status: Option<String>,
+    pub environment: Option<String>,
     pub db_type: Option<String>,
     pub server_id: Option<Uuid>,
     pub q: Option<String>,
@@ -50,6 +53,7 @@ pub struct DatabaseInstanceResponse {
     pub db_type: String,
     pub description: Option<String>,
     pub status: String,
+    pub environment: Option<String>,
     pub offline_time: Option<DateTime<Utc>>,
     pub is_self_installed: bool,
     pub importance: Option<String>,

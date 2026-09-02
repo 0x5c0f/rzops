@@ -80,6 +80,7 @@ fn row_to_server(row: &sqlx::postgres::PgRow) -> Server {
         server_provider_id: row.get("server_provider_id"),
         software_provider_id: row.get("software_provider_id"),
         status: status_str,
+        environment: row.get("environment"),
         offline_time: row.get("offline_time"),
         offline_reason: row.get("offline_reason"),
         remarks: row.get("remarks"),
@@ -96,7 +97,7 @@ const SELECT_COLS: &str = r#"id, asset_code, name, primary_ip, location,
     cpu, memory_gb, is_raid, raid_level, disk_layout, hardware_config,
     architecture, maintainer_id, brand, warranty_info, operating_system,
     web_server_type, server_provider_id, software_provider_id,
-    status::text, offline_time, offline_reason, remarks, created_at, updated_at, deleted_at"#;
+    status::text, environment, offline_time, offline_reason, remarks, created_at, updated_at, deleted_at"#;
 
 #[async_trait]
 impl ServerRepository for PgServerRepository {
@@ -120,6 +121,11 @@ impl ServerRepository for PgServerRepository {
         if let Some(ref status) = filter.status {
             sql.push_str(&format!(" AND status::text = ${}", idx));
             binds.push(status.clone());
+            idx += 1;
+        }
+        if let Some(ref environment) = filter.environment {
+            sql.push_str(&format!(" AND environment = ${}", idx));
+            binds.push(environment.clone());
             idx += 1;
         }
         if let Some(_dc_id) = filter.data_center_id {
@@ -169,6 +175,11 @@ impl ServerRepository for PgServerRepository {
             string_binds.push(status.clone());
             idx += 1;
         }
+        if let Some(ref environment) = filter.environment {
+            sql.push_str(&format!(" AND environment = ${}", idx));
+            string_binds.push(environment.clone());
+            idx += 1;
+        }
         if let Some(dc_id) = filter.data_center_id {
             sql.push_str(&format!(" AND data_center_id = ${}", idx));
             uuid_binds.push(dc_id);
@@ -200,9 +211,9 @@ impl ServerRepository for PgServerRepository {
                 server_type, role_tags, is_database_server, cpu, memory_gb, is_raid, raid_level,
                 disk_layout, hardware_config, architecture, maintainer_id, brand, warranty_info,
                 operating_system, web_server_type, server_provider_id, software_provider_id,
-                status, offline_time, offline_reason, remarks, created_at, updated_at)
+                status, environment, offline_time, offline_reason, remarks, created_at, updated_at)
                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,
-                       $21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36)
+                       $21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37)
                RETURNING {}"#,
             SELECT_COLS
         ))
@@ -237,6 +248,7 @@ impl ServerRepository for PgServerRepository {
         .bind(server.server_provider_id)
         .bind(server.software_provider_id)
         .bind(server.status.clone())
+        .bind(&server.environment)
         .bind(server.offline_time)
         .bind(&server.offline_reason)
         .bind(&server.remarks)
@@ -259,8 +271,8 @@ impl ServerRepository for PgServerRepository {
                 is_raid = $19, raid_level = $20, disk_layout = $21, hardware_config = $22,
                 architecture = $23, maintainer_id = $24, brand = $25, warranty_info = $26,
                 operating_system = $27, web_server_type = $28, server_provider_id = $29,
-                software_provider_id = $30, status = $31, offline_time = $32,
-                offline_reason = $33, remarks = $34, updated_at = $35
+                software_provider_id = $30, status = $31, environment = $32, offline_time = $33,
+                offline_reason = $34, remarks = $35, updated_at = $36
                WHERE id = $1 AND deleted_at IS NULL
                RETURNING {}"#,
             SELECT_COLS
@@ -296,6 +308,7 @@ impl ServerRepository for PgServerRepository {
         .bind(server.server_provider_id)
         .bind(server.software_provider_id)
         .bind(server.status.clone())
+        .bind(&server.environment)
         .bind(server.offline_time)
         .bind(&server.offline_reason)
         .bind(&server.remarks)
@@ -324,11 +337,13 @@ impl PgServerRepository {
 
         // Store filter values to bind in the same order as $N placeholders
         let status_val = filter.status.as_ref();
+        let environment_val = filter.environment.as_ref();
         let dc_id_val = filter.data_center_id;
         let server_type_val = filter.server_type.as_ref();
         let q_val = filter.q.as_ref();
 
         if status_val.is_some() { sql.push_str(&format!(" AND status::text = ${}", idx)); idx += 1; }
+        if environment_val.is_some() { sql.push_str(&format!(" AND environment = ${}", idx)); idx += 1; }
         if dc_id_val.is_some() { sql.push_str(&format!(" AND data_center_id = ${}", idx)); idx += 1; }
         if server_type_val.is_some() { sql.push_str(&format!(" AND server_type::text = ${}", idx)); idx += 1; }
         if q_val.is_some() { sql.push_str(&format!(" AND (name ILIKE ${idx} OR primary_ip ILIKE ${idx} OR asset_code ILIKE ${idx})", idx = idx)); }
@@ -345,6 +360,7 @@ impl PgServerRepository {
         // Bind in the same order as $N placeholders
         let mut query = sqlx::query(&sql);
         if let Some(s) = status_val { query = query.bind(s); }
+        if let Some(e) = environment_val { query = query.bind(e); }
         if let Some(dc) = dc_id_val { query = query.bind(dc); }
         if let Some(st) = server_type_val { query = query.bind(st); }
         if let Some(q) = q_val { query = query.bind(format!("%{}%", q)); }

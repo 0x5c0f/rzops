@@ -7,6 +7,7 @@ use crate::models::ops_site::OpsSite;
 #[derive(Debug, Clone, Default)]
 pub struct OpsSiteFilter {
     pub status: Option<String>,
+    pub environment: Option<String>,
     pub importance: Option<String>,
     pub q: Option<String>,
     pub limit: Option<i64>,

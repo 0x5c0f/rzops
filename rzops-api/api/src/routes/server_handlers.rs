@@ -65,6 +65,7 @@ fn to_response(s: &Server) -> ServerResponse {
         server_provider_id: s.server_provider_id,
         software_provider_id: s.software_provider_id,
         status: s.status.clone(),
+        environment: s.environment.clone(),
         offline_time: s.offline_time,
         offline_reason: s.offline_reason.clone(),
         remarks: s.remarks.clone(),
@@ -120,6 +121,7 @@ fn build_server_from_create(body: CreateServerRequest) -> Server {
             .status
             
             .unwrap_or_else(|| "active".to_string()),
+        environment: body.environment,
         offline_time: body.offline_time,
         offline_reason: body.offline_reason,
         remarks: body.remarks,
@@ -170,6 +172,7 @@ pub async fn list_servers(
 
     let filter = ServerFilter {
         status: query.status,
+        environment: query.environment,
         data_center_id: query.data_center_id,
         server_type: query.server_type,
         q: query.q,
@@ -298,6 +301,7 @@ pub async fn update_server(
             .status
             
             .unwrap_or(existing.status),
+        environment: body.environment.or(existing.environment),
         offline_time: body.offline_time.or(existing.offline_time),
         offline_reason: body.offline_reason.or(existing.offline_reason),
         remarks: body.remarks.or(existing.remarks),

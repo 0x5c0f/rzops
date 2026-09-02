@@ -32,6 +32,7 @@ fn row_to_ops_site(row: &sqlx::postgres::PgRow) -> OpsSite {
         is_test_site: row.get("is_test_site"),
         last_backup_time: row.get("last_backup_time"),
         status: row.get("status"),
+        environment: row.get("environment"),
         offline_time: row.get("offline_time"),
         offline_reason: row.get("offline_reason"),
         function_summary: row.get("function_summary"),
@@ -44,7 +45,7 @@ fn row_to_ops_site(row: &sqlx::postgres::PgRow) -> OpsSite {
 
 const SELECT_COLS: &str = r#"id, name, url, service_target, importance, online_time,
     code_repo_type, code_repo_url, purpose, language_runtime, web_framework,
-    is_test_site, last_backup_time, status, offline_time, offline_reason,
+    is_test_site, last_backup_time, status, environment, offline_time, offline_reason,
     function_summary, remarks, created_at, updated_at, deleted_at"#;
 
 #[async_trait]
@@ -59,9 +60,11 @@ impl OpsSiteRepository for PgOpsSiteRepository {
         let mut sql = format!("SELECT {} FROM cmdb_ops_site WHERE deleted_at IS NULL", SELECT_COLS);
         let mut idx = 1;
         let s_status = filter.status.as_ref();
+        let s_env = filter.environment.as_ref();
         let s_imp = filter.importance.as_ref();
         let s_q = filter.q.as_ref();
         if s_status.is_some() { sql.push_str(&format!(" AND status::text = ${}", idx)); idx += 1; }
+        if s_env.is_some() { sql.push_str(&format!(" AND environment = ${}", idx)); idx += 1; }
         if s_imp.is_some() { sql.push_str(&format!(" AND importance::text = ${}", idx)); idx += 1; }
         if s_q.is_some() { sql.push_str(&format!(" AND name ILIKE ${}", idx)); }
         sql.push_str(" ORDER BY created_at DESC");
@@ -69,6 +72,7 @@ impl OpsSiteRepository for PgOpsSiteRepository {
         if let Some(offset) = filter.offset { sql.push_str(&format!(" OFFSET {}", offset)); }
         let mut query = sqlx::query(&sql);
         if let Some(s) = s_status { query = query.bind(s); }
+        if let Some(e) = s_env { query = query.bind(e); }
         if let Some(i) = s_imp { query = query.bind(i); }
         if let Some(q) = s_q { query = query.bind(format!("%{}%", q)); }
         let rows = query.fetch_all(&self.pool).await?;
@@ -79,13 +83,16 @@ impl OpsSiteRepository for PgOpsSiteRepository {
         let mut sql = String::from("SELECT COUNT(*) as count FROM cmdb_ops_site WHERE deleted_at IS NULL");
         let mut idx = 1;
         let s_status = filter.status.as_ref();
+        let s_env = filter.environment.as_ref();
         let s_imp = filter.importance.as_ref();
         let s_q = filter.q.as_ref();
         if s_status.is_some() { sql.push_str(&format!(" AND status::text = ${}", idx)); idx += 1; }
+        if s_env.is_some() { sql.push_str(&format!(" AND environment = ${}", idx)); idx += 1; }
         if s_imp.is_some() { sql.push_str(&format!(" AND importance::text = ${}", idx)); idx += 1; }
         if s_q.is_some() { sql.push_str(&format!(" AND name ILIKE ${}", idx)); }
         let mut query = sqlx::query(&sql);
         if let Some(s) = s_status { query = query.bind(s); }
+        if let Some(e) = s_env { query = query.bind(e); }
         if let Some(i) = s_imp { query = query.bind(i); }
         if let Some(q) = s_q { query = query.bind(format!("%{}%", q)); }
         let row = query.fetch_one(&self.pool).await?;
@@ -97,9 +104,9 @@ impl OpsSiteRepository for PgOpsSiteRepository {
             r#"INSERT INTO cmdb_ops_site
                (id, name, url, service_target, importance, online_time, code_repo_type,
                 code_repo_url, purpose, language_runtime, web_framework, is_test_site,
-                last_backup_time, status, offline_time, offline_reason,
+                last_backup_time, status, environment, offline_time, offline_reason,
                 function_summary, remarks, created_at, updated_at)
-               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)
+               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)
                RETURNING {}"#, SELECT_COLS
         ))
         .bind(s.id).bind(&s.name).bind(&s.url)
@@ -112,6 +119,7 @@ impl OpsSiteRepository for PgOpsSiteRepository {
         .bind(s.web_framework.clone())
         .bind(s.is_test_site).bind(s.last_backup_time)
         .bind(s.status.clone())
+        .bind(&s.environment)
         .bind(s.offline_time).bind(&s.offline_reason).bind(&s.function_summary).bind(&s.remarks)
         .bind(s.created_at).bind(s.updated_at)
         .fetch_one(&self.pool).await?;
@@ -124,8 +132,8 @@ impl OpsSiteRepository for PgOpsSiteRepository {
                 name=$2, url=$3, service_target=$4, importance=$5, online_time=$6,
                 code_repo_type=$7, code_repo_url=$8, purpose=$9, language_runtime=$10,
                 web_framework=$11, is_test_site=$12, last_backup_time=$13,
-                status=$14, offline_time=$15, offline_reason=$16,
-                function_summary=$17, remarks=$18
+                status=$14, environment=$15, offline_time=$16, offline_reason=$17,
+                function_summary=$18, remarks=$19
                WHERE id=$1 AND deleted_at IS NULL RETURNING {}"#, SELECT_COLS
         ))
         .bind(id).bind(&s.name).bind(&s.url)
@@ -138,6 +146,7 @@ impl OpsSiteRepository for PgOpsSiteRepository {
         .bind(s.web_framework.clone())
         .bind(s.is_test_site).bind(s.last_backup_time)
         .bind(s.status.clone())
+        .bind(&s.environment)
         .bind(s.offline_time).bind(&s.offline_reason).bind(&s.function_summary).bind(&s.remarks)
         .fetch_optional(&self.pool).await?;
         Ok(row.map(|r| row_to_ops_site(&r)))

@@ -30,6 +30,7 @@ export interface ServerResponse {
   server_provider_id: string | null;
   software_provider_id: string | null;
   status: string;
+  environment: string | null;
   offline_time: string | null;
   offline_reason: string | null;
   remarks: string | null;
@@ -73,6 +74,7 @@ export interface CreateServerRequest {
   server_provider_id?: string;
   software_provider_id?: string;
   status?: string;
+  environment?: string;
   offline_time?: string;
   offline_reason?: string;
   remarks?: string;
@@ -83,6 +85,7 @@ export interface UpdateServerRequest extends Partial<CreateServerRequest> {}
 export interface ListServersQuery {
   q?: string;
   status?: string;
+  environment?: string;
   server_type?: string;
   data_center_id?: string;
   isp_provider_id?: string;

@@ -5,6 +5,7 @@ export interface DatabaseInstanceResponse {
   db_type: string;
   description: string | null;
   status: string;
+  environment: string | null;
   offline_time: string | null;
   is_self_installed: boolean | null;
   importance: string | null;
@@ -26,6 +27,7 @@ export interface CreateDatabaseInstanceRequest {
   server_id?: string;
   description?: string;
   status?: string;
+  environment?: string;
   offline_time?: string;
   is_self_installed?: boolean;
   importance?: string;
@@ -39,6 +41,7 @@ export interface UpdateDatabaseInstanceRequest extends Partial<CreateDatabaseIns
 export interface ListDatabaseInstancesQuery {
   q?: string;
   status?: string;
+  environment?: string;
   db_type?: string;
   server_id?: string;
   page?: number;

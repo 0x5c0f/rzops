@@ -17,6 +17,7 @@ pub struct CreateOpsSiteRequest {
     pub is_test_site: Option<bool>,
     pub last_backup_time: Option<DateTime<Utc>>,
     pub status: Option<String>,
+    pub environment: Option<String>,
     pub offline_time: Option<DateTime<Utc>>,
     pub offline_reason: Option<String>,
     pub function_summary: Option<String>,
@@ -38,6 +39,7 @@ pub struct UpdateOpsSiteRequest {
     pub is_test_site: Option<bool>,
     pub last_backup_time: Option<DateTime<Utc>>,
     pub status: Option<String>,
+    pub environment: Option<String>,
     pub offline_time: Option<DateTime<Utc>>,
     pub offline_reason: Option<String>,
     pub function_summary: Option<String>,
@@ -47,6 +49,7 @@ pub struct UpdateOpsSiteRequest {
 #[derive(Debug, Deserialize, utoipa::ToSchema, utoipa::IntoParams)]
 pub struct ListOpsSitesQuery {
     pub status: Option<String>,
+    pub environment: Option<String>,
     pub importance: Option<String>,
     pub q: Option<String>,
     pub page: Option<i64>,
@@ -69,6 +72,7 @@ pub struct OpsSiteResponse {
     pub is_test_site: bool,
     pub last_backup_time: Option<DateTime<Utc>>,
     pub status: String,
+    pub environment: Option<String>,
     pub offline_time: Option<DateTime<Utc>>,
     pub offline_reason: Option<String>,
     pub function_summary: Option<String>,

@@ -7,6 +7,7 @@ use crate::models::server::Server;
 #[derive(Debug, Clone, Default)]
 pub struct ServerFilter {
     pub status: Option<String>,
+    pub environment: Option<String>,
     pub data_center_id: Option<Uuid>,
     pub server_type: Option<String>,
     pub q: Option<String>, // search by name

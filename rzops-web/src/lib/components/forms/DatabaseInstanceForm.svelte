@@ -8,7 +8,7 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
   import FormSelect from '$lib/components/shared/FormSelect.svelte';
   import TableSelectModal from '$lib/components/shared/TableSelectModal.svelte';
   import TextArea from '$lib/components/shared/TextArea.svelte';
-  import { databaseStatusOptions, databaseTypeOptions, importanceOptions, monitorTypeOptions, commonStatusOptions, serverStatusOptions, serverTypeOptions, getOptionLabel } from '$lib/utils/enum-options';
+  import { databaseStatusOptions, databaseTypeOptions, importanceOptions, monitorTypeOptions, commonStatusOptions, serverStatusOptions, serverTypeOptions, getOptionLabel, environmentOptions } from '$lib/utils/enum-options';
   import { searchServerPaginated } from '$lib/utils/entity-options';
   import { backupPlansApi } from '$lib/api/backup-plans';
   import { monitorTargetsApi } from '$lib/api/monitor-targets';
@@ -65,6 +65,7 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
       is_self_installed: false,
       is_ops_managed: false,
       status: 'active',
+      environment: '',
       ...JSON.parse(JSON.stringify(initial ?? {})),
     };
     return init;
@@ -242,6 +243,13 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
         label="状态"
         bind:value={form.status}
         options={$databaseStatusOptions}
+      />
+
+      <FormSelect
+        label="环境"
+        bind:value={form.environment}
+        options={$environmentOptions}
+        placeholder="选择环境"
       />
 
       <FormSelect

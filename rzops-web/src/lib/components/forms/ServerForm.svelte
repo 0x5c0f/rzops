@@ -24,6 +24,7 @@
     currencyOptions,
     databaseTypeOptions,
     importanceOptions,
+    environmentOptions,
   } from '$lib/utils/enum-options';
   import { serverIpsApi } from '$lib/api/server-ips';
   import { serverPortsApi } from '$lib/api/server-ports';
@@ -119,6 +120,7 @@
       is_database_server: false,
       is_raid: false,
       price_currency: 'CNY',
+      environment: '',
       ...JSON.parse(JSON.stringify(initial ?? {})),
     };
   }
@@ -140,7 +142,6 @@
           id: r.relation_id,
           site_id: r.site_id,
           deploy_role: r.deploy_role || '',
-          is_primary: r.is_primary,
         }));
         initialSiteRels = JSON.parse(JSON.stringify(siteRels));
       } catch (err) {
@@ -414,6 +415,13 @@
         label="状态"
         bind:value={form.status}
         options={$serverStatusOptions}
+      />
+
+      <FormSelect
+        label="环境"
+        bind:value={form.environment}
+        options={$environmentOptions}
+        placeholder="选择环境"
       />
 
       <FormSelect

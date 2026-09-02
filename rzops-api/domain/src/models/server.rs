@@ -37,6 +37,7 @@ pub struct Server {
     pub server_provider_id: Option<Uuid>,
     pub software_provider_id: Option<Uuid>,
     pub status: String,
+    pub environment: Option<String>,
     pub offline_time: Option<DateTime<Utc>>,
     pub offline_reason: Option<String>,
     pub remarks: Option<String>,

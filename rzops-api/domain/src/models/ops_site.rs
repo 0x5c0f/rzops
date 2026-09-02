@@ -19,6 +19,7 @@ pub struct OpsSite {
     pub is_test_site: bool,
     pub last_backup_time: Option<DateTime<Utc>>,
     pub status: String,
+    pub environment: Option<String>,
     pub offline_time: Option<DateTime<Utc>>,
     pub offline_reason: Option<String>,
     pub function_summary: Option<String>,

@@ -35,6 +35,7 @@ pub struct CreateServerRequest {
     pub server_provider_id: Option<Uuid>,
     pub software_provider_id: Option<Uuid>,
     pub status: Option<String>,
+    pub environment: Option<String>,
     pub offline_time: Option<DateTime<Utc>>,
     pub offline_reason: Option<String>,
     pub remarks: Option<String>,
@@ -73,6 +74,7 @@ pub struct UpdateServerRequest {
     pub server_provider_id: Option<Uuid>,
     pub software_provider_id: Option<Uuid>,
     pub status: Option<String>,
+    pub environment: Option<String>,
     pub offline_time: Option<DateTime<Utc>>,
     pub offline_reason: Option<String>,
     pub remarks: Option<String>,
@@ -82,6 +84,7 @@ pub struct UpdateServerRequest {
 #[derive(Debug, Deserialize, utoipa::ToSchema, utoipa::IntoParams)]
 pub struct ListServersQuery {
     pub status: Option<String>,
+    pub environment: Option<String>,
     pub data_center_id: Option<Uuid>,
     pub server_type: Option<String>,
     pub q: Option<String>,
@@ -123,6 +126,7 @@ pub struct ServerResponse {
     pub server_provider_id: Option<Uuid>,
     pub software_provider_id: Option<Uuid>,
     pub status: String,
+    pub environment: Option<String>,
     pub offline_time: Option<DateTime<Utc>>,
     pub offline_reason: Option<String>,
     pub remarks: Option<String>,

@@ -32,6 +32,7 @@ fn row_to_database_instance(row: &sqlx::postgres::PgRow) -> DatabaseInstance {
         db_type: type_str,
         description: row.get("description"),
         status: status_str,
+        environment: row.get("environment"),
         offline_time: row.get("offline_time"),
         is_self_installed: row.get("is_self_installed"),
         importance: importance_str,
@@ -44,7 +45,7 @@ fn row_to_database_instance(row: &sqlx::postgres::PgRow) -> DatabaseInstance {
     }
 }
 
-const SELECT_COLS: &str = r#"id, server_id, name, db_type::text, description, status::text,
+const SELECT_COLS: &str = r#"id, server_id, name, db_type::text, description, status::text, environment,
     offline_time, is_self_installed, importance::text, is_ops_managed,
     port, instance_name,
     created_at, updated_at, deleted_at"#;
@@ -63,6 +64,7 @@ impl DatabaseInstanceRepository for PgDatabaseInstanceRepository {
         let mut uuid_binds: Vec<Uuid> = Vec::new();
         let mut idx = 1;
         if let Some(ref status) = filter.status { sql.push_str(&format!(" AND status::text = ${}", idx)); string_binds.push(status.clone()); idx += 1; }
+        if let Some(ref environment) = filter.environment { sql.push_str(&format!(" AND environment = ${}", idx)); string_binds.push(environment.clone()); idx += 1; }
         if let Some(ref db_type) = filter.db_type { sql.push_str(&format!(" AND db_type::text = ${}", idx)); string_binds.push(db_type.clone()); idx += 1; }
         if let Some(sid) = filter.server_id { sql.push_str(&format!(" AND server_id = ${}", idx)); uuid_binds.push(sid); idx += 1; }
         if let Some(ref q) = filter.q { sql.push_str(&format!(" AND name ILIKE ${}", idx)); string_binds.push(format!("%{}%", q)); }
@@ -82,6 +84,7 @@ impl DatabaseInstanceRepository for PgDatabaseInstanceRepository {
         let mut uuid_binds: Vec<Uuid> = Vec::new();
         let mut idx = 1;
         if let Some(ref status) = filter.status { sql.push_str(&format!(" AND status::text = ${}", idx)); string_binds.push(status.clone()); idx += 1; }
+        if let Some(ref environment) = filter.environment { sql.push_str(&format!(" AND environment = ${}", idx)); string_binds.push(environment.clone()); idx += 1; }
         if let Some(ref db_type) = filter.db_type { sql.push_str(&format!(" AND db_type::text = ${}", idx)); string_binds.push(db_type.clone()); idx += 1; }
         if let Some(sid) = filter.server_id { sql.push_str(&format!(" AND server_id = ${}", idx)); uuid_binds.push(sid); idx += 1; }
         if let Some(ref q) = filter.q { sql.push_str(&format!(" AND name ILIKE ${}", idx)); string_binds.push(format!("%{}%", q)); }
@@ -95,14 +98,14 @@ impl DatabaseInstanceRepository for PgDatabaseInstanceRepository {
     async fn create(&self, db: &DatabaseInstance) -> Result<DatabaseInstance, sqlx::Error> {
         let row = sqlx::query(&format!(
             r#"INSERT INTO cmdb_database_instance
-               (id, server_id, name, db_type, description, status, offline_time,
+               (id, server_id, name, db_type, description, status, environment, offline_time,
                 is_self_installed, importance, is_ops_managed,
                 port, instance_name, created_at, updated_at)
-               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
                RETURNING {}"#, SELECT_COLS
         ))
         .bind(db.id).bind(db.server_id).bind(&db.name).bind(db.db_type.clone())
-        .bind(&db.description).bind(db.status.clone()).bind(db.offline_time)
+        .bind(&db.description).bind(db.status.clone()).bind(&db.environment).bind(db.offline_time)
         .bind(db.is_self_installed).bind(db.importance.clone())
         .bind(db.is_ops_managed).bind(db.port).bind(&db.instance_name)
         .bind(db.created_at).bind(db.updated_at)
@@ -113,13 +116,13 @@ impl DatabaseInstanceRepository for PgDatabaseInstanceRepository {
     async fn update(&self, id: Uuid, db: &DatabaseInstance) -> Result<Option<DatabaseInstance>, sqlx::Error> {
         let row = sqlx::query(&format!(
             r#"UPDATE cmdb_database_instance SET
-                server_id=$2, name=$3, db_type=$4, description=$5, status=$6,
-                offline_time=$7, is_self_installed=$8, importance=$9, is_ops_managed=$10,
-                port=$11, instance_name=$12, updated_at=$13
+                server_id=$2, name=$3, db_type=$4, description=$5, status=$6, environment=$7,
+                offline_time=$8, is_self_installed=$9, importance=$10, is_ops_managed=$11,
+                port=$12, instance_name=$13, updated_at=$14
                WHERE id=$1 AND deleted_at IS NULL RETURNING {}"#, SELECT_COLS
         ))
         .bind(id).bind(db.server_id).bind(&db.name).bind(db.db_type.clone())
-        .bind(&db.description).bind(db.status.clone()).bind(db.offline_time)
+        .bind(&db.description).bind(db.status.clone()).bind(&db.environment).bind(db.offline_time)
         .bind(db.is_self_installed).bind(db.importance.clone())
         .bind(db.is_ops_managed).bind(db.port).bind(&db.instance_name).bind(db.updated_at)
         .fetch_optional(&self.pool).await?;

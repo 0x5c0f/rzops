@@ -7,6 +7,7 @@ use crate::models::database_instance::DatabaseInstance;
 #[derive(Debug, Clone, Default)]
 pub struct DatabaseInstanceFilter {
     pub status: Option<String>,
+    pub environment: Option<String>,
     pub db_type: Option<String>,
     pub server_id: Option<Uuid>,
     pub q: Option<String>,

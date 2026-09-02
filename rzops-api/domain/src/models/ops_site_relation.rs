@@ -9,7 +9,6 @@ pub struct OpsSiteServer {
     pub site_id: Uuid,
     pub server_id: Uuid,
     pub deploy_role: Option<String>,
-    pub is_primary: bool,
     pub created_at: DateTime<Utc>,
 }
 
@@ -20,7 +19,6 @@ pub struct OpsSiteDatabase {
     pub site_id: Uuid,
     pub database_instance_id: Uuid,
     pub usage_type: Option<String>,
-    pub is_primary: bool,
     pub created_at: DateTime<Utc>,
 }
 
@@ -30,7 +28,7 @@ pub struct OpsSiteDomain {
     pub id: Uuid,
     pub site_id: Uuid,
     pub domain_id: Uuid,
-    pub is_primary: bool,
+    pub domain_role: Option<String>,
     pub created_at: DateTime<Utc>,
 }
 
@@ -41,7 +39,6 @@ pub struct SiteRefByServer {
     pub site_id: Uuid,
     pub site_name: String,
     pub deploy_role: Option<String>,
-    pub is_primary: bool,
 }
 
 /// 反向查询：某数据库实例关联到的站点（含站点名），用于数据库实例详情页展示"所属站点"。
@@ -50,5 +47,4 @@ pub struct SiteRefByDatabase {
     pub site_id: Uuid,
     pub site_name: String,
     pub usage_type: Option<String>,
-    pub is_primary: bool,
 }

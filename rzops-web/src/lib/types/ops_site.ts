@@ -13,6 +13,7 @@ export interface OpsSiteResponse {
   is_test_site: boolean | null;
   last_backup_time: string | null;
   status: string;
+  environment: string | null;
   offline_time: string | null;
   offline_reason: string | null;
   function_summary: string | null;
@@ -41,6 +42,7 @@ export interface CreateOpsSiteRequest {
   is_test_site?: boolean;
   last_backup_time?: string;
   status?: string;
+  environment?: string;
   offline_time?: string;
   offline_reason?: string;
   function_summary?: string;
@@ -52,6 +54,7 @@ export interface UpdateOpsSiteRequest extends Partial<CreateOpsSiteRequest> {}
 export interface ListOpsSitesQuery {
   q?: string;
   status?: string;
+  environment?: string;
   importance?: string;
   page?: number;
   per_page?: number;
