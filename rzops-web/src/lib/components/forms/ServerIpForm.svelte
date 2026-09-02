@@ -30,7 +30,7 @@
 
   let form = $state<CreateServerIpRequest>(createInitial(initial));
 
-  let serverName = $derived(serverOptions.find(o => o.value === form.server_id)?.label || form.server_id || '-');
+  let serverName = $derived(serverOptions.length > 0 ? (serverOptions.find(o => o.value === form.server_id)?.label || '-') : '-');
 
   function createInitial(initial?: CreateServerIpRequest): CreateServerIpRequest {
     return {
