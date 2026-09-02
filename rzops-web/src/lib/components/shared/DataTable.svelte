@@ -2,6 +2,7 @@
   import * as Table from '$lib/ui/table';
   import { Button } from '$lib/ui/button';
   import ConfirmDialog from '$lib/components/shared/ConfirmDialog.svelte';
+  import { cn } from '$lib/utils';
 
   interface Column {
     key: string;
@@ -94,15 +95,15 @@
   }
 </script>
 
-<div class="rounded-md border">
+<div class="rounded-md border overflow-auto max-h-[calc(100vh-280px)]">
   <Table.Root>
     <Table.Header>
       <Table.Row>
         {#each columns as col}
-          <Table.Head class={col.class}>{col.label}</Table.Head>
+          <Table.Head class={cn('sticky top-0 z-10 bg-background shadow-[0_1px_0_0_var(--border)]', col.class)}>{col.label}</Table.Head>
         {/each}
         {#if hasActions}
-          <Table.Head class="w-[100px]">操作</Table.Head>
+          <Table.Head class="w-[100px] sticky top-0 z-10 bg-background shadow-[0_1px_0_0_var(--border)]">操作</Table.Head>
         {/if}
       </Table.Row>
     </Table.Header>

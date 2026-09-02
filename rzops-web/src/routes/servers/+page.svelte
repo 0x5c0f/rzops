@@ -5,6 +5,7 @@
   import { Button } from '$lib/ui/button';
   import { Input } from '$lib/ui/input';
   import DataTable from '$lib/components/shared/DataTable.svelte';
+  import Pagination from '$lib/components/shared/Pagination.svelte';
   import StatusBadge from '$lib/components/shared/StatusBadge.svelte';
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import { formatDate } from '$lib/utils/format';
@@ -69,6 +70,11 @@
     loadData();
   }
 
+  function handlePerPageChange(newPerPage: number) {
+    query = { ...query, per_page: newPerPage, page: 1 };
+    loadData();
+  }
+
   function handleEdit(item: ServerResponse) {
     goto(`/servers/${item.id}/edit`);
   }
@@ -76,7 +82,13 @@
   async function handleDelete(item: ServerResponse) {
     try {
       await serversApi.delete(item.id);
-      loadData();
+      // 本地移除，避免重新请求整个列表
+      data = data.filter(s => s.id !== item.id);
+      total = total - 1;
+      // 如果当前页为空且不是第一页，回到上一页
+      if (data.length === 0 && page > 1) {
+        handlePageChange(page - 1);
+      }
     } catch (err) {
       console.error('Failed to delete server:', err);
     }
@@ -107,25 +119,11 @@
     onDelete={handleDelete}
   />
 
-  <div class="flex items-center justify-between text-sm text-muted-foreground">
-    <span>显示 {Math.min((page - 1) * perPage + 1, total)}-{Math.min(page * perPage, total)} / 共 {total} 条</span>
-    <div class="flex gap-2">
-      <Button
-        variant="outline"
-        size="sm"
-        disabled={page <= 1}
-        onclick={() => handlePageChange(page - 1)}
-      >
-        上一页
-      </Button>
-      <Button
-        variant="outline"
-        size="sm"
-        disabled={page * perPage >= total}
-        onclick={() => handlePageChange(page + 1)}
-      >
-        下一页
-      </Button>
-    </div>
-  </div>
+  <Pagination
+    {page}
+    {perPage}
+    {total}
+    onPageChange={handlePageChange}
+    onPerPageChange={handlePerPageChange}
+  />
 </div>
