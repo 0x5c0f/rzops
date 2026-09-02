@@ -9,6 +9,7 @@
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import StatusBadge from '$lib/components/shared/StatusBadge.svelte';
   import { getProviderOptions } from '$lib/utils/entity-options';
+  import { domainPrivacyStatusOptions, getOptionLabel } from '$lib/utils/enum-options';
   import { formatDate } from '$lib/utils/format';
   import { onMount } from 'svelte';
   import ConfirmDialog from '$lib/components/shared/ConfirmDialog.svelte';
@@ -131,7 +132,7 @@
             </div>
             <div class="flex justify-between">
               <dt class="text-muted-foreground">隐私状态</dt>
-              <dd>{domain.privacy_status || '-'}</dd>
+              <dd>{getOptionLabel($domainPrivacyStatusOptions, domain.privacy_status)}</dd>
             </div>
           </dl>
         </Card.Content>

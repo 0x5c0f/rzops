@@ -7,7 +7,7 @@
   import * as Card from '$lib/ui/card';
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import StatusBadge from '$lib/components/shared/StatusBadge.svelte';
-  import { commonStatusOptions, getOptionLabel } from '$lib/utils/enum-options';
+  import { ipTypeOptions, ipStatusOptions, getOptionLabel } from '$lib/utils/enum-options';
   import { getServerOptions, getProviderOptions } from '$lib/utils/entity-options';
   import { onMount } from 'svelte';
   import ConfirmDialog from '$lib/components/shared/ConfirmDialog.svelte';
@@ -103,7 +103,7 @@
             </div>
             <div class="flex justify-between">
               <dt class="text-muted-foreground">IP类型</dt>
-              <dd>{serverIp.ip_type || '-'}</dd>
+              <dd>{getOptionLabel($ipTypeOptions, serverIp.ip_type)}</dd>
             </div>
             <div class="flex justify-between">
               <dt class="text-muted-foreground">主 IP</dt>
@@ -123,7 +123,7 @@
             </div>
             <div class="flex justify-between">
               <dt class="text-muted-foreground">状态</dt>
-              <dd>{getOptionLabel($commonStatusOptions, serverIp.status)}</dd>
+              <dd>{getOptionLabel($ipStatusOptions, serverIp.status)}</dd>
             </div>
             <div class="flex justify-between">
               <dt class="text-muted-foreground">描述</dt>

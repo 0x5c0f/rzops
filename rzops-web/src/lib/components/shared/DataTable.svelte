@@ -57,7 +57,7 @@
 
     // Use value map if provided
     if (col.valueMap && raw) {
-      return col.valueMap[String(raw)] || String(raw);
+      return col.valueMap[String(raw)] || '-';
     }
 
     // Handle arrays

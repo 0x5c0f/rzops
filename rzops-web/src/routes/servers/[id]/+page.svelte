@@ -19,7 +19,7 @@
   import {
     serverTypeOptions, hostingTypeOptions, serverRoleOptions,
     serverStatusOptions, architectureOptions, raidLevelOptions,
-    webServerSoftwareOptions, siteServerRoleOptions, getOptionLabel, getOptionLabels
+    webServerSoftwareOptions, siteServerRoleOptions, ipTypeOptions, getOptionLabel, getOptionLabels
   } from '$lib/utils/enum-options';
   import { getDataCenterOptions, getProviderOptions, ensureOption } from '$lib/utils/entity-options';
   import { formatDate } from '$lib/utils/format';
@@ -310,7 +310,7 @@
                 <Table.Row>
                   <Table.Cell class="font-mono">{ip.ip_address}</Table.Cell>
                   <Table.Cell>{ip.nic_name || '-'}</Table.Cell>
-                  <Table.Cell>{ip.ip_type}</Table.Cell>
+                  <Table.Cell>{getOptionLabel($ipTypeOptions, ip.ip_type)}</Table.Cell>
                   <Table.Cell>{ip.is_primary ? '是' : '-'}</Table.Cell>
                   <Table.Cell><StatusBadge status={ip.status} /></Table.Cell>
                   <Table.Cell>{ip.description || '-'}</Table.Cell>

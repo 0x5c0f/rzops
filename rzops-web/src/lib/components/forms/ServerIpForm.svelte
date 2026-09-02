@@ -36,7 +36,7 @@
       ip_address: '',
       ip_type: '',
       is_primary: false,
-      status: 'active',
+      status: 'enabled',
       ...JSON.parse(JSON.stringify(initial ?? {})),
     };
   }
