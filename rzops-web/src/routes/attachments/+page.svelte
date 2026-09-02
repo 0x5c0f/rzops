@@ -4,6 +4,7 @@
   import { Button } from '$lib/ui/button';
   import { Input } from '$lib/ui/input';
   import DataTable from '$lib/components/shared/DataTable.svelte';
+  import Pagination from '$lib/components/shared/Pagination.svelte';
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import { formatDate, formatBytes } from '$lib/utils/format';
   import { onMount } from 'svelte';
@@ -93,6 +94,11 @@
     loadData();
   }
 
+  function handlePerPageChange(newPerPage: number) {
+    query = { ...query, per_page: newPerPage, page: 1 };
+    loadData();
+  }
+
   async function handleDownload(item: AttachmentResponse) {
     error = '';
     try {
@@ -105,7 +111,11 @@
   async function handleDelete(item: AttachmentResponse) {
     try {
       await attachmentsApi.delete(item.id);
-      loadData();
+      data = data.filter(s => s.id !== item.id);
+      total = total - 1;
+      if (data.length === 0 && page > 1) {
+        handlePageChange(page - 1);
+      }
     } catch (err) {
       console.error('Failed to delete attachment:', err);
     }
@@ -141,25 +151,11 @@
     onDelete={handleDelete}
   />
 
-  <div class="flex items-center justify-between text-sm text-muted-foreground">
-    <span>显示 {Math.min((page - 1) * perPage + 1, total)}-{Math.min(page * perPage, total)} / 共 {total} 条</span>
-    <div class="flex gap-2">
-      <Button
-        variant="outline"
-        size="sm"
-        disabled={page <= 1}
-        onclick={() => handlePageChange(page - 1)}
-      >
-        上一页
-      </Button>
-      <Button
-        variant="outline"
-        size="sm"
-        disabled={page * perPage >= total}
-        onclick={() => handlePageChange(page + 1)}
-      >
-        下一页
-      </Button>
-    </div>
-  </div>
+  <Pagination
+    {page}
+    {perPage}
+    {total}
+    onPageChange={handlePageChange}
+    onPerPageChange={handlePerPageChange}
+  />
 </div>

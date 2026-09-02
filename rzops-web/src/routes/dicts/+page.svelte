@@ -7,6 +7,7 @@
   import * as Dialog from '$lib/ui/dialog';
   import * as Select from '$lib/ui/select';
   import DataTable from '$lib/components/shared/DataTable.svelte';
+  import Pagination from '$lib/components/shared/Pagination.svelte';
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import { validate } from '$lib/utils/validation';
   import { onMount } from 'svelte';
@@ -19,7 +20,7 @@
   let types = $state<string[]>([]);
   let typeSearch = $state('');
   let page = $state(1);
-  const perPage = 20;
+  let perPage = $state(20);
   let offset = $derived((page - 1) * perPage);
 
   // 新建 / 编辑对话框状态
@@ -180,27 +181,13 @@
     deleteTitle="确认停用"
   />
 
-  <div class="flex items-center justify-between text-sm text-muted-foreground">
-    <span>显示 {total === 0 ? 0 : offset + 1}-{Math.min(offset + perPage, total)} / 共 {total} 条（停用的项不再出现在业务表单下拉中，历史数据名称不受影响）</span>
-    <div class="flex gap-2">
-      <Button
-        variant="outline"
-        size="sm"
-        disabled={page <= 1}
-        onclick={() => { page -= 1; loadData(); }}
-      >
-        上一页
-      </Button>
-      <Button
-        variant="outline"
-        size="sm"
-        disabled={offset + perPage >= total}
-        onclick={() => { page += 1; loadData(); }}
-      >
-        下一页
-      </Button>
-    </div>
-  </div>
+  <Pagination
+    {page}
+    {perPage}
+    {total}
+    onPageChange={(p) => { page = p; loadData(); }}
+    onPerPageChange={(s) => { perPage = s; page = 1; loadData(); }}
+  />
 
   <!-- 新建 / 编辑对话框 -->
   <Dialog.Root bind:open={dialogOpen}>
