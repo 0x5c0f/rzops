@@ -259,6 +259,17 @@ const FALLBACKS: Record<string, SelectOption[]> = {
     { label: '数据库实例', value: 'database' },
     { label: '站点', value: 'site' },
   ],
+  environment: [
+    { label: '生产', value: 'prod' },
+    { label: '测试', value: 'test' },
+    { label: '预发布', value: 'staging' },
+    { label: '开发', value: 'dev' },
+  ],
+  domain_role: [
+    { label: '主域名', value: 'primary' },
+    { label: '别名', value: 'alias' },
+    { label: '跳转', value: 'redirect' },
+  ],
 };
 
 // 创建字典 store：初始为静态兜底
@@ -340,6 +351,8 @@ const STORE_MAP: Record<string, Writable<SelectOption[]>> = {
   monitor_type: monitorTypeOptions,
   contract_status: contractStatusOptions,
   line_type: lineTypeOptions,
+  environment: environmentOptions,
+  domain_role: domainRoleOptions,
   domain_privacy_status: domainPrivacyStatusOptions,
   site_server_role: siteServerRoleOptions,
   site_database_usage: siteDatabaseUsageOptions,
@@ -356,7 +369,7 @@ let dictLoaded = false;
 export async function loadAllDicts(): Promise<void> {
   if (dictLoaded) return;
   try {
-    const res = await dictsApi.list({ enabled_only: true });
+    const res = await dictsApi.list({ enabled_only: true, per_page: 1000 });
     const byType: Record<string, SelectOption[]> = {};
     for (const item of res.data) {
       (byType[item.dict_type] ??= []).push({
