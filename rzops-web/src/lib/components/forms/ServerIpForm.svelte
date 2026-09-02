@@ -6,7 +6,7 @@
   import * as Card from '$lib/ui/card';
   import FormSelect from '$lib/components/shared/FormSelect.svelte';
   import TextArea from '$lib/components/shared/TextArea.svelte';
-  import { commonStatusOptions, ipTypeOptions } from '$lib/utils/enum-options';
+  import { ipStatusOptions, ipTypeOptions } from '$lib/utils/enum-options';
   import { getServerOptions, getProviderOptions } from '$lib/utils/entity-options';
   import { validate } from '$lib/utils/validation';
   import { onMount } from 'svelte';
@@ -121,7 +121,7 @@
       <FormSelect
         label="状态"
         bind:value={form.status}
-        options={$commonStatusOptions}
+        options={$ipStatusOptions}
       />
 
       <div class="flex items-center gap-2 pt-6">
