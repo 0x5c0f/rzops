@@ -92,13 +92,30 @@
     },
   ];
 
-  // Track which groups are expanded
+  // Track which groups are expanded (persisted)
   let expandedGroups = $state<Record<string, boolean>>({});
   // Sidebar collapsed state (persisted)
   let collapsed = $state(false);
+  let groupsInitialized = $state(false);
 
   onMount(() => {
     collapsed = localStorage.getItem('rzops-sidebar-collapsed') === '1';
+    let saved: Record<string, boolean> = {};
+    try {
+      const raw = localStorage.getItem('rzops-sidebar-groups');
+      if (raw) saved = JSON.parse(raw);
+    } catch { /* ignore */ }
+    // 初始化所有分组状态，默认展开当前页面所在分组
+    const currentPath = $page.url.pathname;
+    navGroups.forEach(group => {
+      if (saved[group.label] !== undefined) {
+        expandedGroups[group.label] = saved[group.label];
+      } else {
+        expandedGroups[group.label] = group.items.some(item => currentPath.startsWith(item.href));
+      }
+    });
+    groupsInitialized = true;
+    saveGroups();
   });
 
   function toggleCollapsed() {
@@ -108,14 +125,16 @@
     }
   }
 
+  function saveGroups() {
+    if (browser && groupsInitialized) {
+      localStorage.setItem('rzops-sidebar-groups', JSON.stringify(expandedGroups));
+    }
+  }
+
   // Audit group (and any future admin-only entries) visible only to superusers.
   const visibleGroups = $derived(
     $auth.user?.is_superuser ? navGroups : navGroups.filter((g) => g.label !== '审计')
   );
-
-  function toggleGroup(label: string) {
-    expandedGroups[label] = !expandedGroups[label];
-  }
 
   function isActive(href: string, currentPath: string) {
     if (href === '/') return currentPath === '/';
@@ -126,15 +145,7 @@
     return group.items.some(item => isActive(item.href, currentPath));
   }
 
-  // Auto-expand groups that contain the current page
-  $effect(() => {
-    const currentPath = $page.url.pathname;
-    navGroups.forEach(group => {
-      if (isGroupActive(group, currentPath)) {
-        expandedGroups[group.label] = true;
-      }
-    });
-  });
+  // 分组展开状态已在 onMount 中初始化并持久化，无需自动展开
 </script>
 
 <aside
@@ -228,8 +239,8 @@
       {:else}
         <!-- 展开模式：可折叠分组 -->
         <Collapsible.Root
-          open={expandedGroups[group.label] || hasActive}
-          onOpenChange={(open) => expandedGroups[group.label] = open}
+          open={!!expandedGroups[group.label]}
+          onOpenChange={(open) => { expandedGroups[group.label] = open; saveGroups(); }}
         >
           <Collapsible.Trigger
             class={cn(
