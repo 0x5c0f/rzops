@@ -9,7 +9,7 @@
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import { formatDate } from '$lib/utils/format';
   import { onMount } from 'svelte';
-  import { siteStatusOptions, serviceTargetOptions, importanceOptions } from '$lib/utils/enum-options';
+  import { siteStatusOptions, serviceTargetOptions, importanceOptions, environmentOptions } from '$lib/utils/enum-options';
 
   let data = $state<OpsSiteResponse[]>([]);
   let total = $state(0);
@@ -20,11 +20,13 @@
   let siteStatusMap = $derived(Object.fromEntries($siteStatusOptions.map(o => [o.value, o.label])));
   let serviceTargetMap = $derived(Object.fromEntries($serviceTargetOptions.map(o => [o.value, o.label])));
   let importanceMap = $derived(Object.fromEntries($importanceOptions.map(o => [o.value, o.label])));
+  let environmentMap = $derived(Object.fromEntries($environmentOptions.map(o => [o.value, o.label])));
 
   const columns = $derived([
     { key: 'name', label: '名称' , link: (item: OpsSiteResponse) => `/ops-sites/${item.id}` },
     { key: 'url', label: 'URL' },
     { key: 'service_target', label: '服务目标', valueMap: serviceTargetMap },
+    { key: 'environment', label: '环境', valueMap: environmentMap },
     { key: 'importance', label: '重要性', valueMap: importanceMap },
     { key: 'status', label: '状态', valueMap: siteStatusMap },
     { key: 'created_at', label: '创建时间', render: (v: unknown) => formatDate(v as string) },
@@ -87,12 +89,22 @@
     <Button onclick={() => goto('/ops-sites/new')}>新建站点</Button>
   </div>
 
-  <div class="flex gap-2">
+  <div class="flex flex-wrap gap-2">
     <Input
       placeholder="搜索站点..."
       class="max-w-sm"
       oninput={handleSearch}
     />
+    <select
+      class="w-32 rounded-md border px-3 py-2 text-sm"
+      bind:value={query.environment}
+      onchange={() => { query = { ...query, page: 1 }; loadData(); }}
+    >
+      <option value="">全部环境</option>
+      {#each $environmentOptions as opt}
+        <option value={opt.value}>{opt.label}</option>
+      {/each}
+    </select>
   </div>
 
   <DataTable

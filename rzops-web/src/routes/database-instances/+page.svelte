@@ -9,7 +9,7 @@
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import { onMount } from 'svelte';
   import { getServerOptions } from '$lib/utils/entity-options';
-  import { databaseTypeOptions, databaseStatusOptions, importanceOptions } from '$lib/utils/enum-options';
+  import { databaseTypeOptions, databaseStatusOptions, importanceOptions, environmentOptions } from '$lib/utils/enum-options';
 
   let data = $state<DatabaseInstanceResponse[]>([]);
   let total = $state(0);
@@ -21,10 +21,12 @@
   let dbTypeMap = $derived(Object.fromEntries($databaseTypeOptions.map(o => [o.value, o.label])));
   let dbStatusMap = $derived(Object.fromEntries($databaseStatusOptions.map(o => [o.value, o.label])));
   let importanceMap = $derived(Object.fromEntries($importanceOptions.map(o => [o.value, o.label])));
+  let environmentMap = $derived(Object.fromEntries($environmentOptions.map(o => [o.value, o.label])));
 
   const columns = $derived([
     { key: 'name', label: '名称' , link: (item: DatabaseInstanceResponse) => `/database-instances/${item.id}` },
     { key: 'db_type', label: '数据库类型', valueMap: dbTypeMap },
+    { key: 'environment', label: '环境', valueMap: environmentMap },
     { key: 'server_id', label: '服务器', valueMap: serverMap },
     { key: 'status', label: '状态', valueMap: dbStatusMap },
     { key: 'importance', label: '重要性', valueMap: importanceMap },
@@ -91,12 +93,22 @@
     <Button onclick={() => goto('/database-instances/new')}>新建数据库实例</Button>
   </div>
 
-  <div class="flex gap-2">
+  <div class="flex flex-wrap gap-2">
     <Input
       placeholder="搜索数据库实例..."
       class="max-w-sm"
       oninput={handleSearch}
     />
+    <select
+      class="w-32 rounded-md border px-3 py-2 text-sm"
+      bind:value={query.environment}
+      onchange={() => { query = { ...query, page: 1 }; loadData(); }}
+    >
+      <option value="">全部环境</option>
+      {#each $environmentOptions as opt}
+        <option value={opt.value}>{opt.label}</option>
+      {/each}
+    </select>
   </div>
 
   <DataTable

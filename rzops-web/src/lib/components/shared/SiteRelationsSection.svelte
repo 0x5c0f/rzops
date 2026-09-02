@@ -18,7 +18,7 @@
     getDatabaseInstanceOptions,
     getDomainOptions,
   } from '$lib/utils/entity-options';
-  import { siteServerRoleOptions, siteDatabaseUsageOptions, getOptionLabel } from '$lib/utils/enum-options';
+  import { siteServerRoleOptions, siteDatabaseUsageOptions, domainRoleOptions, getOptionLabel } from '$lib/utils/enum-options';
   import { onMount } from 'svelte';
   import ConfirmDialog from '$lib/components/shared/ConfirmDialog.svelte';
 
@@ -46,7 +46,7 @@
   let addType = $state<'server' | 'database' | 'domain'>('server');
   let addEntityId = $state('');
   let addRole = $state('');
-  let addIsPrimary = $state(false);
+  let addDomainRole = $state('');
   let addSaving = $state(false);
 
   // 删除确认状态
@@ -87,7 +87,7 @@
     addType = type;
     addEntityId = '';
     addRole = '';
-    addIsPrimary = false;
+    addDomainRole = '';
     addDialogOpen = true;
   }
 
@@ -100,20 +100,18 @@
           site_id: siteId,
           server_id: addEntityId,
           deploy_role: addRole || undefined,
-          is_primary: addIsPrimary,
         });
       } else if (addType === 'database') {
         await siteRelationsApi.createDatabase({
           site_id: siteId,
           database_instance_id: addEntityId,
           usage_type: addRole || undefined,
-          is_primary: addIsPrimary,
         });
       } else {
         await siteRelationsApi.createDomain({
           site_id: siteId,
           domain_id: addEntityId,
-          is_primary: addIsPrimary,
+          domain_role: addDomainRole || undefined,
         });
       }
       addDialogOpen = false;
@@ -190,7 +188,6 @@
                 <Table.Row>
                   <Table.Head>服务器</Table.Head>
                   <Table.Head>部署角色</Table.Head>
-                  <Table.Head>主用</Table.Head>
                   <Table.Head class="w-[100px]">操作</Table.Head>
                 </Table.Row>
               </Table.Header>
@@ -203,7 +200,6 @@
                       </a>
                     </Table.Cell>
                     <Table.Cell>{getOptionLabel($siteServerRoleOptions, rel.deploy_role) || '-'}</Table.Cell>
-                    <Table.Cell>{rel.is_primary ? '是' : '-'}</Table.Cell>
                     <Table.Cell>
                       <Button variant="ghost" size="sm" onclick={() => handleDeleteServer(rel.id)}>
                         删除
@@ -212,7 +208,7 @@
                   </Table.Row>
                 {:else}
                   <Table.Row>
-                    <Table.Cell colspan={4} class="text-center text-muted-foreground">
+                    <Table.Cell colspan={3} class="text-center text-muted-foreground">
                       暂无服务器关联
                     </Table.Cell>
                   </Table.Row>
@@ -232,7 +228,6 @@
                 <Table.Row>
                   <Table.Head>数据库实例</Table.Head>
                   <Table.Head>用途</Table.Head>
-                  <Table.Head>主用</Table.Head>
                   <Table.Head class="w-[100px]">操作</Table.Head>
                 </Table.Row>
               </Table.Header>
@@ -245,7 +240,6 @@
                       </a>
                     </Table.Cell>
                     <Table.Cell>{getOptionLabel($siteDatabaseUsageOptions, rel.usage_type) || '-'}</Table.Cell>
-                    <Table.Cell>{rel.is_primary ? '是' : '-'}</Table.Cell>
                     <Table.Cell>
                       <Button variant="ghost" size="sm" onclick={() => handleDeleteDatabase(rel.id)}>
                         删除
@@ -254,7 +248,7 @@
                   </Table.Row>
                 {:else}
                   <Table.Row>
-                    <Table.Cell colspan={4} class="text-center text-muted-foreground">
+                    <Table.Cell colspan={3} class="text-center text-muted-foreground">
                       暂无数据库关联
                     </Table.Cell>
                   </Table.Row>
@@ -273,7 +267,7 @@
               <Table.Header>
                 <Table.Row>
                   <Table.Head>域名</Table.Head>
-                  <Table.Head>主用</Table.Head>
+                  <Table.Head>角色</Table.Head>
                   <Table.Head class="w-[100px]">操作</Table.Head>
                 </Table.Row>
               </Table.Header>
@@ -285,7 +279,7 @@
                         {domainMap[rel.domain_id] || rel.domain_id}
                       </a>
                     </Table.Cell>
-                    <Table.Cell>{rel.is_primary ? '是' : '-'}</Table.Cell>
+                    <Table.Cell>{getOptionLabel($domainRoleOptions, rel.domain_role) || '-'}</Table.Cell>
                     <Table.Cell>
                       <Button variant="ghost" size="sm" onclick={() => handleDeleteDomain(rel.id)}>
                         删除
@@ -349,12 +343,16 @@
           options={domainOptions}
           placeholder="选择域名"
         />
+        <div class="space-y-2">
+          <Label for="add-domain-role">域名角色</Label>
+          <FormSelect
+            id="add-domain-role"
+            bind:value={addDomainRole}
+            options={$domainRoleOptions}
+            placeholder="选择域名角色"
+          />
+        </div>
       {/if}
-
-      <div class="flex items-center gap-2">
-        <input type="checkbox" id="add-primary" bind:checked={addIsPrimary} class="h-4 w-4" />
-        <Label for="add-primary">主用</Label>
-      </div>
     </div>
 
     <Dialog.Footer>

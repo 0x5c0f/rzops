@@ -10,7 +10,7 @@
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import { formatDate } from '$lib/utils/format';
   import { getDataCenterOptions, getProviderOptions } from '$lib/utils/entity-options';
-  import { serverStatusOptions, serverTypeOptions } from '$lib/utils/enum-options';
+  import { serverStatusOptions, serverTypeOptions, environmentOptions } from '$lib/utils/enum-options';
   import { onMount } from 'svelte';
 
   let data = $state<ServerResponse[]>([]);
@@ -24,11 +24,13 @@
 
   let serverTypeMap = $derived(Object.fromEntries($serverTypeOptions.map(o => [o.value, o.label])));
   let serverStatusMap = $derived(Object.fromEntries($serverStatusOptions.map(o => [o.value, o.label])));
+  let environmentMap = $derived(Object.fromEntries($environmentOptions.map(o => [o.value, o.label])));
 
   const columns = $derived([
     { key: 'name', label: '名称' , link: (item: ServerResponse) => `/servers/${item.id}` },
     { key: 'primary_ip', label: '主IP' },
     { key: 'server_type', label: '类型', valueMap: serverTypeMap },
+    { key: 'environment', label: '环境', valueMap: environmentMap },
     { key: 'status', label: '状态', valueMap: serverStatusMap },
     { key: 'data_center_id', label: '数据中心', valueMap: dataCenterMap },
     { key: 'isp_provider_id', label: 'ISP供应商', valueMap: providerMap },
@@ -103,12 +105,22 @@
     <Button onclick={() => goto('/servers/new')}>新建服务器</Button>
   </div>
 
-  <div class="flex gap-2">
+  <div class="flex flex-wrap gap-2">
     <Input
       placeholder="搜索服务器..."
       class="max-w-sm"
       oninput={handleSearch}
     />
+    <select
+      class="w-32 rounded-md border px-3 py-2 text-sm"
+      bind:value={query.environment}
+      onchange={() => { query = { ...query, page: 1 }; loadData(); }}
+    >
+      <option value="">全部环境</option>
+      {#each $environmentOptions as opt}
+        <option value={opt.value}>{opt.label}</option>
+      {/each}
+    </select>
   </div>
 
   <DataTable
