@@ -19,7 +19,6 @@
   let page = $derived(query.page ?? 1);
   let perPage = $derived(query.per_page ?? 20);
   let serverStatusMap = $state<Record<string, string>>({});
-  let serverOptions = $state<{ value: string; label: string }[]>([]);
   let protocolMap = $derived(Object.fromEntries($protocolOptions.map(o => [o.value, o.label])));
 
   const columns = $derived([
@@ -59,7 +58,6 @@
 
   onMount(async () => {
     const serverList = await serversApi.list({ per_page: 200 });
-    serverOptions = serverList.data.map((s: {id: string, name: string}) => ({ value: s.id, label: s.name }));
     serverStatusMap = Object.fromEntries(serverList.data.map((s: {id: string, status: string}) => [s.id, s.status]));
     await loadData();
   });
@@ -124,20 +122,6 @@
     >
       <option value="">全部协议</option>
       {#each $protocolOptions as opt}
-        <option value={opt.value}>{opt.label}</option>
-      {/each}
-    </select>
-    <select
-      class="w-44 rounded-md border px-3 py-2 text-sm"
-      value={query.server_id ?? ''}
-      onchange={(e) => {
-        const val = (e.target as HTMLSelectElement).value;
-        query = { ...query, server_id: val || undefined, page: 1 };
-        loadData();
-      }}
-    >
-      <option value="">全部服务器</option>
-      {#each serverOptions as opt}
         <option value={opt.value}>{opt.label}</option>
       {/each}
     </select>
