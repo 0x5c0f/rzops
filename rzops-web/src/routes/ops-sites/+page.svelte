@@ -102,10 +102,10 @@
 
   function getRowClass(item: OpsSiteResponse): string {
     if (item.status === 'permanent_offline') {
-      return 'bg-red-50';
+      return 'bg-red-100';
     }
     if (item.status === 'temp_offline') {
-      return 'bg-amber-50';
+      return 'bg-amber-100';
     }
     return '';
   }

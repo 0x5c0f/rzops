@@ -38,7 +38,7 @@
 
   function getRowClass(item: DomainResponse): string {
     if (!item.is_enabled) {
-      return 'bg-gray-100';
+      return 'bg-slate-100';
     }
     return '';
   }

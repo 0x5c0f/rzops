@@ -39,10 +39,10 @@
 
   function getRowClass(item: CertificateResponse): string {
     if (item.status === 'revoked') {
-      return 'bg-red-50';
+      return 'bg-red-100';
     }
     if (item.status === 'expired' || item.status === 'inactive') {
-      return 'bg-amber-50';
+      return 'bg-amber-100';
     }
     return '';
   }

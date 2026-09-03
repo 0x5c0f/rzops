@@ -43,7 +43,7 @@
 
   function getRowClass(item: ContractResponse): string {
     if (item.status && item.status !== 'active') {
-      return 'bg-gray-100';
+      return 'bg-slate-100';
     }
     return '';
   }

@@ -52,15 +52,15 @@
 
   function getRowClass(item: ServerIpResponse): string {
     if (item.status !== 'enabled') {
-      return 'bg-gray-100';
+      return 'bg-slate-100';
     }
     if (item.server_id) {
       const status = serverStatusMap[item.server_id];
       if (status === undefined) {
-        return 'bg-red-50'; // 关联服务器已删除
+        return 'bg-red-100'; // 关联服务器已删除
       }
       if (isResourceOffline('server', status)) {
-        return 'bg-amber-50'; // 关联服务器已退役
+        return 'bg-amber-100'; // 关联服务器已退役
       }
     }
     return '';
