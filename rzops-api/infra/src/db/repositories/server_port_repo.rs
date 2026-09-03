@@ -76,7 +76,7 @@ impl ServerPortRepository for PgServerPortRepository {
             string_binds.push(format!("%{}%", q));
         }
 
-        sql.push_str(" GROUP BY p.id ORDER BY p.created_at DESC");
+        sql.push_str(" GROUP BY p.id ORDER BY CASE WHEN p.is_enabled = false THEN 1 ELSE 0 END, p.created_at DESC");
         if let Some(limit) = filter.limit {
             sql.push_str(&format!(" LIMIT {}", limit));
         }

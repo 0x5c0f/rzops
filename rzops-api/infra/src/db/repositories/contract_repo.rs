@@ -28,7 +28,7 @@ impl ContractRepository for PgContractRepository {
         let s_q = f.q.as_ref();
         if s_status.is_some() { sql.push_str(&format!(" AND status::text = ${}", idx)); idx += 1; }
         if s_q.is_some() { sql.push_str(&format!(" AND name ILIKE ${}", idx)); }
-        sql.push_str(" ORDER BY created_at DESC");
+        sql.push_str(" ORDER BY CASE WHEN status::text IN ('expired', 'terminated', 'inactive') THEN 1 ELSE 0 END, created_at DESC");
         if let Some(l) = f.limit { sql.push_str(&format!(" LIMIT {}", l)); }
         if let Some(o) = f.offset { sql.push_str(&format!(" OFFSET {}", o)); }
         let mut query = sqlx::query(&sql);

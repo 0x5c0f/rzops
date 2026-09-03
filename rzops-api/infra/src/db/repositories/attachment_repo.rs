@@ -29,7 +29,7 @@ impl AttachmentRepository for PgAttachmentRepository {
         if let Some(ref tt) = f.target_type { sql.push_str(&format!(" AND target_type = ${}", idx)); string_binds.push(tt.clone()); idx += 1; }
         if let Some(tid) = f.target_id { sql.push_str(&format!(" AND target_id = ${}", idx)); uuid_binds.push(tid); idx += 1; }
         if let Some(ref q) = f.q { sql.push_str(&format!(" AND filename ILIKE ${}", idx)); string_binds.push(format!("%{}%", q)); }
-        sql.push_str(" ORDER BY created_at DESC");
+        sql.push_str(" ORDER BY CASE WHEN status::text != 'active' THEN 1 ELSE 0 END, created_at DESC");
         if let Some(l) = f.limit { sql.push_str(&format!(" LIMIT {}", l)); }
         if let Some(o) = f.offset { sql.push_str(&format!(" OFFSET {}", o)); }
         let mut query = sqlx::query(&sql);
