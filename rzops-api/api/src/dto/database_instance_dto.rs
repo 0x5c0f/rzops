@@ -49,6 +49,8 @@ pub struct ListDatabaseInstancesQuery {
 pub struct DatabaseInstanceResponse {
     pub id: Uuid,
     pub server_id: Option<Uuid>,
+    pub server_name: Option<String>,
+    pub server_status: Option<String>,
     pub name: String,
     pub db_type: String,
     pub description: Option<String>,

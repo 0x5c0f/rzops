@@ -43,6 +43,8 @@ pub struct ListServerIpsQuery {
 pub struct ServerIpResponse {
     pub id: Uuid,
     pub server_id: Option<Uuid>,
+    pub server_name: Option<String>,
+    pub server_status: Option<String>,
     pub ip_address: String,
     pub nic_name: Option<String>,
     pub ip_type: String,

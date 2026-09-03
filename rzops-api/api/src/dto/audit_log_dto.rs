@@ -23,6 +23,7 @@ pub struct AuditLogResponse {
     pub ip_address: Option<String>,
     pub user_agent: Option<String>,
     pub actor_email: Option<String>,
+    pub resource_name: Option<String>,
     pub extra_data: serde_json::Value,
     pub created_at: DateTime<Utc>,
 }

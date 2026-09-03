@@ -8,7 +8,7 @@
   import DataTable from '$lib/components/shared/DataTable.svelte';
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import { formatDate } from '$lib/utils/format';
-  import { resolveResourceLabel, getResourceLink, resourceTypeZh } from '$lib/utils/resource-label';
+  import { getResourceLink, resourceTypeZh } from '$lib/utils/resource-label';
   import { onMount } from 'svelte';
 
   const resourceTypeOptions = [
@@ -48,8 +48,6 @@
   let resourceType = $state('');
   let dateFrom = $state('');
   let dateTo = $state('');
-  // rowId -> 资源名称
-  let resourceNames = $state<Record<string, string>>({});
 
   const columns = [
     {
@@ -67,7 +65,7 @@
       key: 'resource_id',
       label: '资源',
       display: (item: AuditLogResponse) =>
-        item.resource_id ? resourceNames[item.id] || '加载中…' : '-',
+        item.resource_id ? item.resource_name || `${item.resource_id.slice(0, 8)}…` : '-',
       link: (item: AuditLogResponse) => getResourceLink(item.resource_type, item.resource_id),
     },
     {
@@ -83,30 +81,6 @@
     },
   ];
 
-  async function resolveNames(rows: AuditLogResponse[]) {
-    // 按 (type,id) 去重并发解析，避免同一资源重复请求
-    const grouped = new Map<string, { type: string; id: string; rowIds: string[] }>();
-    for (const row of rows) {
-      if (!row.resource_id || !row.resource_type) continue;
-      const key = `${row.resource_type}:${row.resource_id}`;
-      const entry = grouped.get(key);
-      if (entry) {
-        entry.rowIds.push(row.id);
-      } else {
-        grouped.set(key, { type: row.resource_type, id: row.resource_id, rowIds: [row.id] });
-      }
-    }
-    await Promise.allSettled(
-      Array.from(grouped.values()).map(async (g) => {
-        const label = await resolveResourceLabel(g.type, g.id);
-        const display = label || `${g.id.slice(0, 8)}…`;
-        for (const rid of g.rowIds) {
-          resourceNames[rid] = display;
-        }
-      })
-    );
-  }
-
   async function loadData() {
     loading = true;
     try {
@@ -120,7 +94,6 @@
       });
       data = res.data;
       total = res.count;
-      await resolveNames(res.data);
     } catch (err) {
       console.error('Failed to load audit logs:', err);
     } finally {

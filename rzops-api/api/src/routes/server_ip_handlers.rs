@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use axum::{
@@ -7,6 +8,7 @@ use axum::{
     Json,
 };
 use chrono::Utc;
+use sqlx::PgPool;
 use uuid::Uuid;
 
 use rzops_domain::models::server_ip::ServerIP;
@@ -16,13 +18,14 @@ use crate::auth_extractor::AuthUser;
 use crate::change_log::{record_change, ChangeLogState};
 use crate::dto::provider_dto::ErrorResponse;
 use crate::dto::server_ip_dto::*;
+use crate::resource_names::resolve_server_briefs;
 
-
-
-fn to_response(ip: &ServerIP) -> ServerIpResponse {
+fn to_response(ip: &ServerIP, server_name: Option<String>, server_status: Option<String>) -> ServerIpResponse {
     ServerIpResponse {
         id: ip.id,
         server_id: ip.server_id,
+        server_name,
+        server_status,
         ip_address: ip.ip_address.clone(),
         nic_name: ip.nic_name.clone(),
         ip_type: ip.ip_type.clone(),
@@ -35,15 +38,30 @@ fn to_response(ip: &ServerIP) -> ServerIpResponse {
     }
 }
 
+/// 批量解析服务器名称与状态映射。
+async fn resolve_servers(pool: &PgPool, ips: &[ServerIP]) -> HashMap<Uuid, (String, String)> {
+    let ids: Vec<Option<Uuid>> = ips.iter().map(|ip| ip.server_id).collect();
+    resolve_server_briefs(pool, &ids).await
+}
+
 /// GET /server-ips/:id
 #[utoipa::path(get, path = "/api/v1/server-ips/{id}", params(("id" = uuid::Uuid, Path)), responses((status = 200, body = ServerIpResponse), (status = 404, body = ErrorResponse)), tag = "ServerIp", security(("bearer_auth" = [])))]
 pub async fn get_server_ip(
     _auth: AuthUser,
     State(repo): State<Arc<dyn ServerIpRepository>>,
+    Extension(pool): Extension<PgPool>,
     Path(id): Path<Uuid>,
 ) -> impl IntoResponse {
     match repo.find_by_id(id).await {
-        Ok(Some(ip)) => (StatusCode::OK, Json(to_response(&ip))).into_response(),
+        Ok(Some(ip)) => {
+            let briefs = resolve_servers(&pool, &[ip.clone()]).await;
+            let (sname, sstatus) = ip.server_id.as_ref()
+                .and_then(|sid| briefs.get(sid))
+                .cloned()
+                .map(|(n, s)| (Some(n), Some(s)))
+                .unwrap_or((None, None));
+            (StatusCode::OK, Json(to_response(&ip, sname, sstatus))).into_response()
+        }
         Ok(None) => (
             StatusCode::NOT_FOUND,
             Json(ErrorResponse { error: "server IP not found".to_string() }),
@@ -60,6 +78,7 @@ pub async fn get_server_ip(
 pub async fn list_server_ips(
     _auth: AuthUser,
     State(repo): State<Arc<dyn ServerIpRepository>>,
+    Extension(pool): Extension<PgPool>,
     Query(query): Query<ListServerIpsQuery>,
 ) -> impl IntoResponse {
     let page = query.page.unwrap_or(1).max(1);
@@ -78,7 +97,15 @@ pub async fn list_server_ips(
     match repo.find_all(filter.clone()).await {
         Ok(ips) => {
             let count = repo.count(filter).await.unwrap_or(0);
-            let data = ips.iter().map(to_response).collect();
+            let briefs = resolve_servers(&pool, &ips).await;
+            let data = ips.iter().map(|ip| {
+                let (sname, sstatus) = ip.server_id.as_ref()
+                    .and_then(|sid| briefs.get(sid))
+                    .cloned()
+                    .map(|(n, s)| (Some(n), Some(s)))
+                    .unwrap_or((None, None));
+                to_response(ip, sname, sstatus)
+            }).collect();
             (StatusCode::OK, Json(ServerIpListResponse { data, count })).into_response()
         }
         Err(e) => (
@@ -113,8 +140,8 @@ pub async fn create_server_ip(
 
     match repo.create(&ip).await {
         Ok(created) => {
-            record_change(&change_log, &auth, rzops_domain::enums::ChangeType::Create, "server_ip", Some(created.id), serde_json::json!(null), serde_json::to_value(to_response(&created)).unwrap_or(serde_json::json!({})), None).await;
-            (StatusCode::CREATED, Json(to_response(&created))).into_response()
+            record_change(&change_log, &auth, rzops_domain::enums::ChangeType::Create, "server_ip", Some(created.id), serde_json::json!(null), serde_json::to_value(to_response(&created, None, None)).unwrap_or(serde_json::json!({})), None).await;
+            (StatusCode::CREATED, Json(to_response(&created, None, None))).into_response()
         }
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -142,7 +169,7 @@ pub async fn update_server_ip(
         }
     };
 
-    let before_value = serde_json::to_value(to_response(&existing)).unwrap_or(serde_json::json!({}));
+    let before_value = serde_json::to_value(to_response(&existing, None, None)).unwrap_or(serde_json::json!({}));
     let ip = ServerIP {
         id: existing.id,
         server_id: existing.server_id,
@@ -159,8 +186,8 @@ pub async fn update_server_ip(
 
     match repo.update(id, &ip).await {
         Ok(Some(updated)) => {
-            record_change(&change_log, &auth, rzops_domain::enums::ChangeType::Update, "server_ip", Some(updated.id), before_value, serde_json::to_value(to_response(&updated)).unwrap_or(serde_json::json!({})), None).await;
-            (StatusCode::OK, Json(to_response(&updated))).into_response()
+            record_change(&change_log, &auth, rzops_domain::enums::ChangeType::Update, "server_ip", Some(updated.id), before_value, serde_json::to_value(to_response(&updated, None, None)).unwrap_or(serde_json::json!({})), None).await;
+            (StatusCode::OK, Json(to_response(&updated, None, None))).into_response()
         }
         Ok(None) => (StatusCode::NOT_FOUND, Json(ErrorResponse { error: "server IP not found".to_string() })).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: format!("failed to update server IP: {}", e) })).into_response(),

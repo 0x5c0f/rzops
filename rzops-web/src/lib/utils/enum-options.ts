@@ -367,6 +367,17 @@ const STORE_MAP: Record<string, Writable<SelectOption[]>> = {
 let dictLoaded = false;
 
 /**
+ * 使字典缓存失效：清空 dictLoaded 标记并重置各字典 store。
+ * 在字典管理页 create / update / delete 后调用，确保下次 loadAllDicts 重新拉取最新字典。
+ */
+export function resetDictCache(): void {
+  dictLoaded = false;
+  for (const store of Object.values(STORE_MAP)) {
+    store.set([]);
+  }
+}
+
+/**
  * 从后端字典 API 加载全部字典选项并更新对应 store。
  * 幂等：只加载一次；失败时保留静态兜底值。
  */

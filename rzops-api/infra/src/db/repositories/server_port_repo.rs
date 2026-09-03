@@ -16,13 +16,19 @@ impl PgServerPortRepository {
     }
 }
 
-/// 端口查询公共列（含多对多关联聚合的服务器 id / 名称）
+/// 端口查询公共列（含多对多关联聚合的服务器 id / 名称 / 状态）
+/// has_active_server：是否存在至少一个"在线"服务器
+/// sort_rank：0=正常 1=有绑定但全部下线 2=端口禁用（用于排序，避免相关子查询）
 const PORT_SELECT: &str = r#"
     SELECT p.id, p.protocol::text, p.port, p.service_name, p.access_scope,
            p.is_enabled, p.description, p.created_at, p.updated_at,
            COALESCE(array_agg(s.id) FILTER (WHERE s.id IS NOT NULL), '{}') AS server_ids,
            COALESCE(array_agg(s.name) FILTER (WHERE s.name IS NOT NULL), '{}') AS server_names,
-           COALESCE(array_agg(s.status::text) FILTER (WHERE s.status IS NOT NULL), '{}') AS server_statuses
+           COALESCE(array_agg(s.status::text) FILTER (WHERE s.status IS NOT NULL), '{}') AS server_statuses,
+           CASE WHEN p.is_enabled = false THEN 2
+                WHEN COALESCE(BOOL_OR(s.status::text NOT IN ('retired', 'offline')), false) = false
+                     AND cardinality(COALESCE(array_agg(s.id) FILTER (WHERE s.id IS NOT NULL), '{}')) > 0 THEN 1
+                ELSE 0 END AS sort_rank
     FROM cmdb_server_port p
     LEFT JOIN cmdb_server_port_server ps ON ps.server_port_id = p.id
     LEFT JOIN cmdb_server s ON s.id = ps.server_id AND s.deleted_at IS NULL
@@ -78,7 +84,7 @@ impl ServerPortRepository for PgServerPortRepository {
             string_binds.push(format!("%{}%", q));
         }
 
-        sql.push_str(" GROUP BY p.id ORDER BY CASE WHEN p.is_enabled = false THEN 2 WHEN NOT EXISTS (SELECT 1 FROM cmdb_server_port_server ps2 JOIN cmdb_server s2 ON s2.id = ps2.server_id WHERE ps2.server_port_id = p.id AND s2.status::text NOT IN ('retired', 'offline') AND s2.deleted_at IS NULL) AND EXISTS (SELECT 1 FROM cmdb_server_port_server ps3 WHERE ps3.server_port_id = p.id) THEN 1 ELSE 0 END, p.created_at DESC");
+        sql.push_str(" GROUP BY p.id ORDER BY sort_rank, p.created_at DESC");
         if let Some(limit) = filter.limit {
             sql.push_str(&format!(" LIMIT {}", limit));
         }

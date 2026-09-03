@@ -1,6 +1,8 @@
 export interface DatabaseInstanceResponse {
   id: string;
   server_id: string | null;
+  server_name: string | null;
+  server_status: string | null;
   name: string;
   db_type: string;
   description: string | null;

@@ -1,6 +1,8 @@
 export interface ServerIpResponse {
   id: string;
   server_id: string | null;
+  server_name: string | null;
+  server_status: string | null;
   ip_address: string;
   nic_name: string | null;
   ip_type: string | null;

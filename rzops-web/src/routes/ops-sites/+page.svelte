@@ -10,7 +10,7 @@
   import { formatDate } from '$lib/utils/format';
   import { onMount } from 'svelte';
   import { siteStatusOptions, serviceTargetOptions, importanceOptions, environmentOptions } from '$lib/utils/enum-options';
-  import { getServerOptions, searchServerOptions } from '$lib/utils/entity-options';
+  import { searchServerOptions } from '$lib/utils/entity-options';
   import { getOptionColor } from '$lib/utils/enum-options';
   import RemoteSearchSelect from '$lib/components/shared/RemoteSearchSelect.svelte';
 
@@ -78,7 +78,7 @@
   );
 
   onMount(async () => {
-    serverOptions = await getServerOptions();
+    serverOptions = await searchServerOptions('');
     loadData();
   });
 

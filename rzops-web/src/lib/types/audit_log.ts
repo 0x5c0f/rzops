@@ -7,6 +7,7 @@ export interface AuditLogResponse {
   ip_address: string | null;
   user_agent: string | null;
   actor_email: string | null;
+  resource_name: string | null;
   extra_data: unknown;
   created_at: string;
 }

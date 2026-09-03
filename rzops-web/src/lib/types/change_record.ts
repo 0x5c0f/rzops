@@ -5,6 +5,7 @@ export interface ChangeRecordResponse {
   resource_type: string | null;
   resource_id: string | null;
   actor_email: string | null;
+  resource_name: string | null;
   before_data: unknown;
   after_data: unknown;
   remarks: string | null;

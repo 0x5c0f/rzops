@@ -8,9 +8,8 @@
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import StatusBadge from '$lib/components/shared/StatusBadge.svelte';
   import { ipTypeOptions, ipStatusOptions, getOptionLabel } from '$lib/utils/enum-options';
-  import { getServerOptions, getProviderOptions } from '$lib/utils/entity-options';
+  import { getProviderOptions } from '$lib/utils/entity-options';
   import { formatResourceWithStatus, getResourceStatusClass } from '$lib/utils/resource-status';
-  import { serversApi } from '$lib/api/servers';
   import { onMount } from 'svelte';
   import ConfirmDialog from '$lib/components/shared/ConfirmDialog.svelte';
 
@@ -18,23 +17,17 @@
 
   let confirmOpen = $state(false);
   let loading = $state(true);
-  let serverMap = $state<Record<string, string>>({});
-  let serverStatusMap = $state<Record<string, string>>({});
   let providerMap = $state<Record<string, string>>({});
 
   onMount(async () => {
     const id = $page.params.id;
     if (!id) { goto('/server-ips'); return; }
     try {
-      const [ip, servers, serverList, providers] = await Promise.all([
+      const [ip, providers] = await Promise.all([
         serverIpsApi.getById(id),
-        getServerOptions(),
-        serversApi.list({ per_page: 200 }),
         getProviderOptions(),
       ]);
       serverIp = ip;
-      serverMap = Object.fromEntries(servers.map(o => [o.value, o.label]));
-      serverStatusMap = Object.fromEntries(serverList.data.map((s: {id: string, status: string}) => [s.id, s.status]));
       providerMap = Object.fromEntries(providers.map(o => [o.value, o.label]));
     } catch (err) {
       console.error('Failed to load server IP:', err);
@@ -94,10 +87,10 @@
               <dt class="text-muted-foreground">服务器</dt>
               <dd>
                 {#if serverIp.server_id}
-                  {#if serverMap[serverIp.server_id]}
+                  {#if serverIp.server_name}
                     <a href="/servers/{serverIp.server_id}" class="text-primary hover:underline">
-                      <span class={getResourceStatusClass(serverStatusMap[serverIp.server_id], 'server')}>
-                        {formatResourceWithStatus(serverMap[serverIp.server_id], serverStatusMap[serverIp.server_id], 'server')}
+                      <span class={getResourceStatusClass(serverIp.server_status, 'server')}>
+                        {formatResourceWithStatus(serverIp.server_name, serverIp.server_status, 'server')}
                       </span>
                     </a>
                   {:else}

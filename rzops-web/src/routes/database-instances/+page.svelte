@@ -1,7 +1,6 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { databaseInstancesApi } from '$lib/api/database-instances';
-  import { serversApi } from '$lib/api/servers';
   import type { DatabaseInstanceResponse, ListDatabaseInstancesQuery } from '$lib/types/database_instance';
   import { Button } from '$lib/ui/button';
   import { Input } from '$lib/ui/input';
@@ -9,7 +8,7 @@
   import Pagination from '$lib/components/shared/Pagination.svelte';
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import { onMount } from 'svelte';
-  import { getServerOptions, searchServerOptions } from '$lib/utils/entity-options';
+  import { searchServerOptions } from '$lib/utils/entity-options';
   import { databaseTypeOptions, databaseStatusOptions, importanceOptions, environmentOptions, getOptionColor } from '$lib/utils/enum-options';
   import { formatResourceWithStatus, isResourceOffline } from '$lib/utils/resource-status';
   import RemoteSearchSelect from '$lib/components/shared/RemoteSearchSelect.svelte';
@@ -20,8 +19,6 @@
   let query = $state<ListDatabaseInstancesQuery>({ page: 1, per_page: 20 });
   let page = $derived(query.page ?? 1);
   let perPage = $derived(query.per_page ?? 20);
-  let serverMap = $state<Record<string, string>>({});
-  let serverStatusMap = $state<Record<string, string>>({});
   let serverOptions = $state<{ value: string; label: string }[]>([]);
   let showAdvancedFilter = $state(false);
   let dbTypeMap = $derived(Object.fromEntries($databaseTypeOptions.map(o => [o.value, o.label])));
@@ -44,8 +41,8 @@
     { key: 'environment', label: '环境', valueMap: environmentMap },
     { key: 'server_id', label: '服务器', render: (v: unknown, item: DatabaseInstanceResponse) => {
       if (!item.server_id) return '-';
-      if (!serverMap[item.server_id]) return '已删除';
-      return formatResourceWithStatus(serverMap[item.server_id], serverStatusMap[item.server_id], 'server');
+      if (!item.server_name) return '已删除';
+      return formatResourceWithStatus(item.server_name, item.server_status, 'server');
     }},
     { key: 'status', label: '状态', valueMap: dbStatusMap, statusBadge: (item: DatabaseInstanceResponse) => ({ status: item.status, color: getOptionColor($databaseStatusOptions, item.status), label: dbStatusMap[item.status] }) },
     { key: 'importance', label: '重要性', valueMap: importanceMap, hideInTable: true },
@@ -58,11 +55,10 @@
     if (!item.server_id) {
       return 'text-amber-600'; // 未选择服务器
     }
-    const status = serverStatusMap[item.server_id];
-    if (status === undefined) {
+    if (!item.server_name) {
       return 'text-red-500'; // 关联服务器已删除
     }
-    if (isResourceOffline('server', status)) {
+    if (isResourceOffline('server', item.server_status)) {
       return 'text-amber-600'; // 关联服务器已退役
     }
     return '';
@@ -100,13 +96,8 @@
   );
 
   onMount(async () => {
-    const [srvOptions, serverList] = await Promise.all([
-      getServerOptions(),
-      serversApi.list({ per_page: 200 }),
-    ]);
-    serverOptions = srvOptions;
-    Object.assign(serverMap, Object.fromEntries(srvOptions.map(o => [o.value, o.label])));
-    serverStatusMap = Object.fromEntries(serverList.data.map((s: {id: string, status: string}) => [s.id, s.status]));
+    const opts = await searchServerOptions('');
+    serverOptions = opts;
     await loadData();
   });
 

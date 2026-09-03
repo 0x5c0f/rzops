@@ -15,9 +15,7 @@
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import StatusBadge from '$lib/components/shared/StatusBadge.svelte';
   import { databaseStatusOptions, databaseTypeOptions, importanceOptions, siteDatabaseUsageOptions, getOptionLabel } from '$lib/utils/enum-options';
-  import { getServerOptions } from '$lib/utils/entity-options';
   import { formatResourceWithStatus, getResourceStatusClass } from '$lib/utils/resource-status';
-  import { serversApi } from '$lib/api/servers';
   import { formatDate } from '$lib/utils/format';
   import { onMount } from 'svelte';
   import ConfirmDialog from '$lib/components/shared/ConfirmDialog.svelte';
@@ -26,8 +24,6 @@
 
   let confirmOpen = $state(false);
   let loading = $state(true);
-  let serverMap = $state<Record<string, string>>({});
-  let serverStatusMap = $state<Record<string, string>>({});
   let backupPlans = $state<BackupPlanResponse[]>([]);
   let monitorTargets = $state<MonitorTargetResponse[]>([]);
   let sites = $state<SiteRefByDatabase[]>([]);
@@ -36,14 +32,7 @@
     const id = $page.params.id;
     if (!id) { goto('/database-instances'); return; }
     try {
-      const [inst, servers, serverList] = await Promise.all([
-        databaseInstancesApi.getById(id),
-        getServerOptions(),
-        serversApi.list({ per_page: 200 }),
-      ]);
-      instance = inst;
-      serverMap = Object.fromEntries(servers.map(o => [o.value, o.label]));
-      serverStatusMap = Object.fromEntries(serverList.data.map((s: {id: string, status: string}) => [s.id, s.status]));
+      instance = await databaseInstancesApi.getById(id);
       backupPlansApi.list({ target_type: 'database', target_id: id, per_page: 100 }).then(r => { backupPlans = r.data; }).catch(() => {});
       monitorTargetsApi.list({ target_type: 'database', target_id: id, per_page: 100 }).then(r => { monitorTargets = r.data; }).catch(() => {});
       siteRelationsApi.listSitesByDatabase(id).then(s => { sites = s; }).catch(() => {});
@@ -109,10 +98,10 @@
               <dt class="text-muted-foreground">服务器</dt>
               <dd>
                 {#if instance.server_id}
-                  {#if serverMap[instance.server_id]}
+                  {#if instance.server_name}
                     <a href="/servers/{instance.server_id}" class="text-primary hover:underline">
-                      <span class={getResourceStatusClass(serverStatusMap[instance.server_id], 'server')}>
-                        {formatResourceWithStatus(serverMap[instance.server_id], serverStatusMap[instance.server_id], 'server')}
+                      <span class={getResourceStatusClass(instance.server_status, 'server')}>
+                        {formatResourceWithStatus(instance.server_name, instance.server_status, 'server')}
                       </span>
                     </a>
                   {:else}

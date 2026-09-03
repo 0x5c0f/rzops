@@ -1,6 +1,6 @@
 <script lang="ts">
   import { dictsApi, type DictItem, type CreateDictRequest, type UpdateDictRequest } from '$lib/api/dicts';
-  import { loadAllDicts } from '$lib/utils/enum-options';
+  import { loadAllDicts, resetDictCache } from '$lib/utils/enum-options';
   import { Button } from '$lib/ui/button';
   import { Input } from '$lib/ui/input';
   import { Label } from '$lib/ui/label';
@@ -139,7 +139,8 @@
       }
       dialogOpen = false;
       await Promise.all([loadData(), loadTypes()]);
-      loadAllDicts(); // 刷新前端各表单下拉
+      resetDictCache(); // 使缓存失效
+      await loadAllDicts(); // 重新拉取最新字典，刷新前端各表单下拉
     } catch (err) {
       error = err instanceof Error ? err.message : '保存失败';
     } finally {
@@ -151,7 +152,8 @@
     try {
       await dictsApi.delete(item.id);
       await loadData();
-      loadAllDicts();
+      resetDictCache();
+      await loadAllDicts();
     } catch (err) {
       console.error('Failed to delete dict:', err);
     }
