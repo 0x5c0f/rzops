@@ -23,9 +23,17 @@ export default defineConfig(({ mode }) => {
 		server: {
 			// 允许通过内网穿透 / 公网域名 / nginx 反代访问（开发环境）
 			host: true,
-			allowedHosts: true,
+			allowedHosts: [
+				'localhost',
+				'127.0.0.1',
+				'cmdb.0x5c0f.cc',
+				'.0x5c0f.cc',
+			],
 			proxy: {
-				'/api': 'http://localhost:8000'
+				'/api': {
+					target: 'http://localhost:8000',
+					changeOrigin: true,
+				}
 			},
 			// 公网模式下：若 nginx 未转发 WebSocket，HMR 连接失败会导致页面反复刷新，
 			// 故默认禁用 HMR；如需热更新，在 nginx 配置 WebSocket 升级后设为 wss 模式。
@@ -39,8 +47,17 @@ export default defineConfig(({ mode }) => {
 		preview: {
 			host: true,
 			port: 5173,
+			allowedHosts: [
+				'localhost',
+				'127.0.0.1',
+				'cmdb.0x5c0f.cc',
+				'.0x5c0f.cc',
+			],
 			proxy: {
-				'/api': 'http://localhost:8000'
+				'/api': {
+					target: 'http://localhost:8000',
+					changeOrigin: true,
+				}
 			}
 		}
 	};
