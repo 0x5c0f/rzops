@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use uuid::Uuid;
 
 /// Request body for creating a dict item.
@@ -11,6 +12,7 @@ pub struct CreateDictRequest {
     pub sort_order: Option<i32>,
     pub enabled: Option<bool>,
     pub remark: Option<String>,
+    pub extra_data: Option<Value>,
 }
 
 /// Request body for updating a dict item.
@@ -20,6 +22,7 @@ pub struct UpdateDictRequest {
     pub sort_order: Option<i32>,
     pub enabled: Option<bool>,
     pub remark: Option<String>,
+    pub extra_data: Option<Value>,
 }
 
 /// Query parameters for listing dict items.
@@ -42,6 +45,7 @@ pub struct DictResponse {
     pub sort_order: i32,
     pub enabled: bool,
     pub remark: Option<String>,
+    pub extra_data: Option<Value>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }

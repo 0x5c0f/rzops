@@ -15,7 +15,7 @@
   import { formatDate } from '$lib/utils/format';
   import { formatResourceWithStatus, getResourceStatusClass } from '$lib/utils/resource-status';
   import { onMount } from 'svelte';
-  import { commonStatusOptions, monitorTypeOptions, assetTargetTypeOptions } from '$lib/utils/enum-options';
+  import { commonStatusOptions, monitorTypeOptions, assetTargetTypeOptions, getOptionColor } from '$lib/utils/enum-options';
 
   let data = $state<MonitorTargetResponse[]>([]);
   let total = $state(0);
@@ -88,7 +88,7 @@
       return name;
     }},
     { key: 'monitor_type', label: '监控类型', valueMap: monitorTypeMap },
-    { key: 'status', label: '状态', valueMap: statusMap, statusBadge: (item: MonitorTargetResponse) => item.status },
+    { key: 'status', label: '状态', valueMap: statusMap, statusBadge: (item: MonitorTargetResponse) => ({ status: item.status, color: getOptionColor($commonStatusOptions, item.status), label: statusMap[item.status] }) },
     { key: 'endpoint', label: '端点', hideInTable: true },
     { key: 'interval_seconds', label: '间隔(秒)', hideInTable: true },
     { key: 'created_at', label: '创建时间', render: (v: unknown) => formatDate(v as string), hideInTable: true },

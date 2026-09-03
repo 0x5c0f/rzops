@@ -27,8 +27,21 @@
   let dialogOpen = $state(false);
   let editing = $state<DictItem | null>(null);
   let form = $state<CreateDictRequest>({ dict_type: '', dict_code: '', dict_label: '', sort_order: 0, enabled: true, remark: '' });
+  let badgeColor = $state(''); // 徽章颜色（extra_data.color）
   let saving = $state(false);
   let error = $state('');
+
+  // 可选徽章颜色（字典项可配置，用于列表状态徽章渲染）
+  const colorOptions: { value: string; label: string; className: string; dot: string }[] = [
+    { value: '', label: '默认', className: 'bg-muted text-muted-foreground border-transparent', dot: 'bg-muted-foreground' },
+    { value: 'green', label: '绿色（正常）', className: 'bg-green-100 text-green-700 border-transparent', dot: 'bg-green-500' },
+    { value: 'amber', label: '琥珀（预警）', className: 'bg-amber-100 text-amber-700 border-transparent', dot: 'bg-amber-500' },
+    { value: 'red', label: '红色（危险）', className: 'bg-red-100 text-red-700 border-transparent', dot: 'bg-red-500' },
+    { value: 'blue', label: '蓝色（预留/信息）', className: 'bg-blue-100 text-blue-700 border-transparent', dot: 'bg-blue-500' },
+    { value: 'purple', label: '紫色（归档）', className: 'bg-purple-50 text-purple-600 border-transparent', dot: 'bg-purple-500' },
+    { value: 'slate', label: '灰色（停用）', className: 'bg-slate-100 text-slate-500 border-transparent', dot: 'bg-slate-500' },
+  ];
+  let colorClassMap = $derived(Object.fromEntries(colorOptions.map(o => [o.value, o.className])));
 
   const columns = $derived([
     { key: 'dict_type', label: '字典类型' },
@@ -74,6 +87,7 @@
   function openCreate() {
     editing = null;
     form = { dict_type: dictType || '', dict_code: '', dict_label: '', sort_order: 0, enabled: true, remark: '' };
+    badgeColor = '';
     error = '';
     dialogOpen = true;
   }
@@ -88,6 +102,7 @@
       enabled: item.enabled,
       remark: item.remark ?? '',
     };
+    badgeColor = (item.extra_data?.color as string | undefined) ?? '';
     error = '';
     dialogOpen = true;
   }
@@ -110,10 +125,17 @@
           sort_order: form.sort_order ?? 0,
           enabled: form.enabled,
           remark: form.remark || undefined,
+          extra_data: { color: badgeColor || undefined },
         };
         await dictsApi.update(editing.id, payload);
       } else {
-        await dictsApi.create({ ...form, dict_type: form.dict_type.trim(), dict_code: form.dict_code.trim(), dict_label: form.dict_label.trim() });
+        await dictsApi.create({
+          ...form,
+          dict_type: form.dict_type.trim(),
+          dict_code: form.dict_code.trim(),
+          dict_label: form.dict_label.trim(),
+          extra_data: { color: badgeColor || undefined },
+        });
       }
       dialogOpen = false;
       await Promise.all([loadData(), loadTypes()]);
@@ -230,6 +252,25 @@
         <div class="space-y-2">
           <Label for="rm">备注</Label>
           <Input id="rm" bind:value={form.remark} placeholder="可选" />
+        </div>
+        <div class="space-y-2">
+          <Label for="bc">徽章颜色</Label>
+          <div class="flex flex-wrap items-center gap-2">
+            {#each colorOptions as c}
+              <button
+                type="button"
+                onclick={() => (badgeColor = c.value)}
+                class={[
+                  'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition',
+                  badgeColor === c.value ? 'ring-2 ring-ring ring-offset-1' : 'hover:border-muted-foreground/40',
+                ].join(' ')}
+              >
+                <span class={['inline-flex h-3 w-3 rounded-full', c.dot].join(' ')}></span>
+                {c.label}
+              </button>
+            {/each}
+          </div>
+          <p class="text-xs text-muted-foreground">用于列表状态徽章的配色；未配置时使用默认色。</p>
         </div>
         {#if error}
           <p class="text-sm text-red-600">{error}</p>

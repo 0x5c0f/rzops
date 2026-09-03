@@ -21,8 +21,8 @@ pub trait DictRepository: Send + Sync {
     /// 新增
     async fn create(&self, item: &DictItem) -> Result<(), String>;
 
-    /// 更新（label / sort_order / enabled / remark）
-    async fn update(&self, id: Uuid, label: &str, sort_order: i32, enabled: bool, remark: Option<&str>) -> Result<(), String>;
+    /// 更新（label / sort_order / enabled / remark / extra_data）
+    async fn update(&self, id: Uuid, label: &str, sort_order: i32, enabled: bool, remark: Option<&str>, extra_data: Option<&serde_json::Value>) -> Result<(), String>;
 
     /// 删除（软删：enabled = false；历史数据 label 不丢）
     async fn delete(&self, id: Uuid) -> Result<(), String>;

@@ -1,4 +1,5 @@
 use chrono::{DateTime, Utc};
+use serde_json::Value;
 use uuid::Uuid;
 
 /// 数据字典项 — maps to cmdb_dict.
@@ -13,6 +14,7 @@ pub struct DictItem {
     pub sort_order: i32,
     pub enabled: bool,
     pub remark: Option<String>,
+    pub extra_data: Option<Value>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }

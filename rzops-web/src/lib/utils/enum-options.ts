@@ -12,6 +12,10 @@ import { dictsApi } from '$lib/api/dicts';
 export interface SelectOption {
   label: string;
   value: string;
+  /** 扩展属性（来自字典 extra_data） */
+  extraData?: Record<string, unknown>;
+  /** 便捷访问：徽章颜色（extra_data.color） */
+  color?: string;
 }
 
 // 静态兜底选项（字典加载失败或未加载时使用）
@@ -372,9 +376,12 @@ export async function loadAllDicts(): Promise<void> {
     const res = await dictsApi.list({ enabled_only: true, per_page: 1000 });
     const byType: Record<string, SelectOption[]> = {};
     for (const item of res.data) {
+      const extraData = item.extra_data as Record<string, unknown> | undefined;
       (byType[item.dict_type] ??= []).push({
         label: item.dict_label,
         value: item.dict_code,
+        extraData,
+        color: (extraData?.color as string | undefined) || undefined,
       });
     }
     for (const [ty, opts] of Object.entries(byType)) {
@@ -404,4 +411,14 @@ export function getOptionLabel(options: SelectOption[], value: string | null | u
 export function getOptionLabels(options: SelectOption[], values: string[] | null | undefined): string[] {
   if (!values || values.length === 0) return [];
   return values.map(v => getOptionLabel(options, v));
+}
+
+/**
+ * 获取选项的徽章颜色（来自字典 extra_data.color）
+ * 用于状态徽章渲染：优先字典配置色，未配置时返回 undefined（由静态映射兜底）
+ */
+export function getOptionColor(options: SelectOption[], value: string | null | undefined): string | undefined {
+  if (!value) return undefined;
+  const option = options.find(opt => opt.value === value);
+  return option?.color || undefined;
 }

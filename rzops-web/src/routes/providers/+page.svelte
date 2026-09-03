@@ -9,7 +9,7 @@
   import Pagination from '$lib/components/shared/Pagination.svelte';
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import { formatDate } from '$lib/utils/format';
-  import { providerTypeOptions, commonStatusOptions } from '$lib/utils/enum-options';
+  import { providerTypeOptions, commonStatusOptions, getOptionColor } from '$lib/utils/enum-options';
   import { onMount } from 'svelte';
 
   let data = $state<ProviderResponse[]>([]);
@@ -31,7 +31,7 @@
         return (arr || []).map(t => providerTypeMap[t] || t).join(', ') || '-';
       }
     },
-    { key: 'status', label: '状态', valueMap: commonStatusMap, statusBadge: (item: ProviderResponse) => item.status },
+    { key: 'status', label: '状态', valueMap: commonStatusMap, statusBadge: (item: ProviderResponse) => ({ status: item.status, color: getOptionColor($commonStatusOptions, item.status), label: commonStatusMap[item.status] }) },
     { key: 'contact_name', label: '联系人', hideInTable: true },
     { key: 'contact_phone', label: '电话', hideInTable: true },
     { key: 'created_at', label: '创建时间', render: (v: unknown) => formatDate(v as string), hideInTable: true },

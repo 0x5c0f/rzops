@@ -8,6 +8,7 @@ export interface DictItem {
   sort_order: number;
   enabled: boolean;
   remark: string | null;
+  extra_data: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
 }
@@ -24,6 +25,7 @@ export interface CreateDictRequest {
   sort_order?: number;
   enabled?: boolean;
   remark?: string;
+  extra_data?: Record<string, unknown>;
 }
 
 export interface UpdateDictRequest {
@@ -31,6 +33,7 @@ export interface UpdateDictRequest {
   sort_order?: number;
   enabled?: boolean;
   remark?: string;
+  extra_data?: Record<string, unknown>;
 }
 
 export const dictsApi = {

@@ -10,7 +10,7 @@
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import { formatDate } from '$lib/utils/format';
   import { getProviderOptions } from '$lib/utils/entity-options';
-  import { commonStatusOptions, countryOptions } from '$lib/utils/enum-options';
+  import { commonStatusOptions, countryOptions, getOptionColor } from '$lib/utils/enum-options';
   import { formatResourceWithStatus } from '$lib/utils/resource-status';
   import { onMount } from 'svelte';
 
@@ -37,7 +37,7 @@
   const columns = $derived([
     { key: 'name', label: '名称' , link: (item: DataCenterResponse) => `/datacenters/${item.id}`, lockVisible: true },
     { key: 'country', label: '国家', valueMap: countryMap },
-    { key: 'status', label: '状态', valueMap: commonStatusMap, statusBadge: (item: DataCenterResponse) => item.status },
+    { key: 'status', label: '状态', valueMap: commonStatusMap, statusBadge: (item: DataCenterResponse) => ({ status: item.status, color: getOptionColor($commonStatusOptions, item.status), label: commonStatusMap[item.status] }) },
     { key: 'provider_id', label: '供应商', render: (v: unknown, item: DataCenterResponse) => {
       if (!item.provider_id) return '-';
       if (!providerMap[item.provider_id]) return '已删除';

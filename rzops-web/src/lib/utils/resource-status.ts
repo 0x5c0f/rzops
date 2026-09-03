@@ -92,7 +92,7 @@ export function getResourceStatusClass(
 
 /**
  * 状态徽章样式映射（参照业界主流状态色：绿=正常、琥珀=预警、红=危险、灰=停用、紫=归档）
- * 用于列表状态列渲染彩色徽章
+ * 用于列表状态列渲染彩色徽章（静态兜底，实际优先读字典 extra_data.color）
  */
 const STATUS_BADGE_STYLES: Record<string, string> = {
   // 正常/运行
@@ -120,9 +120,30 @@ const STATUS_BADGE_STYLES: Record<string, string> = {
 };
 
 /**
+ * 颜色值 → 徽章样式类（字典 extra_data.color 支持的颜色）
+ */
+const COLOR_BADGE_STYLES: Record<string, string> = {
+  green: 'bg-green-100 text-green-700 border-transparent',
+  amber: 'bg-amber-100 text-amber-700 border-transparent',
+  red: 'bg-red-100 text-red-700 border-transparent',
+  blue: 'bg-blue-100 text-blue-700 border-transparent',
+  purple: 'bg-purple-50 text-purple-600 border-transparent',
+  slate: 'bg-slate-100 text-slate-500 border-transparent',
+  gray: 'bg-slate-100 text-slate-500 border-transparent',
+};
+
+/**
  * 获取状态徽章样式类（无映射时返回 null）
  */
 export function getStatusBadgeClass(status?: string | null): string | null {
   if (!status) return null;
   return STATUS_BADGE_STYLES[status] || null;
+}
+
+/**
+ * 根据字典颜色值获取徽章样式类（extra_data.color）
+ */
+export function getColorBadgeClass(color?: string | null): string | null {
+  if (!color) return null;
+  return COLOR_BADGE_STYLES[color] || null;
 }

@@ -10,7 +10,7 @@
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import { onMount } from 'svelte';
   import { getServerOptions, searchServerOptions } from '$lib/utils/entity-options';
-  import { databaseTypeOptions, databaseStatusOptions, importanceOptions, environmentOptions } from '$lib/utils/enum-options';
+  import { databaseTypeOptions, databaseStatusOptions, importanceOptions, environmentOptions, getOptionColor } from '$lib/utils/enum-options';
   import { formatResourceWithStatus, isResourceOffline } from '$lib/utils/resource-status';
   import RemoteSearchSelect from '$lib/components/shared/RemoteSearchSelect.svelte';
 
@@ -47,7 +47,7 @@
       if (!serverMap[item.server_id]) return '已删除';
       return formatResourceWithStatus(serverMap[item.server_id], serverStatusMap[item.server_id], 'server');
     }},
-    { key: 'status', label: '状态', valueMap: dbStatusMap, statusBadge: (item: DatabaseInstanceResponse) => item.status },
+    { key: 'status', label: '状态', valueMap: dbStatusMap, statusBadge: (item: DatabaseInstanceResponse) => ({ status: item.status, color: getOptionColor($databaseStatusOptions, item.status), label: dbStatusMap[item.status] }) },
     { key: 'importance', label: '重要性', valueMap: importanceMap, hideInTable: true },
   ]);
 

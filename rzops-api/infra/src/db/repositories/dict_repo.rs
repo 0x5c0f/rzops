@@ -16,7 +16,7 @@ impl PgDictRepository {
     }
 }
 
-const SELECT_COLS: &str = r#"id, dict_type, dict_code, dict_label, sort_order, enabled, remark, created_at, updated_at"#;
+const SELECT_COLS: &str = r#"id, dict_type, dict_code, dict_label, sort_order, enabled, remark, extra_data, created_at, updated_at"#;
 
 fn row_to_dict(row: &sqlx::postgres::PgRow) -> DictItem {
     DictItem {
@@ -27,6 +27,7 @@ fn row_to_dict(row: &sqlx::postgres::PgRow) -> DictItem {
         sort_order: row.get("sort_order"),
         enabled: row.get("enabled"),
         remark: row.get("remark"),
+        extra_data: row.get("extra_data"),
         created_at: row.get("created_at"),
         updated_at: row.get("updated_at"),
     }
@@ -90,8 +91,8 @@ impl DictRepository for PgDictRepository {
 
     async fn create(&self, item: &DictItem) -> Result<(), String> {
         sqlx::query(
-            r#"INSERT INTO cmdb_dict (id, dict_type, dict_code, dict_label, sort_order, enabled, remark, created_at, updated_at)
-               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)"#,
+            r#"INSERT INTO cmdb_dict (id, dict_type, dict_code, dict_label, sort_order, enabled, remark, extra_data, created_at, updated_at)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)"#,
         )
         .bind(item.id)
         .bind(&item.dict_type)
@@ -100,6 +101,7 @@ impl DictRepository for PgDictRepository {
         .bind(item.sort_order)
         .bind(item.enabled)
         .bind(&item.remark)
+        .bind(&item.extra_data)
         .bind(item.created_at)
         .bind(item.updated_at)
         .execute(&self.pool)
@@ -108,15 +110,16 @@ impl DictRepository for PgDictRepository {
         .map_err(|e| e.to_string())
     }
 
-    async fn update(&self, id: Uuid, label: &str, sort_order: i32, enabled: bool, remark: Option<&str>) -> Result<(), String> {
+    async fn update(&self, id: Uuid, label: &str, sort_order: i32, enabled: bool, remark: Option<&str>, extra_data: Option<&serde_json::Value>) -> Result<(), String> {
         sqlx::query(
-            r#"UPDATE cmdb_dict SET dict_label = $2, sort_order = $3, enabled = $4, remark = $5, updated_at = NOW() WHERE id = $1"#,
+            r#"UPDATE cmdb_dict SET dict_label = $2, sort_order = $3, enabled = $4, remark = $5, extra_data = $6, updated_at = NOW() WHERE id = $1"#,
         )
         .bind(id)
         .bind(label)
         .bind(sort_order)
         .bind(enabled)
         .bind(remark)
+        .bind(extra_data)
         .execute(&self.pool)
         .await
         .map(|_| ())

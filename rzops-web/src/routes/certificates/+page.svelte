@@ -10,7 +10,7 @@
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import { onMount } from 'svelte';
   import { getProviderOptions } from '$lib/utils/entity-options';
-  import { certificateStatusOptions, certificateTypeOptions } from '$lib/utils/enum-options';
+  import { certificateStatusOptions, certificateTypeOptions, getOptionColor } from '$lib/utils/enum-options';
   import { formatResourceWithStatus } from '$lib/utils/resource-status';
 
   let data = $state<CertificateResponse[]>([]);
@@ -28,7 +28,7 @@
   const columns = $derived([
     { key: 'name', label: '名称' , link: (item: CertificateResponse) => `/certificates/${item.id}`, lockVisible: true },
     { key: 'certificate_type', label: '类型', valueMap: certificateTypeMap },
-    { key: 'status', label: '状态', valueMap: certificateStatusMap, statusBadge: (item: CertificateResponse) => item.status },
+    { key: 'status', label: '状态', valueMap: certificateStatusMap, statusBadge: (item: CertificateResponse) => ({ status: item.status, color: getOptionColor($certificateStatusOptions, item.status), label: certificateStatusMap[item.status] }) },
     { key: 'lease_end_date', label: '到期日期' },
     { key: 'provider_id', label: '供应商', render: (v: unknown, item: CertificateResponse) => {
       if (!item.provider_id) return '-';

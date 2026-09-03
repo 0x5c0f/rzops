@@ -13,7 +13,7 @@
   import { formatDate } from '$lib/utils/format';
   import { formatResourceWithStatus, getResourceStatusClass } from '$lib/utils/resource-status';
   import { onMount } from 'svelte';
-  import { commonStatusOptions, backupTargetTypeOptions } from '$lib/utils/enum-options';
+  import { commonStatusOptions, backupTargetTypeOptions, getOptionColor } from '$lib/utils/enum-options';
 
   let data = $state<BackupPlanResponse[]>([]);
   let total = $state(0);
@@ -76,7 +76,7 @@
       }
       return name;
     }},
-    { key: 'status', label: '状态', valueMap: statusMap, statusBadge: (item: BackupPlanResponse) => item.status },
+    { key: 'status', label: '状态', valueMap: statusMap, statusBadge: (item: BackupPlanResponse) => ({ status: item.status, color: getOptionColor($commonStatusOptions, item.status), label: statusMap[item.status] }) },
     { key: 'schedule', label: '调度计划', hideInTable: true },
     { key: 'retention_days', label: '保留天数', hideInTable: true },
     { key: 'created_at', label: '创建时间', render: (v: unknown) => formatDate(v as string), hideInTable: true },

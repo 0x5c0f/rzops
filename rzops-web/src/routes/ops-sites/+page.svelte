@@ -11,6 +11,7 @@
   import { onMount } from 'svelte';
   import { siteStatusOptions, serviceTargetOptions, importanceOptions, environmentOptions } from '$lib/utils/enum-options';
   import { getServerOptions, searchServerOptions } from '$lib/utils/entity-options';
+  import { getOptionColor } from '$lib/utils/enum-options';
   import RemoteSearchSelect from '$lib/components/shared/RemoteSearchSelect.svelte';
 
   let data = $state<OpsSiteResponse[]>([]);
@@ -39,7 +40,7 @@
     { key: 'name', label: '名称' , link: (item: OpsSiteResponse) => `/ops-sites/${item.id}`, lockVisible: true },
     { key: 'url', label: 'URL' },
     { key: 'environment', label: '环境', valueMap: environmentMap },
-    { key: 'status', label: '状态', valueMap: siteStatusMap, statusBadge: (item: OpsSiteResponse) => item.status },
+    { key: 'status', label: '状态', valueMap: siteStatusMap, statusBadge: (item: OpsSiteResponse) => ({ status: item.status, color: getOptionColor($siteStatusOptions, item.status), label: siteStatusMap[item.status] }) },
     { key: 'service_target', label: '服务目标', valueMap: serviceTargetMap, hideInTable: true },
     { key: 'importance', label: '重要性', valueMap: importanceMap, hideInTable: true },
     { key: 'created_at', label: '创建时间', render: (v: unknown) => formatDate(v as string), hideInTable: true },

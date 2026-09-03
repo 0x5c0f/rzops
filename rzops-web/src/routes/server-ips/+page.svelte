@@ -12,6 +12,7 @@
   import { getServerOptions, searchServerOptions } from '$lib/utils/entity-options';
   import { ipStatusOptions, ipTypeOptions } from '$lib/utils/enum-options';
   import { formatResourceWithStatus, isResourceOffline } from '$lib/utils/resource-status';
+  import { getOptionColor } from '$lib/utils/enum-options';
   import RemoteSearchSelect from '$lib/components/shared/RemoteSearchSelect.svelte';
 
   let data = $state<ServerIpResponse[]>([]);
@@ -45,7 +46,7 @@
       return formatResourceWithStatus(name, status, 'server');
     }},
     { key: 'ip_type', label: '类型', valueMap: ipTypeMap },
-    { key: 'status', label: '状态', valueMap: ipStatusMap, statusBadge: (item: ServerIpResponse) => item.status },
+    { key: 'status', label: '状态', valueMap: ipStatusMap, statusBadge: (item: ServerIpResponse) => ({ status: item.status, color: getOptionColor($ipStatusOptions, item.status), label: ipStatusMap[item.status] }) },
     { key: 'nic_name', label: '网卡', render: (v: unknown) => v || '-', hideInTable: true },
     { key: 'is_primary', label: '主IP', render: (v: unknown) => v ? '是' : '否', hideInTable: true },
   ]);

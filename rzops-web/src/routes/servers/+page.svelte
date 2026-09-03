@@ -10,6 +10,7 @@
   import { formatDate } from '$lib/utils/format';
   import { getDataCenterOptions, getProviderOptions } from '$lib/utils/entity-options';
   import { serverStatusOptions, serverTypeOptions, environmentOptions } from '$lib/utils/enum-options';
+  import { getOptionColor } from '$lib/utils/enum-options';
   import { onMount } from 'svelte';
 
   let data = $state<ServerResponse[]>([]);
@@ -43,7 +44,7 @@
     { key: 'primary_ip', label: '主IP' },
     { key: 'server_type', label: '类型', valueMap: serverTypeMap },
     { key: 'environment', label: '环境', valueMap: environmentMap },
-    { key: 'status', label: '状态', valueMap: serverStatusMap, statusBadge: (item: ServerResponse) => item.status },
+    { key: 'status', label: '状态', valueMap: serverStatusMap, statusBadge: (item: ServerResponse) => ({ status: item.status, color: getOptionColor($serverStatusOptions, item.status), label: serverStatusMap[item.status] }) },
     { key: 'data_center_id', label: '数据中心', valueMap: dataCenterMap, hideInTable: true },
     { key: 'isp_provider_id', label: 'ISP供应商', valueMap: providerMap, hideInTable: true },
     { key: 'server_provider_id', label: '服务器供应商', valueMap: providerMap, hideInTable: true },

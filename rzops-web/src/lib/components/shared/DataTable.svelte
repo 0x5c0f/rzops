@@ -26,8 +26,8 @@
     link?: (item: T) => string | null;
     /** 状态徽章：根据 item 返回徽章标签与样式类；返回 null 时不渲染徽章 */
     badge?: (item: T) => { label: string; className: string } | null;
-    /** 状态徽章（StatusBadge 组件）：根据 item 返回状态值；返回空时不渲染徽章 */
-    statusBadge?: (item: T) => string | null | undefined;
+    /** 状态徽章（StatusBadge 组件）：根据 item 返回状态值或 {status, color, label}；返回空时不渲染徽章 */
+    statusBadge?: (item: T) => { status: string; color?: string | null; label?: string } | string | null | undefined;
   }
 
   let {
@@ -231,7 +231,11 @@
                   {#if col.statusBadge}
                     {@const sb = col.statusBadge(item)}
                     {#if sb}
-                      <StatusBadge status={sb} />
+                      {#if typeof sb === 'string'}
+                        <StatusBadge status={sb} />
+                      {:else}
+                        <StatusBadge status={sb.status} color={sb.color} label={sb.label} />
+                      {/if}
                     {:else}
                       {col.display ? col.display(item) : displayValue(item, col)}
                     {/if}

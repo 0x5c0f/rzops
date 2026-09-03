@@ -10,7 +10,7 @@
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import { formatDate } from '$lib/utils/format';
   import { onMount } from 'svelte';
-  import { contractStatusOptions } from '$lib/utils/enum-options';
+  import { contractStatusOptions, getOptionColor } from '$lib/utils/enum-options';
   import { getProviderOptions } from '$lib/utils/entity-options';
   import { formatResourceWithStatus } from '$lib/utils/resource-status';
 
@@ -35,7 +35,7 @@
     { key: 'contract_no', label: '合同编号' },
     { key: 'start_date', label: '开始日期', render: (v: unknown) => formatDate(v as string) },
     { key: 'end_date', label: '结束日期', render: (v: unknown) => formatDate(v as string) },
-    { key: 'status', label: '状态', valueMap: statusMap, statusBadge: (item: ContractResponse) => item.status },
+    { key: 'status', label: '状态', valueMap: statusMap, statusBadge: (item: ContractResponse) => ({ status: item.status, color: getOptionColor($contractStatusOptions, item.status), label: statusMap[item.status] }) },
     { key: 'amount', label: '金额' },
     { key: 'created_at', label: '创建时间', render: (v: unknown) => formatDate(v as string) },
   ]);

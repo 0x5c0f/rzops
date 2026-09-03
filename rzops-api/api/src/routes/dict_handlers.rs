@@ -25,6 +25,7 @@ fn to_response(d: &DictItem) -> DictResponse {
         sort_order: d.sort_order,
         enabled: d.enabled,
         remark: d.remark.clone(),
+        extra_data: d.extra_data.clone(),
         created_at: d.created_at,
         updated_at: d.updated_at,
     }
@@ -109,6 +110,7 @@ pub async fn create_dict(
         sort_order: body.sort_order.unwrap_or(0),
         enabled: body.enabled.unwrap_or(true),
         remark: body.remark.map(|r| r.trim().to_string()),
+        extra_data: body.extra_data,
         created_at: now,
         updated_at: now,
     };
@@ -165,8 +167,9 @@ pub async fn update_dict(
     let sort_order = body.sort_order.unwrap_or(existing.sort_order);
     let enabled = body.enabled.unwrap_or(existing.enabled);
     let remark = body.remark.or(existing.remark);
+    let extra_data = body.extra_data.or(existing.extra_data);
     match repo
-        .update(id, &label, sort_order, enabled, remark.as_deref())
+        .update(id, &label, sort_order, enabled, remark.as_deref(), extra_data.as_ref())
         .await
     {
         Ok(()) => match repo.find_by_id(id).await {
