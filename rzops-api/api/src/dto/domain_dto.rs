@@ -35,6 +35,7 @@ pub struct UpdateDomainRequest {
 #[derive(Debug, Deserialize, utoipa::ToSchema, utoipa::IntoParams)]
 pub struct ListDomainsQuery {
     pub is_enabled: Option<bool>,
+    pub provider_id: Option<Uuid>,
     pub q: Option<String>,
     pub page: Option<i64>,
     pub per_page: Option<i64>,

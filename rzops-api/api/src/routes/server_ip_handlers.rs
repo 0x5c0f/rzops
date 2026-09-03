@@ -69,6 +69,7 @@ pub async fn list_server_ips(
     let filter = ServerIpFilter {
         server_id: query.server_id,
         status: query.status,
+        ip_type: query.ip_type,
         q: query.q,
         limit: Some(per_page),
         offset: Some(offset),

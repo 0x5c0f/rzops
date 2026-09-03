@@ -8,6 +8,7 @@ use crate::models::server_ip::ServerIP;
 pub struct ServerIpFilter {
     pub server_id: Option<Uuid>,
     pub status: Option<String>,
+    pub ip_type: Option<String>,
     pub q: Option<String>,
     pub limit: Option<i64>,
     pub offset: Option<i64>,

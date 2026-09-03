@@ -32,6 +32,7 @@ pub struct UpdateServerIpRequest {
 pub struct ListServerIpsQuery {
     pub server_id: Option<Uuid>,
     pub status: Option<String>,
+    pub ip_type: Option<String>,
     pub q: Option<String>,
     pub page: Option<i64>,
     pub per_page: Option<i64>,

@@ -27,6 +27,7 @@ pub struct UpdateCertificateRequest {
 #[derive(Debug, Deserialize, utoipa::ToSchema, utoipa::IntoParams)]
 pub struct ListCertificatesQuery {
     pub status: Option<String>,
+    pub certificate_type: Option<String>,
     pub q: Option<String>,
     pub page: Option<i64>,
     pub per_page: Option<i64>,

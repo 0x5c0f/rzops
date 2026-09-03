@@ -122,6 +122,13 @@
       console.error('Failed to delete server:', err);
     }
   }
+
+  function getRowClass(item: ServerResponse): string {
+    if (item.status === 'retired') {
+      return 'opacity-60 bg-gray-50';
+    }
+    return '';
+  }
 </script>
 
 <div class="space-y-4">
@@ -290,6 +297,7 @@
     {loading}
     onEdit={handleEdit}
     onDelete={handleDelete}
+    {getRowClass}
     storageKey="servers"
   />
 

@@ -7,6 +7,7 @@ use crate::models::domain_asset::DomainAsset;
 #[derive(Debug, Clone, Default)]
 pub struct DomainFilter {
     pub is_enabled: Option<bool>,
+    pub provider_id: Option<Uuid>,
     pub q: Option<String>,
     pub limit: Option<i64>,
     pub offset: Option<i64>,

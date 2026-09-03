@@ -30,6 +30,7 @@
     let count = 0;
     if (query.status) count++;
     if (query.server_id) count++;
+    if (query.ip_type) count++;
     return count;
   });
 
@@ -172,6 +173,12 @@
             <button class="ml-1 hover:text-destructive" onclick={() => clearFilter('server_id')}>×</button>
           </span>
         {/if}
+        {#if query.ip_type}
+          <span class="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-xs">
+            IP类型: {ipTypeMap[query.ip_type] ?? query.ip_type}
+            <button class="ml-1 hover:text-destructive" onclick={() => clearFilter('ip_type')}>×</button>
+          </span>
+        {/if}
       </div>
     {/if}
 
@@ -198,9 +205,14 @@
           <label class="text-xs font-medium text-muted-foreground">IP类型</label>
           <select
             class="w-full rounded-md border px-3 py-2 text-sm"
-            disabled
+            value={query.ip_type ?? ''}
+            onchange={(e) => {
+              const val = (e.target as HTMLSelectElement).value;
+              query = { ...query, ip_type: val || undefined, page: 1 };
+              loadData();
+            }}
           >
-            <option value="">全部（后端待支持）</option>
+            <option value="">全部</option>
             {#each $ipTypeOptions as opt}
               <option value={opt.value}>{opt.label}</option>
             {/each}

@@ -44,7 +44,7 @@ pub async fn list_providers(_auth: AuthUser, State(repo): State<Arc<dyn Provider
     let page = query.page.unwrap_or(1).max(1);
     let per_page = query.per_page.unwrap_or(20).min(100);
     let offset = (page - 1) * per_page;
-    let filter = ProviderFilter { status: query.status, q: query.q, limit: Some(per_page), offset: Some(offset) };
+    let filter = ProviderFilter { status: query.status, provider_type: query.provider_type, q: query.q, limit: Some(per_page), offset: Some(offset) };
     match repo.find_all(filter.clone()).await {
         Ok(providers) => {
             let count = repo.count(filter).await.unwrap_or(0);

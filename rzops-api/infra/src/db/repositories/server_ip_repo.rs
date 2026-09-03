@@ -61,6 +61,7 @@ impl ServerIpRepository for PgServerIpRepository {
         let mut idx = 1;
         if let Some(sid) = filter.server_id { sql.push_str(&format!(" AND server_id = ${}", idx)); uuid_binds.push(sid); idx += 1; }
         if let Some(ref status) = filter.status { sql.push_str(&format!(" AND status::text = ${}", idx)); string_binds.push(status.clone()); idx += 1; }
+        if let Some(ref ip_type) = filter.ip_type { sql.push_str(&format!(" AND ip_type = ${}", idx)); string_binds.push(ip_type.clone()); idx += 1; }
         if let Some(ref q) = filter.q { sql.push_str(&format!(" AND ip_address ILIKE ${}", idx)); string_binds.push(format!("%{}%", q)); }
 
         sql.push_str(" ORDER BY created_at DESC");
@@ -86,6 +87,7 @@ impl ServerIpRepository for PgServerIpRepository {
         let mut idx = 1;
         if let Some(sid) = filter.server_id { sql.push_str(&format!(" AND server_id = ${}", idx)); uuid_binds.push(sid); idx += 1; }
         if let Some(ref status) = filter.status { sql.push_str(&format!(" AND status::text = ${}", idx)); string_binds.push(status.clone()); idx += 1; }
+        if let Some(ref ip_type) = filter.ip_type { sql.push_str(&format!(" AND ip_type = ${}", idx)); string_binds.push(ip_type.clone()); idx += 1; }
         if let Some(ref q) = filter.q { sql.push_str(&format!(" AND ip_address ILIKE ${}", idx)); string_binds.push(format!("%{}%", q)); }
 
         let mut query = sqlx::query(&sql);

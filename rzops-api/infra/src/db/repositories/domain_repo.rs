@@ -58,11 +58,17 @@ impl DomainRepository for PgDomainRepository {
     async fn find_all(&self, filter: DomainFilter) -> Result<Vec<DomainAsset>, sqlx::Error> {
         let mut sql = format!("SELECT {} FROM cmdb_domain WHERE deleted_at IS NULL", SELECT_COLS);
         let mut binds: Vec<String> = Vec::new();
+        let mut bind_idx = 1;
         if let Some(enabled) = filter.is_enabled {
             sql.push_str(&format!(" AND is_enabled = {}", enabled));
         }
+        if let Some(provider_id) = filter.provider_id {
+            sql.push_str(&format!(" AND provider_id = ${}", bind_idx));
+            binds.push(provider_id.to_string());
+            bind_idx += 1;
+        }
         if let Some(ref q) = filter.q {
-            sql.push_str(" AND domain_name ILIKE $1");
+            sql.push_str(&format!(" AND domain_name ILIKE ${}", bind_idx));
             binds.push(format!("%{}%", q));
         }
         sql.push_str(" ORDER BY created_at DESC");
@@ -77,11 +83,17 @@ impl DomainRepository for PgDomainRepository {
     async fn count(&self, filter: DomainFilter) -> Result<i64, sqlx::Error> {
         let mut sql = String::from("SELECT COUNT(*) as count FROM cmdb_domain WHERE deleted_at IS NULL");
         let mut binds: Vec<String> = Vec::new();
+        let mut bind_idx = 1;
         if let Some(enabled) = filter.is_enabled {
             sql.push_str(&format!(" AND is_enabled = {}", enabled));
         }
+        if let Some(provider_id) = filter.provider_id {
+            sql.push_str(&format!(" AND provider_id = ${}", bind_idx));
+            binds.push(provider_id.to_string());
+            bind_idx += 1;
+        }
         if let Some(ref q) = filter.q {
-            sql.push_str(" AND domain_name ILIKE $1");
+            sql.push_str(&format!(" AND domain_name ILIKE ${}", bind_idx));
             binds.push(format!("%{}%", q));
         }
         let mut query = sqlx::query(&sql);

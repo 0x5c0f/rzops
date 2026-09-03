@@ -20,7 +20,7 @@ pub async fn get_certificate(_auth: AuthUser, State(repo): State<Arc<dyn Certifi
 #[utoipa::path(get, path = "/api/v1/certificates", params(ListCertificatesQuery), responses((status = 200, body = CertificateListResponse)), tag = "Certificate", security(("bearer_auth" = [])))]
 pub async fn list_certificates(_auth: AuthUser, State(repo): State<Arc<dyn CertificateRepository>>, Query(q): Query<ListCertificatesQuery>) -> impl IntoResponse {
     let page = q.page.unwrap_or(1).max(1); let per_page = q.per_page.unwrap_or(20).min(100);
-    let filter = CertificateFilter { status: q.status, q: q.q, limit: Some(per_page), offset: Some((page - 1) * per_page) };
+    let filter = CertificateFilter { status: q.status, certificate_type: q.certificate_type, q: q.q, limit: Some(per_page), offset: Some((page - 1) * per_page) };
     match repo.find_all(filter.clone()).await { Ok(cs) => { let count = repo.count(filter).await.unwrap_or(0); (StatusCode::OK, Json(CertificateListResponse { data: cs.iter().map(to_response).collect(), count })).into_response() }, Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: format!("database error: {}", e) })).into_response() }
 }
 #[utoipa::path(post, path = "/api/v1/certificates", request_body = CreateCertificateRequest, responses((status = 201, body = CertificateResponse), (status = 400, body = ErrorResponse)), tag = "Certificate", security(("bearer_auth" = [])))]

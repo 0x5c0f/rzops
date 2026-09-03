@@ -29,7 +29,7 @@ pub async fn get_domain(_auth: AuthUser, State(repo): State<Arc<dyn DomainReposi
 #[utoipa::path(get, path = "/api/v1/domains", params(ListDomainsQuery), responses((status = 200, body = DomainListResponse)), tag = "Domain", security(("bearer_auth" = [])))]
 pub async fn list_domains(_auth: AuthUser, State(repo): State<Arc<dyn DomainRepository>>, Query(q): Query<ListDomainsQuery>) -> impl IntoResponse {
     let page = q.page.unwrap_or(1).max(1); let per_page = q.per_page.unwrap_or(20).min(100);
-    let filter = DomainFilter { is_enabled: q.is_enabled, q: q.q, limit: Some(per_page), offset: Some((page - 1) * per_page) };
+    let filter = DomainFilter { is_enabled: q.is_enabled, provider_id: q.provider_id, q: q.q, limit: Some(per_page), offset: Some((page - 1) * per_page) };
     match repo.find_all(filter.clone()).await {
         Ok(ds) => { let count = repo.count(filter).await.unwrap_or(0); (StatusCode::OK, Json(DomainListResponse { data: ds.iter().map(to_response).collect(), count })).into_response() }
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: format!("database error: {}", e) })).into_response(),

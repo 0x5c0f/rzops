@@ -7,6 +7,7 @@ use crate::models::certificate::Certificate;
 #[derive(Debug, Clone, Default)]
 pub struct CertificateFilter {
     pub status: Option<String>,
+    pub certificate_type: Option<String>,
     pub q: Option<String>,
     pub limit: Option<i64>,
     pub offset: Option<i64>,

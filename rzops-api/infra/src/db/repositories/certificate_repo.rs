@@ -59,14 +59,17 @@ impl CertificateRepository for PgCertificateRepository {
         );
         let mut idx = 1;
         let s_status = filter.status.as_ref();
+        let s_type = filter.certificate_type.as_ref();
         let s_q = filter.q.as_ref();
         if s_status.is_some() { sql.push_str(&format!(" AND status::text = ${}", idx)); idx += 1; }
+        if s_type.is_some() { sql.push_str(&format!(" AND certificate_type::text = ${}", idx)); idx += 1; }
         if s_q.is_some() { sql.push_str(&format!(" AND name ILIKE ${}", idx)); }
         sql.push_str(" ORDER BY created_at DESC");
         if let Some(limit) = filter.limit { sql.push_str(&format!(" LIMIT {}", limit)); }
         if let Some(offset) = filter.offset { sql.push_str(&format!(" OFFSET {}", offset)); }
         let mut query = sqlx::query(&sql);
         if let Some(s) = s_status { query = query.bind(s); }
+        if let Some(t) = s_type { query = query.bind(t); }
         if let Some(q) = s_q { query = query.bind(format!("%{}%", q)); }
         let rows = query.fetch_all(&self.pool).await?;
         Ok(rows.iter().map(|r| row_to_certificate(r)).collect())
@@ -76,11 +79,14 @@ impl CertificateRepository for PgCertificateRepository {
         let mut sql = String::from("SELECT COUNT(*) as count FROM cmdb_certificate WHERE deleted_at IS NULL");
         let mut idx = 1;
         let s_status = filter.status.as_ref();
+        let s_type = filter.certificate_type.as_ref();
         let s_q = filter.q.as_ref();
         if s_status.is_some() { sql.push_str(&format!(" AND status::text = ${}", idx)); idx += 1; }
+        if s_type.is_some() { sql.push_str(&format!(" AND certificate_type::text = ${}", idx)); idx += 1; }
         if s_q.is_some() { sql.push_str(&format!(" AND name ILIKE ${}", idx)); }
         let mut query = sqlx::query(&sql);
         if let Some(s) = s_status { query = query.bind(s); }
+        if let Some(t) = s_type { query = query.bind(t); }
         if let Some(q) = s_q { query = query.bind(format!("%{}%", q)); }
         let row = query.fetch_one(&self.pool).await?;
         Ok(row.get::<i64, _>("count"))

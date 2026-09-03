@@ -90,6 +90,11 @@ impl ProviderRepository for PgProviderRepository {
             binds.push(status.clone());
             bind_idx += 1;
         }
+        if let Some(ref provider_type) = filter.provider_type {
+            sql.push_str(&format!(" AND provider_types ? ${}", bind_idx));
+            binds.push(provider_type.clone());
+            bind_idx += 1;
+        }
         if let Some(ref q) = filter.q {
             sql.push_str(&format!(" AND name ILIKE ${}", bind_idx));
             binds.push(format!("%{}%", q));
@@ -126,6 +131,11 @@ impl ProviderRepository for PgProviderRepository {
         if let Some(ref status) = filter.status {
             sql.push_str(&format!(" AND status = ${}", bind_idx));
             binds.push(status.clone());
+            bind_idx += 1;
+        }
+        if let Some(ref provider_type) = filter.provider_type {
+            sql.push_str(&format!(" AND provider_types ? ${}", bind_idx));
+            binds.push(provider_type.clone());
             bind_idx += 1;
         }
         if let Some(ref q) = filter.q {
