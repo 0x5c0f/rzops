@@ -22,6 +22,7 @@
   let serverMap = $state<Record<string, string>>({});
   let serverStatusMap = $state<Record<string, string>>({});
   let serverOptions = $state<{ value: string; label: string }[]>([]);
+  let serverSearch = $state('');
   let showAdvancedFilter = $state(false);
   let ipTypeMap = $derived(Object.fromEntries($ipTypeOptions.map(o => [o.value, o.label])));
   let ipStatusMap = $derived(Object.fromEntries($ipStatusOptions.map(o => [o.value, o.label])));
@@ -220,20 +221,31 @@
         </div>
         <div class="space-y-1">
           <label class="text-xs font-medium text-muted-foreground">服务器</label>
-          <select
+          <input
+            list="server-ip-filter-list"
             class="w-full rounded-md border px-3 py-2 text-sm"
-            value={query.server_id ?? ''}
-            onchange={(e) => {
-              const val = (e.target as HTMLSelectElement).value;
-              query = { ...query, server_id: val || undefined, page: 1 };
-              loadData();
+            placeholder="输入服务器名称搜索..."
+            value={serverSearch}
+            oninput={(e) => {
+              serverSearch = (e.target as HTMLInputElement).value;
             }}
-          >
-            <option value="">全部</option>
+            onchange={(e) => {
+              const val = (e.target as HTMLInputElement).value;
+              const matched = serverOptions.find(o => o.label === val);
+              if (matched) {
+                query = { ...query, server_id: matched.value, page: 1 };
+                loadData();
+              } else if (!val) {
+                query = { ...query, server_id: undefined, page: 1 };
+                loadData();
+              }
+            }}
+          />
+          <datalist id="server-ip-filter-list">
             {#each serverOptions as opt}
-              <option value={opt.value}>{opt.label}</option>
+              <option value={opt.label}></option>
             {/each}
-          </select>
+          </datalist>
         </div>
       </div>
     {/if}
