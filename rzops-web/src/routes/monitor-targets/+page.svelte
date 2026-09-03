@@ -132,6 +132,13 @@
     loadData();
   }
 
+  function getRowClass(item: MonitorTargetResponse): string {
+    if (item.status === 'disabled' || item.status === 'paused' || item.status === 'inactive') {
+      return 'opacity-60 bg-gray-50';
+    }
+    return '';
+  }
+
   function clearFilter(key: keyof ListMonitorTargetsQuery) {
     const newQuery = { ...query };
     delete newQuery[key];
@@ -262,7 +269,9 @@
     {data}
     {loading}
     onEdit={handleEdit}
-    onDelete={handleDelete} storageKey="monitor-targets" />
+    onDelete={handleDelete}
+    {getRowClass}
+    storageKey="monitor-targets" />
 
   <Pagination
     {page}

@@ -52,6 +52,9 @@
   ]);
 
   function getRowClass(item: DatabaseInstanceResponse): string {
+    if (item.status && item.status !== 'active') {
+      return 'opacity-60 bg-gray-50';
+    }
     if (item.server_id && isResourceOffline('server', serverStatusMap[item.server_id])) {
       return 'opacity-60 bg-gray-50';
     }

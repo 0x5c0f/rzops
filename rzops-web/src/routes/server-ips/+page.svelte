@@ -51,6 +51,9 @@
   ]);
 
   function getRowClass(item: ServerIpResponse): string {
+    if (item.status !== 'enabled') {
+      return 'opacity-60 bg-gray-50';
+    }
     if (item.server_id && isResourceOffline('server', serverStatusMap[item.server_id])) {
       return 'opacity-60 bg-gray-50';
     }

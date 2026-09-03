@@ -100,6 +100,13 @@
     loadData();
   }
 
+  function getRowClass(item: OpsSiteResponse): string {
+    if (item.status === 'temp_offline' || item.status === 'permanent_offline') {
+      return 'opacity-60 bg-gray-50';
+    }
+    return '';
+  }
+
   function handlePageChange(newPage: number) {
     query = { ...query, page: newPage };
     loadData();
@@ -262,6 +269,7 @@
     {loading}
     onEdit={handleEdit}
     onDelete={handleDelete}
+    {getRowClass}
     storageKey="ops-sites"
   />
 

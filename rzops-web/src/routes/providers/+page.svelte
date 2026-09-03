@@ -59,6 +59,13 @@
     loadData();
   }
 
+  function getRowClass(item: ProviderResponse): string {
+    if (item.status && item.status !== 'active') {
+      return 'opacity-60 bg-gray-50';
+    }
+    return '';
+  }
+
   function handlePageChange(newPage: number) {
     query = { ...query, page: newPage };
     loadData();
@@ -137,7 +144,9 @@
     {data}
     {loading}
     onEdit={handleEdit}
-    onDelete={handleDelete} storageKey="providers" />
+    onDelete={handleDelete}
+    {getRowClass}
+    storageKey="providers" />
 
   <Pagination
     {page}

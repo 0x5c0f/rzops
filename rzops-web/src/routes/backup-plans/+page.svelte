@@ -116,6 +116,13 @@
     loadData();
   }
 
+  function getRowClass(item: BackupPlanResponse): string {
+    if (item.status === 'disabled' || item.status === 'paused' || item.status === 'inactive') {
+      return 'opacity-60 bg-gray-50';
+    }
+    return '';
+  }
+
   function clearFilter(key: keyof ListBackupPlansQuery) {
     const newQuery = { ...query };
     delete newQuery[key];
@@ -246,7 +253,9 @@
     {data}
     {loading}
     onEdit={handleEdit}
-    onDelete={handleDelete} storageKey="backup-plans" />
+    onDelete={handleDelete}
+    {getRowClass}
+    storageKey="backup-plans" />
 
   <Pagination
     {page}

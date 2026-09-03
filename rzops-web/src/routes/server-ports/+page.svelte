@@ -39,6 +39,9 @@
   ]);
 
   function getRowClass(item: ServerPortResponse): string {
+    if (!item.is_enabled) {
+      return 'opacity-60 bg-gray-50';
+    }
     const hasOffline = item.servers?.some(s => isResourceOffline('server', serverStatusMap[s.id]));
     return hasOffline ? 'opacity-60 bg-gray-50' : '';
   }

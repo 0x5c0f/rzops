@@ -38,6 +38,9 @@
   ]);
 
   function getRowClass(item: CertificateResponse): string {
+    if (item.status === 'expired' || item.status === 'revoked' || item.status === 'inactive') {
+      return 'opacity-60 bg-gray-50';
+    }
     if (item.provider_id && isResourceOffline('provider', providerStatusMap[item.provider_id])) {
       return 'opacity-60 bg-gray-50';
     }
