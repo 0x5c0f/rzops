@@ -2,12 +2,12 @@
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import { serverPortsApi } from '$lib/api/server-ports';
-  import { serversApi } from '$lib/api/servers';
-  import type { ServerPortResponse } from '$lib/types/server_port';
+  import type { ServerPortResponse, ServerBrief } from '$lib/types/server_port';
   import { Button } from '$lib/ui/button';
   import * as Card from '$lib/ui/card';
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
-  import { formatResourceWithStatus, getResourceStatusClass } from '$lib/utils/resource-status';
+  import RelatedListCard from '$lib/components/shared/RelatedListCard.svelte';
+  import { getStatusLabel } from '$lib/utils/resource-status';
   import { onMount } from 'svelte';
   import ConfirmDialog from '$lib/components/shared/ConfirmDialog.svelte';
 
@@ -15,18 +15,12 @@
 
   let confirmOpen = $state(false);
   let loading = $state(true);
-  let serverStatusMap = $state<Record<string, string>>({});
 
   onMount(async () => {
     const id = $page.params.id;
     if (!id) { goto('/server-ports'); return; }
     try {
-      const [port, serverList] = await Promise.all([
-        serverPortsApi.getById(id),
-        serversApi.list({ per_page: 200 }),
-      ]);
-      serverPort = port;
-      serverStatusMap = Object.fromEntries(serverList.data.map((s: {id: string, status: string}) => [s.id, s.status]));
+      serverPort = await serverPortsApi.getById(id);
     } catch (err) {
       console.error('Failed to load server port:', err);
       goto('/server-ports');
@@ -76,57 +70,55 @@
       </div>
     </div>
 
-    <div class="grid gap-6 lg:grid-cols-2">
-      <Card.Root>
-        <Card.Header>
-          <Card.Title>基本信息</Card.Title>
-        </Card.Header>
-        <Card.Content>
-          <dl class="grid gap-3 text-sm">
-            <div class="flex justify-between">
-              <dt class="text-muted-foreground">服务器</dt>
-              <dd class="text-right">
-                {#if serverPort.servers.length > 0}
-                  <div class="flex flex-col items-end gap-1">
-                    {#each serverPort.servers as s}
-                      <a href="/servers/{s.id}" class="text-primary hover:underline">
-                        <span class={getResourceStatusClass(serverStatusMap[s.id], 'server')}>
-                          {formatResourceWithStatus(s.name, serverStatusMap[s.id], 'server')}
-                        </span>
-                      </a>
-                    {/each}
-                  </div>
-                {:else}-{/if}
-              </dd>
-            </div>
-            <div class="flex justify-between">
-              <dt class="text-muted-foreground">协议</dt>
-              <dd>{serverPort.protocol}</dd>
-            </div>
-            <div class="flex justify-between">
-              <dt class="text-muted-foreground">端口</dt>
-              <dd class="font-mono">{serverPort.port}</dd>
-            </div>
-            <div class="flex justify-between">
-              <dt class="text-muted-foreground">服务名称</dt>
-              <dd>{serverPort.service_name}</dd>
-            </div>
-            <div class="flex justify-between">
-              <dt class="text-muted-foreground">访问范围</dt>
-              <dd>{serverPort.access_scope || '-'}</dd>
-            </div>
-            <div class="flex justify-between">
-              <dt class="text-muted-foreground">状态</dt>
-              <dd>{serverPort.is_enabled ? '启用' : '停用'}</dd>
-            </div>
-            <div class="flex justify-between">
-              <dt class="text-muted-foreground">描述</dt>
-              <dd>{serverPort.description || '-'}</dd>
-            </div>
-          </dl>
-        </Card.Content>
-      </Card.Root>
-    </div>
+    <Card.Root>
+      <Card.Header>
+        <Card.Title>基本信息</Card.Title>
+      </Card.Header>
+      <Card.Content>
+        <dl class="grid gap-3 text-sm">
+          <div class="flex justify-between">
+            <dt class="text-muted-foreground">协议</dt>
+            <dd>{serverPort.protocol}</dd>
+          </div>
+          <div class="flex justify-between">
+            <dt class="text-muted-foreground">端口</dt>
+            <dd class="font-mono">{serverPort.port}</dd>
+          </div>
+          <div class="flex justify-between">
+            <dt class="text-muted-foreground">服务名称</dt>
+            <dd>{serverPort.service_name}</dd>
+          </div>
+          <div class="flex justify-between">
+            <dt class="text-muted-foreground">访问范围</dt>
+            <dd>{serverPort.access_scope || '-'}</dd>
+          </div>
+          <div class="flex justify-between">
+            <dt class="text-muted-foreground">状态</dt>
+            <dd>{serverPort.is_enabled ? '启用' : '停用'}</dd>
+          </div>
+          <div class="flex justify-between">
+            <dt class="text-muted-foreground">描述</dt>
+            <dd>{serverPort.description || '-'}</dd>
+          </div>
+        </dl>
+      </Card.Content>
+    </Card.Root>
+
+    <RelatedListCard
+      title="关联服务器"
+      description="该端口当前绑定并开放的服务器"
+      items={serverPort.servers}
+      emptyText="暂无关联服务器"
+      columns={[
+        {
+          key: 'name',
+          label: '服务器',
+          link: (s: ServerBrief) => `/servers/${s.id}`,
+          render: (s: ServerBrief) => s.name,
+          badge: (s: ServerBrief) => ({ status: s.status, label: getStatusLabel(s.status) })
+        }
+      ]}
+    />
   {/if}
 
     <ConfirmDialog

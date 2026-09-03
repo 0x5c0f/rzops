@@ -18,4 +18,6 @@ pub struct ServerPort {
     pub server_ids: Vec<Uuid>,
     /// 关联的服务器名称（查询时聚合，用于展示）
     pub server_names: Vec<String>,
+    /// 关联的服务器状态（查询时聚合，与 server_ids 一一对应，用于展示）
+    pub server_statuses: Vec<String>,
 }

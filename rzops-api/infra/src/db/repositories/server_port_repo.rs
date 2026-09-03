@@ -21,7 +21,8 @@ const PORT_SELECT: &str = r#"
     SELECT p.id, p.protocol::text, p.port, p.service_name, p.access_scope,
            p.is_enabled, p.description, p.created_at, p.updated_at,
            COALESCE(array_agg(s.id) FILTER (WHERE s.id IS NOT NULL), '{}') AS server_ids,
-           COALESCE(array_agg(s.name) FILTER (WHERE s.name IS NOT NULL), '{}') AS server_names
+           COALESCE(array_agg(s.name) FILTER (WHERE s.name IS NOT NULL), '{}') AS server_names,
+           COALESCE(array_agg(s.status::text) FILTER (WHERE s.status IS NOT NULL), '{}') AS server_statuses
     FROM cmdb_server_port p
     LEFT JOIN cmdb_server_port_server ps ON ps.server_port_id = p.id
     LEFT JOIN cmdb_server s ON s.id = ps.server_id AND s.deleted_at IS NULL
@@ -41,6 +42,7 @@ fn row_to_server_port(row: &sqlx::postgres::PgRow) -> ServerPort {
         updated_at: row.get::<DateTime<Utc>, _>("updated_at"),
         server_ids: row.get("server_ids"),
         server_names: row.get("server_names"),
+        server_statuses: row.get("server_statuses"),
     }
 }
 

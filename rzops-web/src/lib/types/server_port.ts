@@ -1,6 +1,7 @@
 export interface ServerBrief {
   id: string;
   name: string;
+  status: string;
 }
 
 export interface ServerPortResponse {

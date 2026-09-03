@@ -7,6 +7,8 @@ use uuid::Uuid;
 pub struct ServerBrief {
     pub id: Uuid,
     pub name: String,
+    /// 服务器状态（用于详情页状态展示）
+    pub status: String,
 }
 
 /// Request body for creating a server port.

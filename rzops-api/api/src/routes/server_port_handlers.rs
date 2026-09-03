@@ -24,7 +24,8 @@ fn to_response(p: &ServerPort) -> ServerPortResponse {
         .server_ids
         .iter()
         .zip(p.server_names.iter())
-        .map(|(id, name)| ServerBrief { id: *id, name: name.clone() })
+        .zip(p.server_statuses.iter())
+        .map(|((id, name), status)| ServerBrief { id: *id, name: name.clone(), status: status.clone() })
         .collect();
     ServerPortResponse {
         id: p.id,
@@ -120,6 +121,7 @@ pub async fn create_server_port(
         updated_at: now,
         server_ids: body.server_ids,
         server_names: Vec::new(),
+        server_statuses: Vec::new(),
     };
 
     match repo.create(&port).await {
@@ -173,6 +175,7 @@ pub async fn update_server_port(
         updated_at: Utc::now(),
         server_ids,
         server_names: Vec::new(),
+        server_statuses: Vec::new(),
     };
 
     match repo.update(id, &port).await {
