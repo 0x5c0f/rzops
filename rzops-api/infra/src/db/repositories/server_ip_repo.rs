@@ -64,7 +64,7 @@ impl ServerIpRepository for PgServerIpRepository {
         if let Some(ref ip_type) = filter.ip_type { sql.push_str(&format!(" AND ip_type = ${}", idx)); string_binds.push(ip_type.clone()); idx += 1; }
         if let Some(ref q) = filter.q { sql.push_str(&format!(" AND ip_address ILIKE ${}", idx)); string_binds.push(format!("%{}%", q)); }
 
-        sql.push_str(" ORDER BY created_at DESC");
+        sql.push_str(" ORDER BY CASE WHEN status::text IN ('inactive', 'disabled', 'reserved') THEN 1 ELSE 0 END, created_at DESC");
         if let Some(limit) = filter.limit {
             sql.push_str(&format!(" LIMIT {}", limit));
         }

@@ -132,7 +132,7 @@ impl ServerRepository for PgServerRepository {
         if is_db_val.is_some() { sql.push_str(&format!(" AND is_database_server = ${}", idx)); idx += 1; }
         if q_val.is_some() { sql.push_str(&format!(" AND (name ILIKE ${idx} OR primary_ip ILIKE ${idx} OR asset_code ILIKE ${idx})", idx = idx)); }
 
-        sql.push_str(" ORDER BY created_at DESC");
+        sql.push_str(" ORDER BY CASE WHEN status::text = 'retired' THEN 1 ELSE 0 END, created_at DESC");
 
         if let Some(limit) = filter.limit {
             sql.push_str(&format!(" LIMIT {}", limit));
@@ -333,7 +333,7 @@ impl PgServerRepository {
         if is_db_val.is_some() { sql.push_str(&format!(" AND is_database_server = ${}", idx)); idx += 1; }
         if q_val.is_some() { sql.push_str(&format!(" AND (name ILIKE ${idx} OR primary_ip ILIKE ${idx} OR asset_code ILIKE ${idx})", idx = idx)); }
 
-        sql.push_str(" ORDER BY created_at DESC");
+        sql.push_str(" ORDER BY CASE WHEN status::text = 'retired' THEN 1 ELSE 0 END, created_at DESC");
 
         if let Some(limit) = filter.limit {
             sql.push_str(&format!(" LIMIT {}", limit));

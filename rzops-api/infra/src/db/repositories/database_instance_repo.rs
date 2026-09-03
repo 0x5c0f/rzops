@@ -68,7 +68,7 @@ impl DatabaseInstanceRepository for PgDatabaseInstanceRepository {
         if let Some(ref db_type) = filter.db_type { sql.push_str(&format!(" AND db_type::text = ${}", idx)); string_binds.push(db_type.clone()); idx += 1; }
         if let Some(sid) = filter.server_id { sql.push_str(&format!(" AND server_id = ${}", idx)); uuid_binds.push(sid); idx += 1; }
         if let Some(ref q) = filter.q { sql.push_str(&format!(" AND name ILIKE ${}", idx)); string_binds.push(format!("%{}%", q)); }
-        sql.push_str(" ORDER BY created_at DESC");
+        sql.push_str(" ORDER BY CASE WHEN status::text IN ('retired', 'offline', 'inactive', 'disabled') THEN 1 ELSE 0 END, created_at DESC");
         if let Some(limit) = filter.limit { sql.push_str(&format!(" LIMIT {}", limit)); }
         if let Some(offset) = filter.offset { sql.push_str(&format!(" OFFSET {}", offset)); }
         let mut query = sqlx::query(&sql);

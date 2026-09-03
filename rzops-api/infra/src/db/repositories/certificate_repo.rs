@@ -64,7 +64,7 @@ impl CertificateRepository for PgCertificateRepository {
         if s_status.is_some() { sql.push_str(&format!(" AND status::text = ${}", idx)); idx += 1; }
         if s_type.is_some() { sql.push_str(&format!(" AND certificate_type::text = ${}", idx)); idx += 1; }
         if s_q.is_some() { sql.push_str(&format!(" AND name ILIKE ${}", idx)); }
-        sql.push_str(" ORDER BY created_at DESC");
+        sql.push_str(" ORDER BY CASE WHEN status::text IN ('expired', 'revoked', 'inactive') THEN 1 ELSE 0 END, created_at DESC");
         if let Some(limit) = filter.limit { sql.push_str(&format!(" LIMIT {}", limit)); }
         if let Some(offset) = filter.offset { sql.push_str(&format!(" OFFSET {}", offset)); }
         let mut query = sqlx::query(&sql);

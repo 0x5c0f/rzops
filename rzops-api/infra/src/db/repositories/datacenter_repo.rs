@@ -84,7 +84,7 @@ impl DataCenterRepository for PgDataCenterRepository {
             binds.push(format!("%{}%", q));
         }
 
-        sql.push_str(" ORDER BY created_at DESC");
+        sql.push_str(" ORDER BY CASE WHEN status::text IN ('inactive', 'disabled', 'offline') THEN 1 ELSE 0 END, created_at DESC");
 
         if let Some(limit) = filter.limit {
             sql.push_str(&format!(" LIMIT {}", limit));

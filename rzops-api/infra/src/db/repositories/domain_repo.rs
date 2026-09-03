@@ -71,7 +71,7 @@ impl DomainRepository for PgDomainRepository {
             sql.push_str(&format!(" AND domain_name ILIKE ${}", bind_idx));
             binds.push(format!("%{}%", q));
         }
-        sql.push_str(" ORDER BY created_at DESC");
+        sql.push_str(" ORDER BY CASE WHEN is_enabled = false THEN 1 ELSE 0 END, created_at DESC");
         if let Some(limit) = filter.limit { sql.push_str(&format!(" LIMIT {}", limit)); }
         if let Some(offset) = filter.offset { sql.push_str(&format!(" OFFSET {}", offset)); }
         let mut query = sqlx::query(&sql);
