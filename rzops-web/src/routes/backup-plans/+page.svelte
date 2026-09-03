@@ -76,7 +76,7 @@
       }
       return name;
     }},
-    { key: 'status', label: '状态', valueMap: statusMap },
+    { key: 'status', label: '状态', valueMap: statusMap, statusBadge: (item: BackupPlanResponse) => item.status },
     { key: 'schedule', label: '调度计划', hideInTable: true },
     { key: 'retention_days', label: '保留天数', hideInTable: true },
     { key: 'created_at', label: '创建时间', render: (v: unknown) => formatDate(v as string), hideInTable: true },
@@ -118,7 +118,7 @@
 
   function getRowClass(item: BackupPlanResponse): string {
     if (item.status === 'disabled' || item.status === 'paused' || item.status === 'inactive') {
-      return 'bg-slate-100';
+      return 'text-slate-400';
     }
     return ''; // archived 已归档不标色，仅排末尾
   }

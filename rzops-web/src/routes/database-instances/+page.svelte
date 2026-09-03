@@ -47,23 +47,23 @@
       if (!serverMap[item.server_id]) return '已删除';
       return formatResourceWithStatus(serverMap[item.server_id], serverStatusMap[item.server_id], 'server');
     }},
-    { key: 'status', label: '状态', valueMap: dbStatusMap },
+    { key: 'status', label: '状态', valueMap: dbStatusMap, statusBadge: (item: DatabaseInstanceResponse) => item.status },
     { key: 'importance', label: '重要性', valueMap: importanceMap, hideInTable: true },
   ]);
 
   function getRowClass(item: DatabaseInstanceResponse): string {
     if (item.status && item.status !== 'active') {
-      return 'bg-gray-100';
+      return 'text-slate-400';
     }
     if (!item.server_id) {
-      return 'bg-amber-100'; // 未选择服务器
+      return 'text-amber-600'; // 未选择服务器
     }
     const status = serverStatusMap[item.server_id];
     if (status === undefined) {
-      return 'bg-red-100'; // 关联服务器已删除
+      return 'text-red-500'; // 关联服务器已删除
     }
     if (isResourceOffline('server', status)) {
-      return 'bg-amber-100'; // 关联服务器已退役
+      return 'text-amber-600'; // 关联服务器已退役
     }
     return '';
   }

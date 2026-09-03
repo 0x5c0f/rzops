@@ -39,7 +39,7 @@
     { key: 'name', label: '名称' , link: (item: OpsSiteResponse) => `/ops-sites/${item.id}`, lockVisible: true },
     { key: 'url', label: 'URL' },
     { key: 'environment', label: '环境', valueMap: environmentMap },
-    { key: 'status', label: '状态', valueMap: siteStatusMap },
+    { key: 'status', label: '状态', valueMap: siteStatusMap, statusBadge: (item: OpsSiteResponse) => item.status },
     { key: 'service_target', label: '服务目标', valueMap: serviceTargetMap, hideInTable: true },
     { key: 'importance', label: '重要性', valueMap: importanceMap, hideInTable: true },
     { key: 'created_at', label: '创建时间', render: (v: unknown) => formatDate(v as string), hideInTable: true },
@@ -102,10 +102,10 @@
 
   function getRowClass(item: OpsSiteResponse): string {
     if (item.status === 'permanent_offline') {
-      return 'bg-red-100';
+      return 'text-red-500';
     }
     if (item.status === 'temp_offline') {
-      return 'bg-amber-100';
+      return 'text-amber-600';
     }
     return '';
   }

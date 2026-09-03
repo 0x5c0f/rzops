@@ -28,7 +28,7 @@
   const columns = $derived([
     { key: 'name', label: '名称' , link: (item: CertificateResponse) => `/certificates/${item.id}`, lockVisible: true },
     { key: 'certificate_type', label: '类型', valueMap: certificateTypeMap },
-    { key: 'status', label: '状态', valueMap: certificateStatusMap },
+    { key: 'status', label: '状态', valueMap: certificateStatusMap, statusBadge: (item: CertificateResponse) => item.status },
     { key: 'lease_end_date', label: '到期日期' },
     { key: 'provider_id', label: '供应商', render: (v: unknown, item: CertificateResponse) => {
       if (!item.provider_id) return '-';
@@ -38,11 +38,11 @@
   ]);
 
   function getRowClass(item: CertificateResponse): string {
-    if (item.status === 'revoked') {
-      return 'bg-red-100';
+    if (item.status === 'revoked' || item.status === 'expired') {
+      return 'text-red-500';
     }
-    if (item.status === 'expired' || item.status === 'inactive') {
-      return 'bg-amber-100';
+    if (item.status === 'inactive') {
+      return 'text-amber-600';
     }
     return '';
   }

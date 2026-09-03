@@ -35,12 +35,16 @@
         return list.length > 3 ? `${shown}, … +${list.length - 3}` : shown;
       },
     },
-    { key: 'is_enabled', label: '启用', render: (v: unknown) => v ? '是' : '否', hideInTable: true },
+    { key: 'is_enabled', label: '启用', badge: (item: ServerPortResponse) =>
+      item.is_enabled
+        ? { label: '启用', className: 'bg-green-100 text-green-700 border-transparent' }
+        : { label: '停用', className: 'bg-slate-100 text-slate-500 border-transparent' }
+    },
   ]);
 
   function getRowClass(item: ServerPortResponse): string {
     if (!item.is_enabled) {
-      return 'bg-slate-100';
+      return 'text-slate-400';
     }
     // 多绑定：仅当绑定的服务器非空且全部退役/已删除时才标黄（任一在线即保持正常显示）
     const servers = item.servers ?? [];
@@ -48,7 +52,7 @@
       const st = serverStatusMap[s.id];
       return st === undefined || isResourceOffline('server', st);
     })) {
-      return 'bg-amber-100';
+      return 'text-amber-600';
     }
     return '';
   }

@@ -6,7 +6,6 @@
   import { Input } from '$lib/ui/input';
   import DataTable from '$lib/components/shared/DataTable.svelte';
   import Pagination from '$lib/components/shared/Pagination.svelte';
-  import StatusBadge from '$lib/components/shared/StatusBadge.svelte';
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import { formatDate } from '$lib/utils/format';
   import { getDataCenterOptions, getProviderOptions } from '$lib/utils/entity-options';
@@ -44,7 +43,7 @@
     { key: 'primary_ip', label: '主IP' },
     { key: 'server_type', label: '类型', valueMap: serverTypeMap },
     { key: 'environment', label: '环境', valueMap: environmentMap },
-    { key: 'status', label: '状态', valueMap: serverStatusMap },
+    { key: 'status', label: '状态', valueMap: serverStatusMap, statusBadge: (item: ServerResponse) => item.status },
     { key: 'data_center_id', label: '数据中心', valueMap: dataCenterMap, hideInTable: true },
     { key: 'isp_provider_id', label: 'ISP供应商', valueMap: providerMap, hideInTable: true },
     { key: 'server_provider_id', label: '服务器供应商', valueMap: providerMap, hideInTable: true },
@@ -125,7 +124,7 @@
 
   function getRowClass(item: ServerResponse): string {
     if (item.status === 'retired') {
-      return 'bg-slate-100';
+      return 'text-slate-400';
     }
     return '';
   }

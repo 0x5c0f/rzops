@@ -7,7 +7,6 @@
   import { Input } from '$lib/ui/input';
   import DataTable from '$lib/components/shared/DataTable.svelte';
   import Pagination from '$lib/components/shared/Pagination.svelte';
-  import StatusBadge from '$lib/components/shared/StatusBadge.svelte';
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import { formatDate } from '$lib/utils/format';
   import { onMount } from 'svelte';
@@ -36,14 +35,14 @@
     { key: 'contract_no', label: '合同编号' },
     { key: 'start_date', label: '开始日期', render: (v: unknown) => formatDate(v as string) },
     { key: 'end_date', label: '结束日期', render: (v: unknown) => formatDate(v as string) },
-    { key: 'status', label: '状态', valueMap: statusMap },
+    { key: 'status', label: '状态', valueMap: statusMap, statusBadge: (item: ContractResponse) => item.status },
     { key: 'amount', label: '金额' },
     { key: 'created_at', label: '创建时间', render: (v: unknown) => formatDate(v as string) },
   ]);
 
   function getRowClass(item: ContractResponse): string {
     if (item.status && item.status !== 'active') {
-      return 'bg-slate-100';
+      return 'text-slate-400';
     }
     return '';
   }

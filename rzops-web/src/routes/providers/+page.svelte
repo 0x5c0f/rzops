@@ -7,7 +7,6 @@
   import * as Select from '$lib/ui/select';
   import DataTable from '$lib/components/shared/DataTable.svelte';
   import Pagination from '$lib/components/shared/Pagination.svelte';
-  import StatusBadge from '$lib/components/shared/StatusBadge.svelte';
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import { formatDate } from '$lib/utils/format';
   import { providerTypeOptions, commonStatusOptions } from '$lib/utils/enum-options';
@@ -32,7 +31,7 @@
         return (arr || []).map(t => providerTypeMap[t] || t).join(', ') || '-';
       }
     },
-    { key: 'status', label: '状态', valueMap: commonStatusMap },
+    { key: 'status', label: '状态', valueMap: commonStatusMap, statusBadge: (item: ProviderResponse) => item.status },
     { key: 'contact_name', label: '联系人', hideInTable: true },
     { key: 'contact_phone', label: '电话', hideInTable: true },
     { key: 'created_at', label: '创建时间', render: (v: unknown) => formatDate(v as string), hideInTable: true },
@@ -61,7 +60,7 @@
 
   function getRowClass(item: ProviderResponse): string {
     if (item.status && item.status !== 'active') {
-      return 'bg-slate-100';
+      return 'text-slate-400';
     }
     return '';
   }

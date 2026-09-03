@@ -45,22 +45,22 @@
       return formatResourceWithStatus(name, status, 'server');
     }},
     { key: 'ip_type', label: '类型', valueMap: ipTypeMap },
-    { key: 'status', label: '状态', valueMap: ipStatusMap },
+    { key: 'status', label: '状态', valueMap: ipStatusMap, statusBadge: (item: ServerIpResponse) => item.status },
     { key: 'nic_name', label: '网卡', render: (v: unknown) => v || '-', hideInTable: true },
     { key: 'is_primary', label: '主IP', render: (v: unknown) => v ? '是' : '否', hideInTable: true },
   ]);
 
   function getRowClass(item: ServerIpResponse): string {
     if (item.status !== 'enabled') {
-      return 'bg-slate-100';
+      return 'text-slate-400';
     }
     if (item.server_id) {
       const status = serverStatusMap[item.server_id];
       if (status === undefined) {
-        return 'bg-red-100'; // 关联服务器已删除
+        return 'text-red-500'; // 关联服务器已删除
       }
       if (isResourceOffline('server', status)) {
-        return 'bg-amber-100'; // 关联服务器已退役
+        return 'text-amber-600'; // 关联服务器已退役
       }
     }
     return '';

@@ -7,7 +7,6 @@
   import { Input } from '$lib/ui/input';
   import DataTable from '$lib/components/shared/DataTable.svelte';
   import Pagination from '$lib/components/shared/Pagination.svelte';
-  import StatusBadge from '$lib/components/shared/StatusBadge.svelte';
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import { formatDate } from '$lib/utils/format';
   import { getProviderOptions } from '$lib/utils/entity-options';
@@ -32,13 +31,17 @@
       return formatResourceWithStatus(providerMap[item.provider_id], providerStatusMap[item.provider_id], 'provider');
     }},
     { key: 'expiry_date', label: '到期日期', render: (v: unknown) => formatDate(v as string) },
-    { key: 'is_enabled', label: '启用状态', render: (v: unknown) => (v ? '启用' : '停用') },
+    { key: 'is_enabled', label: '启用状态', badge: (item: DomainResponse) =>
+      item.is_enabled
+        ? { label: '启用', className: 'bg-green-100 text-green-700 border-transparent' }
+        : { label: '停用', className: 'bg-slate-100 text-slate-500 border-transparent' }
+    },
     { key: 'created_at', label: '创建时间', render: (v: unknown) => formatDate(v as string), hideInTable: true },
   ]);
 
   function getRowClass(item: DomainResponse): string {
     if (!item.is_enabled) {
-      return 'bg-slate-100';
+      return 'text-slate-400';
     }
     return '';
   }

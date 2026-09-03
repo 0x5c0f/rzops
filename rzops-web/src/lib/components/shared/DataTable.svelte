@@ -3,6 +3,8 @@
   import * as Table from '$lib/ui/table';
   import { Button } from '$lib/ui/button';
   import * as Dialog from '$lib/ui/dialog';
+  import { Badge } from '$lib/ui/badge';
+  import StatusBadge from '$lib/components/shared/StatusBadge.svelte';
   import ConfirmDialog from '$lib/components/shared/ConfirmDialog.svelte';
   import { cn } from '$lib/utils';
 
@@ -22,6 +24,10 @@
     display?: (item: T) => string;
     /** Optional link href; when present the cell renders as a link (null = plain text) */
     link?: (item: T) => string | null;
+    /** 状态徽章：根据 item 返回徽章标签与样式类；返回 null 时不渲染徽章 */
+    badge?: (item: T) => { label: string; className: string } | null;
+    /** 状态徽章（StatusBadge 组件）：根据 item 返回状态值；返回空时不渲染徽章 */
+    statusBadge?: (item: T) => string | null | undefined;
   }
 
   let {
@@ -222,7 +228,21 @@
               {/if}
               {#each visibleColumns as col}
                 <Table.Cell class={col.class}>
-                  {#if col.link}
+                  {#if col.statusBadge}
+                    {@const sb = col.statusBadge(item)}
+                    {#if sb}
+                      <StatusBadge status={sb} />
+                    {:else}
+                      {col.display ? col.display(item) : displayValue(item, col)}
+                    {/if}
+                  {:else if col.badge}
+                    {@const badge = col.badge(item)}
+                    {#if badge}
+                      <Badge class={badge.className}>{badge.label}</Badge>
+                    {:else}
+                      {col.display ? col.display(item) : displayValue(item, col)}
+                    {/if}
+                  {:else if col.link}
                     {@const href = col.link(item)}
                     {#if href}
                       <a href={href} class="text-primary hover:underline">

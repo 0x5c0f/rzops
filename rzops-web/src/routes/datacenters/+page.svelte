@@ -7,7 +7,6 @@
   import { Input } from '$lib/ui/input';
   import DataTable from '$lib/components/shared/DataTable.svelte';
   import Pagination from '$lib/components/shared/Pagination.svelte';
-  import StatusBadge from '$lib/components/shared/StatusBadge.svelte';
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import { formatDate } from '$lib/utils/format';
   import { getProviderOptions } from '$lib/utils/entity-options';
@@ -38,7 +37,7 @@
   const columns = $derived([
     { key: 'name', label: '名称' , link: (item: DataCenterResponse) => `/datacenters/${item.id}`, lockVisible: true },
     { key: 'country', label: '国家', valueMap: countryMap },
-    { key: 'status', label: '状态', valueMap: commonStatusMap },
+    { key: 'status', label: '状态', valueMap: commonStatusMap, statusBadge: (item: DataCenterResponse) => item.status },
     { key: 'provider_id', label: '供应商', render: (v: unknown, item: DataCenterResponse) => {
       if (!item.provider_id) return '-';
       if (!providerMap[item.provider_id]) return '已删除';
@@ -49,7 +48,7 @@
 
   function getRowClass(item: DataCenterResponse): string {
     if (item.status && item.status !== 'active') {
-      return 'bg-slate-100';
+      return 'text-slate-400';
     }
     return '';
   }

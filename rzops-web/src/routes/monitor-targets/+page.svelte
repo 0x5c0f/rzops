@@ -88,7 +88,7 @@
       return name;
     }},
     { key: 'monitor_type', label: '监控类型', valueMap: monitorTypeMap },
-    { key: 'status', label: '状态', valueMap: statusMap },
+    { key: 'status', label: '状态', valueMap: statusMap, statusBadge: (item: MonitorTargetResponse) => item.status },
     { key: 'endpoint', label: '端点', hideInTable: true },
     { key: 'interval_seconds', label: '间隔(秒)', hideInTable: true },
     { key: 'created_at', label: '创建时间', render: (v: unknown) => formatDate(v as string), hideInTable: true },
@@ -134,7 +134,7 @@
 
   function getRowClass(item: MonitorTargetResponse): string {
     if (item.status === 'disabled' || item.status === 'paused' || item.status === 'inactive') {
-      return 'bg-slate-100';
+      return 'text-slate-400';
     }
     return ''; // archived 已归档不标色，仅排末尾
   }
