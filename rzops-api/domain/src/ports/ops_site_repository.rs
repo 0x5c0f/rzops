@@ -9,6 +9,7 @@ pub struct OpsSiteFilter {
     pub status: Option<String>,
     pub environment: Option<String>,
     pub importance: Option<String>,
+    pub server_id: Option<Uuid>,
     pub q: Option<String>,
     pub limit: Option<i64>,
     pub offset: Option<i64>,

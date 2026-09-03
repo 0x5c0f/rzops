@@ -51,6 +51,7 @@ pub struct ListOpsSitesQuery {
     pub status: Option<String>,
     pub environment: Option<String>,
     pub importance: Option<String>,
+    pub server_id: Option<Uuid>,
     pub q: Option<String>,
     pub page: Option<i64>,
     pub per_page: Option<i64>,

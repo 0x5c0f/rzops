@@ -62,10 +62,12 @@ impl OpsSiteRepository for PgOpsSiteRepository {
         let s_status = filter.status.as_ref();
         let s_env = filter.environment.as_ref();
         let s_imp = filter.importance.as_ref();
+        let s_server = filter.server_id.as_ref();
         let s_q = filter.q.as_ref();
         if s_status.is_some() { sql.push_str(&format!(" AND status::text = ${}", idx)); idx += 1; }
         if s_env.is_some() { sql.push_str(&format!(" AND environment = ${}", idx)); idx += 1; }
         if s_imp.is_some() { sql.push_str(&format!(" AND importance::text = ${}", idx)); idx += 1; }
+        if s_server.is_some() { sql.push_str(&format!(" AND id IN (SELECT site_id FROM cmdb_ops_site_server WHERE server_id = ${})", idx)); idx += 1; }
         if s_q.is_some() { sql.push_str(&format!(" AND name ILIKE ${}", idx)); }
         sql.push_str(" ORDER BY created_at DESC");
         if let Some(limit) = filter.limit { sql.push_str(&format!(" LIMIT {}", limit)); }
@@ -74,6 +76,7 @@ impl OpsSiteRepository for PgOpsSiteRepository {
         if let Some(s) = s_status { query = query.bind(s); }
         if let Some(e) = s_env { query = query.bind(e); }
         if let Some(i) = s_imp { query = query.bind(i); }
+        if let Some(srv) = s_server { query = query.bind(srv); }
         if let Some(q) = s_q { query = query.bind(format!("%{}%", q)); }
         let rows = query.fetch_all(&self.pool).await?;
         Ok(rows.iter().map(|r| row_to_ops_site(r)).collect())
@@ -85,15 +88,18 @@ impl OpsSiteRepository for PgOpsSiteRepository {
         let s_status = filter.status.as_ref();
         let s_env = filter.environment.as_ref();
         let s_imp = filter.importance.as_ref();
+        let s_server = filter.server_id.as_ref();
         let s_q = filter.q.as_ref();
         if s_status.is_some() { sql.push_str(&format!(" AND status::text = ${}", idx)); idx += 1; }
         if s_env.is_some() { sql.push_str(&format!(" AND environment = ${}", idx)); idx += 1; }
         if s_imp.is_some() { sql.push_str(&format!(" AND importance::text = ${}", idx)); idx += 1; }
+        if s_server.is_some() { sql.push_str(&format!(" AND id IN (SELECT site_id FROM cmdb_ops_site_server WHERE server_id = ${})", idx)); idx += 1; }
         if s_q.is_some() { sql.push_str(&format!(" AND name ILIKE ${}", idx)); }
         let mut query = sqlx::query(&sql);
         if let Some(s) = s_status { query = query.bind(s); }
         if let Some(e) = s_env { query = query.bind(e); }
         if let Some(i) = s_imp { query = query.bind(i); }
+        if let Some(srv) = s_server { query = query.bind(srv); }
         if let Some(q) = s_q { query = query.bind(format!("%{}%", q)); }
         let row = query.fetch_one(&self.pool).await?;
         Ok(row.get::<i64, _>("count"))

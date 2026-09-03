@@ -56,6 +56,7 @@ export interface ListOpsSitesQuery {
   status?: string;
   environment?: string;
   importance?: string;
+  server_id?: string;
   page?: number;
   per_page?: number;
 }
