@@ -175,6 +175,7 @@ pub async fn list_servers(
         environment: query.environment,
         data_center_id: query.data_center_id,
         server_type: query.server_type,
+        is_database_server: query.is_database_server,
         q: query.q,
         limit: Some(per_page),
         offset: Some(offset),

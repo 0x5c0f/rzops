@@ -87,6 +87,7 @@ pub struct ListServersQuery {
     pub environment: Option<String>,
     pub data_center_id: Option<Uuid>,
     pub server_type: Option<String>,
+    pub is_database_server: Option<bool>,
     pub q: Option<String>,
     pub page: Option<i64>,
     pub per_page: Option<i64>,

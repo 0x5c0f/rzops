@@ -10,6 +10,7 @@ pub struct ServerFilter {
     pub environment: Option<String>,
     pub data_center_id: Option<Uuid>,
     pub server_type: Option<String>,
+    pub is_database_server: Option<bool>,
     pub q: Option<String>, // search by name
     pub limit: Option<i64>,
     pub offset: Option<i64>,
