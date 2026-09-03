@@ -61,7 +61,7 @@
 
   function getRowClass(item: ProviderResponse): string {
     if (item.status && item.status !== 'active') {
-      return 'opacity-60 bg-gray-50';
+      return 'bg-gray-100';
     }
     return '';
   }

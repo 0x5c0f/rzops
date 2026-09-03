@@ -101,8 +101,11 @@
   }
 
   function getRowClass(item: OpsSiteResponse): string {
-    if (item.status === 'temp_offline' || item.status === 'permanent_offline') {
-      return 'opacity-60 bg-gray-50';
+    if (item.status === 'permanent_offline') {
+      return 'bg-red-50';
+    }
+    if (item.status === 'temp_offline') {
+      return 'bg-amber-50';
     }
     return '';
   }

@@ -118,9 +118,9 @@
 
   function getRowClass(item: BackupPlanResponse): string {
     if (item.status === 'disabled' || item.status === 'paused' || item.status === 'inactive') {
-      return 'opacity-60 bg-gray-50';
+      return 'bg-gray-100';
     }
-    return '';
+    return ''; // archived 已归档不标色，仅排末尾
   }
 
   function clearFilter(key: keyof ListBackupPlansQuery) {

@@ -13,7 +13,7 @@
   import { onMount } from 'svelte';
   import { contractStatusOptions } from '$lib/utils/enum-options';
   import { getProviderOptions } from '$lib/utils/entity-options';
-  import { formatResourceWithStatus, isResourceOffline } from '$lib/utils/resource-status';
+  import { formatResourceWithStatus } from '$lib/utils/resource-status';
 
   let data = $state<ContractResponse[]>([]);
   let total = $state(0);
@@ -43,10 +43,7 @@
 
   function getRowClass(item: ContractResponse): string {
     if (item.status && item.status !== 'active') {
-      return 'opacity-60 bg-gray-50';
-    }
-    if (item.provider_id && isResourceOffline('provider', providerStatusMap[item.provider_id])) {
-      return 'opacity-60 bg-gray-50';
+      return 'bg-gray-100';
     }
     return '';
   }

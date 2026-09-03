@@ -11,7 +11,7 @@
   import { onMount } from 'svelte';
   import { getProviderOptions } from '$lib/utils/entity-options';
   import { certificateStatusOptions, certificateTypeOptions } from '$lib/utils/enum-options';
-  import { formatResourceWithStatus, isResourceOffline } from '$lib/utils/resource-status';
+  import { formatResourceWithStatus } from '$lib/utils/resource-status';
 
   let data = $state<CertificateResponse[]>([]);
   let total = $state(0);
@@ -38,11 +38,11 @@
   ]);
 
   function getRowClass(item: CertificateResponse): string {
-    if (item.status === 'expired' || item.status === 'revoked' || item.status === 'inactive') {
-      return 'opacity-60 bg-gray-50';
+    if (item.status === 'revoked') {
+      return 'bg-red-50';
     }
-    if (item.provider_id && isResourceOffline('provider', providerStatusMap[item.provider_id])) {
-      return 'opacity-60 bg-gray-50';
+    if (item.status === 'expired' || item.status === 'inactive') {
+      return 'bg-amber-50';
     }
     return '';
   }

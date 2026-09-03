@@ -125,7 +125,7 @@
 
   function getRowClass(item: ServerResponse): string {
     if (item.status === 'retired') {
-      return 'opacity-60 bg-gray-50';
+      return 'bg-gray-100';
     }
     return '';
   }

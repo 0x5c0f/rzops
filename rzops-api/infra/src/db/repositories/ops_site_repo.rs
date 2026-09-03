@@ -69,7 +69,7 @@ impl OpsSiteRepository for PgOpsSiteRepository {
         if s_imp.is_some() { sql.push_str(&format!(" AND importance::text = ${}", idx)); idx += 1; }
         if s_server.is_some() { sql.push_str(&format!(" AND id IN (SELECT site_id FROM cmdb_ops_site_server WHERE server_id = ${})", idx)); idx += 1; }
         if s_q.is_some() { sql.push_str(&format!(" AND name ILIKE ${}", idx)); }
-        sql.push_str(" ORDER BY CASE WHEN status::text IN ('temp_offline', 'permanent_offline') THEN 2 WHEN EXISTS (SELECT 1 FROM cmdb_ops_site_server rel WHERE rel.site_id = cmdb_ops_site.id) AND NOT EXISTS (SELECT 1 FROM cmdb_ops_site_server rel2 JOIN cmdb_server s2 ON s2.id = rel2.server_id WHERE rel2.site_id = cmdb_ops_site.id AND s2.status::text NOT IN ('retired', 'offline') AND s2.deleted_at IS NULL) THEN 1 ELSE 0 END, created_at DESC");
+        sql.push_str(" ORDER BY CASE WHEN status::text = 'permanent_offline' THEN 3 WHEN status::text = 'temp_offline' THEN 2 WHEN EXISTS (SELECT 1 FROM cmdb_ops_site_server rel WHERE rel.site_id = cmdb_ops_site.id) AND NOT EXISTS (SELECT 1 FROM cmdb_ops_site_server rel2 JOIN cmdb_server s2 ON s2.id = rel2.server_id WHERE rel2.site_id = cmdb_ops_site.id AND s2.deleted_at IS NULL AND s2.status::text NOT IN ('retired', 'offline')) THEN 1 ELSE 0 END, created_at DESC");
         if let Some(limit) = filter.limit { sql.push_str(&format!(" LIMIT {}", limit)); }
         if let Some(offset) = filter.offset { sql.push_str(&format!(" OFFSET {}", offset)); }
         let mut query = sqlx::query(&sql);

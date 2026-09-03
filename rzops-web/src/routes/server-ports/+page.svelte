@@ -40,12 +40,15 @@
 
   function getRowClass(item: ServerPortResponse): string {
     if (!item.is_enabled) {
-      return 'opacity-60 bg-gray-50';
+      return 'bg-gray-100';
     }
-    // 多绑定：仅当绑定的服务器非空且全部退役时才标灰（任一在线即保持正常显示）
+    // 多绑定：仅当绑定的服务器非空且全部退役/已删除时才标黄（任一在线即保持正常显示）
     const servers = item.servers ?? [];
-    if (servers.length > 0 && servers.every(s => isResourceOffline('server', serverStatusMap[s.id]))) {
-      return 'opacity-60 bg-gray-50';
+    if (servers.length > 0 && servers.every(s => {
+      const st = serverStatusMap[s.id];
+      return st === undefined || isResourceOffline('server', st);
+    })) {
+      return 'bg-amber-50';
     }
     return '';
   }
