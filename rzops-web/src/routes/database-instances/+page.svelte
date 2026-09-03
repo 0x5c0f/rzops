@@ -61,7 +61,10 @@
   async function loadData() {
     loading = true;
     try {
-      const res = await databaseInstancesApi.list(query);
+      // RemoteSearchSelect 清除时 value 为 ''，转换为 undefined
+      const queryToSend = { ...query };
+      if (queryToSend.server_id === '') queryToSend.server_id = undefined;
+      const res = await databaseInstancesApi.list(queryToSend);
       data = res.data;
       total = res.count;
     } catch (err) {
@@ -70,6 +73,21 @@
       loading = false;
     }
   }
+
+  // 监听服务器筛选变化（RemoteSearchSelect 双向绑定，不触发 onchange）
+  let prevServerId = $state(query.server_id);
+  $effect(() => {
+    if (query.server_id !== prevServerId) {
+      prevServerId = query.server_id;
+      query = { ...query, page: 1 };
+      loadData();
+    }
+  });
+
+  // RemoteSearchSelect 的 displayOptions 只包含已选中的服务器，避免合并后显示全部
+  let serverFilterDisplayOptions = $derived(
+    query.server_id ? serverOptions.filter(o => o.value === query.server_id) : []
+  );
 
   onMount(async () => {
     const [srvOptions, serverList] = await Promise.all([
@@ -248,10 +266,9 @@
           <RemoteSearchSelect
             bind:value={query.server_id}
             searchFn={searchServerOptions}
-            displayOptions={serverOptions}
+            displayOptions={serverFilterDisplayOptions}
             placeholder="全部服务器"
             searchPlaceholder="输入服务器名称搜索..."
-            onchange={() => { query = { ...query, page: 1 }; loadData(); }}
           />
         </div>
       </div>

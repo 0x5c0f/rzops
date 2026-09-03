@@ -68,10 +68,12 @@ export async function getServerOptions(): Promise<SelectOption[]> {
 
 /**
  * 远程搜索服务器选项（用于 RemoteSearchSelect，按关键字分页搜索）
+ * 空关键字时只返回最新创建的6个，避免下拉列表过长
  */
 export async function searchServerOptions(keyword: string): Promise<SelectOption[]> {
   try {
-    const res = await serversApi.list({ q: keyword || undefined, per_page: 20 });
+    const perPage = keyword.trim() ? 20 : 6;
+    const res = await serversApi.list({ q: keyword || undefined, per_page: perPage });
     return res.data.map(item => ({
       label: `${item.name}${item.primary_ip ? ` (${item.primary_ip})` : ''}`,
       value: item.id,
