@@ -9,9 +9,10 @@
   import Pagination from '$lib/components/shared/Pagination.svelte';
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import { onMount } from 'svelte';
-  import { getServerOptions } from '$lib/utils/entity-options';
+  import { getServerOptions, searchServerOptions } from '$lib/utils/entity-options';
   import { ipStatusOptions, ipTypeOptions } from '$lib/utils/enum-options';
   import { formatResourceWithStatus, isResourceOffline } from '$lib/utils/resource-status';
+  import RemoteSearchSelect from '$lib/components/shared/RemoteSearchSelect.svelte';
 
   let data = $state<ServerIpResponse[]>([]);
   let total = $state(0);
@@ -22,7 +23,6 @@
   let serverMap = $state<Record<string, string>>({});
   let serverStatusMap = $state<Record<string, string>>({});
   let serverOptions = $state<{ value: string; label: string }[]>([]);
-  let serverSearch = $state('');
   let showAdvancedFilter = $state(false);
   let ipTypeMap = $derived(Object.fromEntries($ipTypeOptions.map(o => [o.value, o.label])));
   let ipStatusMap = $derived(Object.fromEntries($ipStatusOptions.map(o => [o.value, o.label])));
@@ -221,31 +221,14 @@
         </div>
         <div class="space-y-1">
           <label class="text-xs font-medium text-muted-foreground">服务器</label>
-          <input
-            list="server-ip-filter-list"
-            class="w-full rounded-md border px-3 py-2 text-sm"
-            placeholder="输入服务器名称搜索..."
-            value={serverSearch}
-            oninput={(e) => {
-              serverSearch = (e.target as HTMLInputElement).value;
-            }}
-            onchange={(e) => {
-              const val = (e.target as HTMLInputElement).value;
-              const matched = serverOptions.find(o => o.label === val);
-              if (matched) {
-                query = { ...query, server_id: matched.value, page: 1 };
-                loadData();
-              } else if (!val) {
-                query = { ...query, server_id: undefined, page: 1 };
-                loadData();
-              }
-            }}
+          <RemoteSearchSelect
+            bind:value={query.server_id}
+            searchFn={searchServerOptions}
+            displayOptions={serverOptions}
+            placeholder="全部服务器"
+            searchPlaceholder="输入服务器名称搜索..."
+            onchange={() => { query = { ...query, page: 1 }; loadData(); }}
           />
-          <datalist id="server-ip-filter-list">
-            {#each serverOptions as opt}
-              <option value={opt.label}></option>
-            {/each}
-          </datalist>
         </div>
       </div>
     {/if}

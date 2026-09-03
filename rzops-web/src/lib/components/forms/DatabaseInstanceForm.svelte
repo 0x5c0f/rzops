@@ -6,10 +6,10 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
   import { Label } from '$lib/ui/label';
   import * as Card from '$lib/ui/card';
   import FormSelect from '$lib/components/shared/FormSelect.svelte';
-  import TableSelectModal from '$lib/components/shared/TableSelectModal.svelte';
+  import RemoteSearchSelect from '$lib/components/shared/RemoteSearchSelect.svelte';
   import TextArea from '$lib/components/shared/TextArea.svelte';
   import { databaseStatusOptions, databaseTypeOptions, importanceOptions, monitorTypeOptions, commonStatusOptions, serverStatusOptions, serverTypeOptions, getOptionLabel, environmentOptions } from '$lib/utils/enum-options';
-  import { searchServerPaginated } from '$lib/utils/entity-options';
+  import { searchServerOptions } from '$lib/utils/entity-options';
   import { backupPlansApi } from '$lib/api/backup-plans';
   import { monitorTargetsApi } from '$lib/api/monitor-targets';
   import { validate } from '$lib/utils/validation';
@@ -50,8 +50,7 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
   let saving = $state(false);
   let formError = $state<string | null>(null);
   let attachmentRef = $state<{ uploadAll: (id: string) => Promise<void> } | null>(null);
-  let displayServerOptions = $state<{ label: string; value: string }[]>([]);
-  let serverIds = $state<string[]>([]);
+  let serverDisplayOptions = $state<{ label: string; value: string }[]>([]);
 
   let form = $state<CreateDatabaseInstanceRequest>(createInitial(initial));
   let backupPlans = $state<BackupDraft[]>(JSON.parse(JSON.stringify(initialBackupPlans)));
@@ -72,17 +71,13 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
   }
 
   onMount(async () => {
-    // 初始化服务器选中项
+    // 编辑时回显服务器名称
     if (form.server_id) {
-      serverIds = [form.server_id];
-      // 尝试获取服务器名称用于回显
-      try {
-        const res = await searchServerPaginated('', 1, 100);
-        const found = res.data.find(s => s.id === form.server_id);
-        if (found) {
-          displayServerOptions = [{ label: String(found.name), value: form.server_id }];
-        }
-      } catch { /* ignore */ }
+      serverDisplayOptions = await searchServerOptions('');
+      const found = serverDisplayOptions.find(o => o.value === form.server_id);
+      if (!found) {
+        serverDisplayOptions = [...serverDisplayOptions, { label: form.server_id, value: form.server_id }];
+      }
     }
   });
 
@@ -172,7 +167,6 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
     }
     saving = true;
     try {
-      form.server_id = serverIds[0] || '';
       const id = await onSubmit(form);
       if (id) {
         await syncBackupPlans(id);
@@ -212,31 +206,13 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
         required
       />
 
-      <TableSelectModal
+      <RemoteSearchSelect
         label="服务器"
-        multiple={false}
-        bind:value={serverIds}
-        searchFn={searchServerPaginated}
-        displayOptions={displayServerOptions}
+        bind:value={form.server_id}
+        searchFn={searchServerOptions}
+        displayOptions={serverDisplayOptions}
         placeholder="选择服务器"
         searchPlaceholder="输入名称或 IP 搜索..."
-        modalTitle="选择服务器"
-        columns={[
-          { key: 'name', label: '服务器名称' },
-          { key: 'primary_ip', label: '主IP', width: 'w-32' },
-          {
-            key: 'status',
-            label: '状态',
-            width: 'w-20',
-            render: (item) => getOptionLabel($serverStatusOptions, String(item.status ?? '')),
-          },
-          {
-            key: 'server_type',
-            label: '类型',
-            width: 'w-24',
-            render: (item) => getOptionLabel($serverTypeOptions, String(item.server_type ?? '')),
-          },
-        ]}
       />
 
       <FormSelect

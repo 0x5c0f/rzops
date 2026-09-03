@@ -5,10 +5,10 @@
   import { Label } from '$lib/ui/label';
   import * as Card from '$lib/ui/card';
   import FormSelect from '$lib/components/shared/FormSelect.svelte';
-  import TableSelectModal from '$lib/components/shared/TableSelectModal.svelte';
+  import RemoteSearchSelect from '$lib/components/shared/RemoteSearchSelect.svelte';
   import TextArea from '$lib/components/shared/TextArea.svelte';
   import { ipStatusOptions, ipTypeOptions, serverStatusOptions, serverTypeOptions, getOptionLabel } from '$lib/utils/enum-options';
-  import { searchServerPaginated, getProviderOptions } from '$lib/utils/entity-options';
+  import { searchServerOptions, getProviderOptions } from '$lib/utils/entity-options';
   import { validate } from '$lib/utils/validation';
   import { onMount } from 'svelte';
 
@@ -26,17 +26,10 @@
 
   let saving = $state(false);
   let formError = $state<string | null>(null);
-  let displayServerOptions = $state<{ label: string; value: string }[]>([]);
   let providerOptions = $state<{ label: string; value: string }[]>([]);
-  let serverIds = $state<string[]>([]);
+  let serverDisplayOptions = $state<{ label: string; value: string }[]>([]);
 
   let form = $state<CreateServerIpRequest>(createInitial(initial));
-
-  let serverName = $derived(
-    serverIds.length > 0
-      ? (displayServerOptions.find(o => o.value === serverIds[0])?.label || serverIds[0])
-      : '-'
-  );
 
   function createInitial(initial?: CreateServerIpRequest): CreateServerIpRequest {
     return {
@@ -51,16 +44,13 @@
 
   onMount(async () => {
     providerOptions = await getProviderOptions();
-    // 初始化服务器选中项
+    // 编辑时回显服务器名称
     if (form.server_id) {
-      serverIds = [form.server_id];
-      try {
-        const res = await searchServerPaginated('', 1, 100);
-        const found = res.data.find(s => s.id === form.server_id);
-        if (found) {
-          displayServerOptions = [{ label: String(found.name), value: form.server_id }];
-        }
-      } catch { /* ignore */ }
+      serverDisplayOptions = await searchServerOptions('');
+      const found = serverDisplayOptions.find(o => o.value === form.server_id);
+      if (!found) {
+        serverDisplayOptions = [...serverDisplayOptions, { label: form.server_id, value: form.server_id }];
+      }
     }
   });
 
@@ -73,7 +63,6 @@
     if (formError) return;
     saving = true;
     try {
-      form.server_id = serverIds[0] || '';
       await onSubmit(form);
     } catch (err) {
       console.error('Failed to save server IP:', err);
@@ -95,39 +84,15 @@
       <Card.Title>基本信息</Card.Title>
     </Card.Header>
     <Card.Content class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-      {#if editing}
-        <div class="space-y-2">
-          <Label for="server_id">服务器</Label>
-          <Input id="server_id" value={serverName} disabled />
-        </div>
-      {:else}
-        <TableSelectModal
-          label="服务器"
-          multiple={false}
-          bind:value={serverIds}
-          searchFn={searchServerPaginated}
-          displayOptions={displayServerOptions}
-          placeholder="选择服务器（可留空，如未绑定的EIP）"
-          searchPlaceholder="输入名称或 IP 搜索..."
-          modalTitle="选择服务器"
-          columns={[
-            { key: 'name', label: '服务器名称' },
-            { key: 'primary_ip', label: '主IP', width: 'w-32' },
-            {
-              key: 'status',
-              label: '状态',
-              width: 'w-20',
-              render: (item) => getOptionLabel($serverStatusOptions, String(item.status ?? '')),
-            },
-            {
-              key: 'server_type',
-              label: '类型',
-              width: 'w-24',
-              render: (item) => getOptionLabel($serverTypeOptions, String(item.server_type ?? '')),
-            },
-          ]}
-        />
-      {/if}
+      <RemoteSearchSelect
+        label="服务器"
+        bind:value={form.server_id}
+        searchFn={searchServerOptions}
+        displayOptions={serverDisplayOptions}
+        placeholder={editing ? '' : '选择服务器（可留空，如未绑定的EIP）'}
+        searchPlaceholder="输入名称或 IP 搜索..."
+        disabled={editing}
+      />
 
       <div class="space-y-2">
         <Label for="ip_address">IP地址 <span class="text-destructive">*</span></Label>
