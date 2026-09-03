@@ -23,9 +23,17 @@
   let perPage = $derived(query.per_page ?? 20);
   let providerMap = $state<Record<string, string>>({});
   let providerStatusMap = $state<Record<string, string>>({});
+  let showAdvancedFilter = $state(false);
   let countryMap = $derived(Object.fromEntries($countryOptions.map(o => [o.value, o.label])));
 
   let commonStatusMap = $derived(Object.fromEntries($commonStatusOptions.map(o => [o.value, o.label])));
+
+  let activeFilterCount = $derived.by(() => {
+    let count = 0;
+    if (query.status) count++;
+    if (query.country) count++;
+    return count;
+  });
 
   const columns = $derived([
     { key: 'name', label: '名称' , link: (item: DataCenterResponse) => `/datacenters/${item.id}`, lockVisible: true },
@@ -75,6 +83,19 @@
     loadData();
   }
 
+  function resetFilters() {
+    query = { page: 1, per_page: perPage };
+    loadData();
+  }
+
+  function clearFilter(key: keyof ListDataCentersQuery) {
+    const newQuery = { ...query };
+    delete newQuery[key];
+    newQuery.page = 1;
+    query = newQuery;
+    loadData();
+  }
+
   function handlePageChange(newPage: number) {
     query = { ...query, page: newPage };
     loadData();
@@ -111,12 +132,85 @@
     <Button onclick={() => goto('/datacenters/new')}>新建数据中心</Button>
   </div>
 
-  <div class="flex gap-2">
-    <Input
-      placeholder="搜索数据中心..."
-      class="max-w-sm"
-      oninput={handleSearch}
-    />
+  <div class="space-y-3">
+    <div class="flex flex-wrap items-center gap-2">
+      <Input
+        placeholder="搜索名称 / 地址..."
+        class="max-w-sm"
+        value={query.q ?? ''}
+        oninput={handleSearch}
+      />
+      <Button
+        variant={showAdvancedFilter ? 'default' : 'outline'}
+        size="sm"
+        onclick={() => (showAdvancedFilter = !showAdvancedFilter)}
+      >
+        高级筛选
+        {#if activeFilterCount > 0}
+          <span class="ml-1 rounded-full bg-primary px-1.5 text-xs text-primary-foreground">{activeFilterCount}</span>
+        {/if}
+      </Button>
+      {#if activeFilterCount > 0}
+        <Button variant="ghost" size="sm" onclick={resetFilters}>重置</Button>
+      {/if}
+    </div>
+
+    {#if activeFilterCount > 0}
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="text-sm text-muted-foreground">已选条件：</span>
+        {#if query.status}
+          <span class="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-xs">
+            状态: {commonStatusMap[query.status] ?? query.status}
+            <button class="ml-1 hover:text-destructive" onclick={() => clearFilter('status')}>×</button>
+          </span>
+        {/if}
+        {#if query.country}
+          <span class="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-xs">
+            国家: {countryMap[query.country] ?? query.country}
+            <button class="ml-1 hover:text-destructive" onclick={() => clearFilter('country')}>×</button>
+          </span>
+        {/if}
+      </div>
+    {/if}
+
+    {#if showAdvancedFilter}
+      <div class="grid gap-3 rounded-lg border p-4 md:grid-cols-2">
+        <div class="space-y-1">
+          <label class="text-xs font-medium text-muted-foreground">状态</label>
+          <select
+            class="w-full rounded-md border px-3 py-2 text-sm"
+            value={query.status ?? ''}
+            onchange={(e) => {
+              const val = (e.target as HTMLSelectElement).value;
+              query = { ...query, status: val || undefined, page: 1 };
+              loadData();
+            }}
+          >
+            <option value="">全部</option>
+            {#each $commonStatusOptions as opt}
+              <option value={opt.value}>{opt.label}</option>
+            {/each}
+          </select>
+        </div>
+        <div class="space-y-1">
+          <label class="text-xs font-medium text-muted-foreground">国家</label>
+          <select
+            class="w-full rounded-md border px-3 py-2 text-sm"
+            value={query.country ?? ''}
+            onchange={(e) => {
+              const val = (e.target as HTMLSelectElement).value;
+              query = { ...query, country: val || undefined, page: 1 };
+              loadData();
+            }}
+          >
+            <option value="">全部</option>
+            {#each $countryOptions as opt}
+              <option value={opt.value}>{opt.label}</option>
+            {/each}
+          </select>
+        </div>
+      </div>
+    {/if}
   </div>
 
   <DataTable

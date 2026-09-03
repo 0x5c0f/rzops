@@ -17,10 +17,19 @@
   let query = $state<ListOpsSitesQuery>({ page: 1, per_page: 20 });
   let page = $derived(query.page ?? 1);
   let perPage = $derived(query.per_page ?? 20);
+  let showAdvancedFilter = $state(false);
   let siteStatusMap = $derived(Object.fromEntries($siteStatusOptions.map(o => [o.value, o.label])));
   let serviceTargetMap = $derived(Object.fromEntries($serviceTargetOptions.map(o => [o.value, o.label])));
   let importanceMap = $derived(Object.fromEntries($importanceOptions.map(o => [o.value, o.label])));
   let environmentMap = $derived(Object.fromEntries($environmentOptions.map(o => [o.value, o.label])));
+
+  let activeFilterCount = $derived.by(() => {
+    let count = 0;
+    if (query.status) count++;
+    if (query.environment) count++;
+    if (query.importance) count++;
+    return count;
+  });
 
   const columns = $derived([
     { key: 'name', label: '名称' , link: (item: OpsSiteResponse) => `/ops-sites/${item.id}`, lockVisible: true },
@@ -50,6 +59,19 @@
   function handleSearch(e: Event) {
     const input = e.target as HTMLInputElement;
     query = { ...query, q: input.value, page: 1 };
+    loadData();
+  }
+
+  function resetFilters() {
+    query = { page: 1, per_page: perPage };
+    loadData();
+  }
+
+  function clearFilter(key: keyof ListOpsSitesQuery) {
+    const newQuery = { ...query };
+    delete newQuery[key];
+    newQuery.page = 1;
+    query = newQuery;
     loadData();
   }
 
@@ -89,22 +111,108 @@
     <Button onclick={() => goto('/ops-sites/new')}>新建站点</Button>
   </div>
 
-  <div class="flex flex-wrap gap-2">
-    <Input
-      placeholder="搜索站点..."
-      class="max-w-sm"
-      oninput={handleSearch}
-    />
-    <select
-      class="w-32 rounded-md border px-3 py-2 text-sm"
-      bind:value={query.environment}
-      onchange={() => { query = { ...query, page: 1 }; loadData(); }}
-    >
-      <option value="">全部环境</option>
-      {#each $environmentOptions as opt}
-        <option value={opt.value}>{opt.label}</option>
-      {/each}
-    </select>
+  <div class="space-y-3">
+    <div class="flex flex-wrap items-center gap-2">
+      <Input
+        placeholder="搜索名称 / URL..."
+        class="max-w-sm"
+        value={query.q ?? ''}
+        oninput={handleSearch}
+      />
+      <Button
+        variant={showAdvancedFilter ? 'default' : 'outline'}
+        size="sm"
+        onclick={() => (showAdvancedFilter = !showAdvancedFilter)}
+      >
+        高级筛选
+        {#if activeFilterCount > 0}
+          <span class="ml-1 rounded-full bg-primary px-1.5 text-xs text-primary-foreground">{activeFilterCount}</span>
+        {/if}
+      </Button>
+      {#if activeFilterCount > 0}
+        <Button variant="ghost" size="sm" onclick={resetFilters}>重置</Button>
+      {/if}
+    </div>
+
+    {#if activeFilterCount > 0}
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="text-sm text-muted-foreground">已选条件：</span>
+        {#if query.status}
+          <span class="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-xs">
+            状态: {siteStatusMap[query.status] ?? query.status}
+            <button class="ml-1 hover:text-destructive" onclick={() => clearFilter('status')}>×</button>
+          </span>
+        {/if}
+        {#if query.environment}
+          <span class="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-xs">
+            环境: {environmentMap[query.environment] ?? query.environment}
+            <button class="ml-1 hover:text-destructive" onclick={() => clearFilter('environment')}>×</button>
+          </span>
+        {/if}
+        {#if query.importance}
+          <span class="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-xs">
+            重要性: {importanceMap[query.importance] ?? query.importance}
+            <button class="ml-1 hover:text-destructive" onclick={() => clearFilter('importance')}>×</button>
+          </span>
+        {/if}
+      </div>
+    {/if}
+
+    {#if showAdvancedFilter}
+      <div class="grid gap-3 rounded-lg border p-4 md:grid-cols-3">
+        <div class="space-y-1">
+          <label class="text-xs font-medium text-muted-foreground">状态</label>
+          <select
+            class="w-full rounded-md border px-3 py-2 text-sm"
+            value={query.status ?? ''}
+            onchange={(e) => {
+              const val = (e.target as HTMLSelectElement).value;
+              query = { ...query, status: val || undefined, page: 1 };
+              loadData();
+            }}
+          >
+            <option value="">全部</option>
+            {#each $siteStatusOptions as opt}
+              <option value={opt.value}>{opt.label}</option>
+            {/each}
+          </select>
+        </div>
+        <div class="space-y-1">
+          <label class="text-xs font-medium text-muted-foreground">环境</label>
+          <select
+            class="w-full rounded-md border px-3 py-2 text-sm"
+            value={query.environment ?? ''}
+            onchange={(e) => {
+              const val = (e.target as HTMLSelectElement).value;
+              query = { ...query, environment: val || undefined, page: 1 };
+              loadData();
+            }}
+          >
+            <option value="">全部</option>
+            {#each $environmentOptions as opt}
+              <option value={opt.value}>{opt.label}</option>
+            {/each}
+          </select>
+        </div>
+        <div class="space-y-1">
+          <label class="text-xs font-medium text-muted-foreground">重要性</label>
+          <select
+            class="w-full rounded-md border px-3 py-2 text-sm"
+            value={query.importance ?? ''}
+            onchange={(e) => {
+              const val = (e.target as HTMLSelectElement).value;
+              query = { ...query, importance: val || undefined, page: 1 };
+              loadData();
+            }}
+          >
+            <option value="">全部</option>
+            {#each $importanceOptions as opt}
+              <option value={opt.value}>{opt.label}</option>
+            {/each}
+          </select>
+        </div>
+      </div>
+    {/if}
   </div>
 
   <DataTable

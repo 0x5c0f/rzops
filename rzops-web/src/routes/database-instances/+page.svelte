@@ -21,10 +21,21 @@
   let perPage = $derived(query.per_page ?? 20);
   let serverMap = $state<Record<string, string>>({});
   let serverStatusMap = $state<Record<string, string>>({});
+  let serverOptions = $state<{ value: string; label: string }[]>([]);
+  let showAdvancedFilter = $state(false);
   let dbTypeMap = $derived(Object.fromEntries($databaseTypeOptions.map(o => [o.value, o.label])));
   let dbStatusMap = $derived(Object.fromEntries($databaseStatusOptions.map(o => [o.value, o.label])));
   let importanceMap = $derived(Object.fromEntries($importanceOptions.map(o => [o.value, o.label])));
   let environmentMap = $derived(Object.fromEntries($environmentOptions.map(o => [o.value, o.label])));
+
+  let activeFilterCount = $derived.by(() => {
+    let count = 0;
+    if (query.status) count++;
+    if (query.environment) count++;
+    if (query.db_type) count++;
+    if (query.server_id) count++;
+    return count;
+  });
 
   const columns = $derived([
     { key: 'name', label: '名称' , link: (item: DatabaseInstanceResponse) => `/database-instances/${item.id}`, lockVisible: true },
@@ -64,6 +75,7 @@
       getServerOptions(),
       serversApi.list({ per_page: 200 }),
     ]);
+    serverOptions = srvOptions;
     Object.assign(serverMap, Object.fromEntries(srvOptions.map(o => [o.value, o.label])));
     serverStatusMap = Object.fromEntries(serverList.data.map((s: {id: string, status: string}) => [s.id, s.status]));
     await loadData();
@@ -72,6 +84,19 @@
   function handleSearch(e: Event) {
     const input = e.target as HTMLInputElement;
     query = { ...query, q: input.value, page: 1 };
+    loadData();
+  }
+
+  function resetFilters() {
+    query = { page: 1, per_page: perPage };
+    loadData();
+  }
+
+  function clearFilter(key: keyof ListDatabaseInstancesQuery) {
+    const newQuery = { ...query };
+    delete newQuery[key];
+    newQuery.page = 1;
+    query = newQuery;
     loadData();
   }
 
@@ -111,22 +136,131 @@
     <Button onclick={() => goto('/database-instances/new')}>新建数据库实例</Button>
   </div>
 
-  <div class="flex flex-wrap gap-2">
-    <Input
-      placeholder="搜索数据库实例..."
-      class="max-w-sm"
-      oninput={handleSearch}
-    />
-    <select
-      class="w-32 rounded-md border px-3 py-2 text-sm"
-      bind:value={query.environment}
-      onchange={() => { query = { ...query, page: 1 }; loadData(); }}
-    >
-      <option value="">全部环境</option>
-      {#each $environmentOptions as opt}
-        <option value={opt.value}>{opt.label}</option>
-      {/each}
-    </select>
+  <div class="space-y-3">
+    <div class="flex flex-wrap items-center gap-2">
+      <Input
+        placeholder="搜索名称 / 版本..."
+        class="max-w-sm"
+        value={query.q ?? ''}
+        oninput={handleSearch}
+      />
+      <Button
+        variant={showAdvancedFilter ? 'default' : 'outline'}
+        size="sm"
+        onclick={() => (showAdvancedFilter = !showAdvancedFilter)}
+      >
+        高级筛选
+        {#if activeFilterCount > 0}
+          <span class="ml-1 rounded-full bg-primary px-1.5 text-xs text-primary-foreground">{activeFilterCount}</span>
+        {/if}
+      </Button>
+      {#if activeFilterCount > 0}
+        <Button variant="ghost" size="sm" onclick={resetFilters}>重置</Button>
+      {/if}
+    </div>
+
+    {#if activeFilterCount > 0}
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="text-sm text-muted-foreground">已选条件：</span>
+        {#if query.status}
+          <span class="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-xs">
+            状态: {dbStatusMap[query.status] ?? query.status}
+            <button class="ml-1 hover:text-destructive" onclick={() => clearFilter('status')}>×</button>
+          </span>
+        {/if}
+        {#if query.environment}
+          <span class="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-xs">
+            环境: {environmentMap[query.environment] ?? query.environment}
+            <button class="ml-1 hover:text-destructive" onclick={() => clearFilter('environment')}>×</button>
+          </span>
+        {/if}
+        {#if query.db_type}
+          <span class="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-xs">
+            类型: {dbTypeMap[query.db_type] ?? query.db_type}
+            <button class="ml-1 hover:text-destructive" onclick={() => clearFilter('db_type')}>×</button>
+          </span>
+        {/if}
+        {#if query.server_id}
+          <span class="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-xs">
+            服务器: {serverMap[query.server_id] ?? query.server_id}
+            <button class="ml-1 hover:text-destructive" onclick={() => clearFilter('server_id')}>×</button>
+          </span>
+        {/if}
+      </div>
+    {/if}
+
+    {#if showAdvancedFilter}
+      <div class="grid gap-3 rounded-lg border p-4 md:grid-cols-2 lg:grid-cols-4">
+        <div class="space-y-1">
+          <label class="text-xs font-medium text-muted-foreground">状态</label>
+          <select
+            class="w-full rounded-md border px-3 py-2 text-sm"
+            value={query.status ?? ''}
+            onchange={(e) => {
+              const val = (e.target as HTMLSelectElement).value;
+              query = { ...query, status: val || undefined, page: 1 };
+              loadData();
+            }}
+          >
+            <option value="">全部</option>
+            {#each $databaseStatusOptions as opt}
+              <option value={opt.value}>{opt.label}</option>
+            {/each}
+          </select>
+        </div>
+        <div class="space-y-1">
+          <label class="text-xs font-medium text-muted-foreground">环境</label>
+          <select
+            class="w-full rounded-md border px-3 py-2 text-sm"
+            value={query.environment ?? ''}
+            onchange={(e) => {
+              const val = (e.target as HTMLSelectElement).value;
+              query = { ...query, environment: val || undefined, page: 1 };
+              loadData();
+            }}
+          >
+            <option value="">全部</option>
+            {#each $environmentOptions as opt}
+              <option value={opt.value}>{opt.label}</option>
+            {/each}
+          </select>
+        </div>
+        <div class="space-y-1">
+          <label class="text-xs font-medium text-muted-foreground">数据库类型</label>
+          <select
+            class="w-full rounded-md border px-3 py-2 text-sm"
+            value={query.db_type ?? ''}
+            onchange={(e) => {
+              const val = (e.target as HTMLSelectElement).value;
+              query = { ...query, db_type: val || undefined, page: 1 };
+              loadData();
+            }}
+          >
+            <option value="">全部</option>
+            {#each $databaseTypeOptions as opt}
+              <option value={opt.value}>{opt.label}</option>
+            {/each}
+          </select>
+        </div>
+        <div class="space-y-1">
+          <label class="text-xs font-medium text-muted-foreground">服务器</label>
+          <select
+            class="w-full rounded-md border px-3 py-2 text-sm"
+            value={query.server_id ?? ''}
+            onchange={(e) => {
+              const val = (e.target as HTMLSelectElement).value;
+              query = { ...query, server_id: val || undefined, page: 1 };
+              loadData();
+            }}
+          >
+            <option value="">全部</option>
+            {#each serverOptions as opt}
+              <option value={opt.value}>{opt.label}</option>
+            {/each}
+          </select>
+        </div>
+      </div>
+    {/if}
   </div>
 
   <DataTable

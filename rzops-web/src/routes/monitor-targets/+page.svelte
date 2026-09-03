@@ -23,10 +23,18 @@
   let query = $state<ListMonitorTargetsQuery>({ page: 1, per_page: 20 });
   let page = $derived(query.page ?? 1);
   let perPage = $derived(query.per_page ?? 20);
+  let showAdvancedFilter = $state(false);
 
   let statusMap = $derived(Object.fromEntries($commonStatusOptions.map(o => [o.value, o.label])));
   let monitorTypeMap = $derived(Object.fromEntries($monitorTypeOptions.map(o => [o.value, o.label])));
   let targetTypeMap = $derived(Object.fromEntries($assetTargetTypeOptions.map(o => [o.value, o.label])));
+
+  let activeFilterCount = $derived.by(() => {
+    let count = 0;
+    if (query.status) count++;
+    if (query.target_type) count++;
+    return count;
+  });
 
   // 关联目标状态映射
   let serverStatusMap = $state<Record<string, string>>({});
@@ -119,6 +127,19 @@
     loadData();
   }
 
+  function resetFilters() {
+    query = { page: 1, per_page: perPage };
+    loadData();
+  }
+
+  function clearFilter(key: keyof ListMonitorTargetsQuery) {
+    const newQuery = { ...query };
+    delete newQuery[key];
+    newQuery.page = 1;
+    query = newQuery;
+    loadData();
+  }
+
   function handlePageChange(newPage: number) {
     query = { ...query, page: newPage };
     loadData();
@@ -155,12 +176,85 @@
     <Button onclick={() => goto('/monitor-targets/new')}>新建监控目标</Button>
   </div>
 
-  <div class="flex gap-2">
-    <Input
-      placeholder="搜索监控目标..."
-      class="max-w-sm"
-      oninput={handleSearch}
-    />
+  <div class="space-y-3">
+    <div class="flex flex-wrap items-center gap-2">
+      <Input
+        placeholder="搜索名称 / 目标..."
+        class="max-w-sm"
+        value={query.q ?? ''}
+        oninput={handleSearch}
+      />
+      <Button
+        variant={showAdvancedFilter ? 'default' : 'outline'}
+        size="sm"
+        onclick={() => (showAdvancedFilter = !showAdvancedFilter)}
+      >
+        高级筛选
+        {#if activeFilterCount > 0}
+          <span class="ml-1 rounded-full bg-primary px-1.5 text-xs text-primary-foreground">{activeFilterCount}</span>
+        {/if}
+      </Button>
+      {#if activeFilterCount > 0}
+        <Button variant="ghost" size="sm" onclick={resetFilters}>重置</Button>
+      {/if}
+    </div>
+
+    {#if activeFilterCount > 0}
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="text-sm text-muted-foreground">已选条件：</span>
+        {#if query.status}
+          <span class="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-xs">
+            状态: {statusMap[query.status] ?? query.status}
+            <button class="ml-1 hover:text-destructive" onclick={() => clearFilter('status')}>×</button>
+          </span>
+        {/if}
+        {#if query.target_type}
+          <span class="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-xs">
+            目标类型: {targetTypeMap[query.target_type] ?? query.target_type}
+            <button class="ml-1 hover:text-destructive" onclick={() => clearFilter('target_type')}>×</button>
+          </span>
+        {/if}
+      </div>
+    {/if}
+
+    {#if showAdvancedFilter}
+      <div class="grid gap-3 rounded-lg border p-4 md:grid-cols-2">
+        <div class="space-y-1">
+          <label class="text-xs font-medium text-muted-foreground">状态</label>
+          <select
+            class="w-full rounded-md border px-3 py-2 text-sm"
+            value={query.status ?? ''}
+            onchange={(e) => {
+              const val = (e.target as HTMLSelectElement).value;
+              query = { ...query, status: val || undefined, page: 1 };
+              loadData();
+            }}
+          >
+            <option value="">全部</option>
+            {#each $commonStatusOptions as opt}
+              <option value={opt.value}>{opt.label}</option>
+            {/each}
+          </select>
+        </div>
+        <div class="space-y-1">
+          <label class="text-xs font-medium text-muted-foreground">目标类型</label>
+          <select
+            class="w-full rounded-md border px-3 py-2 text-sm"
+            value={query.target_type ?? ''}
+            onchange={(e) => {
+              const val = (e.target as HTMLSelectElement).value;
+              query = { ...query, target_type: val || undefined, page: 1 };
+              loadData();
+            }}
+          >
+            <option value="">全部</option>
+            {#each $assetTargetTypeOptions as opt}
+              <option value={opt.value}>{opt.label}</option>
+            {/each}
+          </select>
+        </div>
+      </div>
+    {/if}
   </div>
 
   <DataTable
