@@ -76,7 +76,7 @@ impl ServerPortRepository for PgServerPortRepository {
             string_binds.push(format!("%{}%", q));
         }
 
-        sql.push_str(" GROUP BY p.id ORDER BY CASE WHEN p.is_enabled = false THEN 1 ELSE 0 END, p.created_at DESC");
+        sql.push_str(" GROUP BY p.id ORDER BY CASE WHEN p.is_enabled = false THEN 2 WHEN NOT EXISTS (SELECT 1 FROM cmdb_server_port_server ps2 JOIN cmdb_server s2 ON s2.id = ps2.server_id WHERE ps2.server_port_id = p.id AND s2.status::text NOT IN ('retired', 'offline') AND s2.deleted_at IS NULL) AND EXISTS (SELECT 1 FROM cmdb_server_port_server ps3 WHERE ps3.server_port_id = p.id) THEN 1 ELSE 0 END, p.created_at DESC");
         if let Some(limit) = filter.limit {
             sql.push_str(&format!(" LIMIT {}", limit));
         }

@@ -42,8 +42,12 @@
     if (!item.is_enabled) {
       return 'opacity-60 bg-gray-50';
     }
-    const hasOffline = item.servers?.some(s => isResourceOffline('server', serverStatusMap[s.id]));
-    return hasOffline ? 'opacity-60 bg-gray-50' : '';
+    // 多绑定：仅当绑定的服务器非空且全部退役时才标灰（任一在线即保持正常显示）
+    const servers = item.servers ?? [];
+    if (servers.length > 0 && servers.every(s => isResourceOffline('server', serverStatusMap[s.id]))) {
+      return 'opacity-60 bg-gray-50';
+    }
+    return '';
   }
 
   async function loadData() {
