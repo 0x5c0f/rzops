@@ -4,6 +4,7 @@ pub mod error_response;
 pub mod auth_extractor;
 pub mod change_log;
 pub mod resource_names;
+pub mod dict_cache;
 pub mod openapi;
 
 pub use routes::*;

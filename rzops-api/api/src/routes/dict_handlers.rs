@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use axum::{
-    extract::{Path, Query, State},
+    extract::{Extension, Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
     Json,
@@ -13,6 +13,7 @@ use rzops_domain::models::dict::DictItem;
 use rzops_domain::ports::dict_repository::DictRepository;
 
 use crate::auth_extractor::AuthUser;
+use crate::dict_cache::DictCache;
 use crate::dto::dict_dto::*;
 use crate::dto::provider_dto::ErrorResponse;
 
@@ -35,11 +36,13 @@ fn to_response(d: &DictItem) -> DictResponse {
 pub async fn list_dicts(
     _auth: AuthUser,
     State(repo): State<Arc<dyn DictRepository>>,
+    Extension(cache): Extension<Arc<DictCache>>,
     Query(query): Query<ListDictsQuery>,
 ) -> impl IntoResponse {
     let result = match &query.dict_type {
         Some(ty) if !ty.is_empty() => repo.list_by_type(ty, query.enabled_only.unwrap_or(false)).await,
-        _ if query.enabled_only.unwrap_or(false) => repo.list_all_enabled().await,
+        // 全量启用字典（业务表单下拉）走进程内缓存，避免每次刷新页面全表扫 DB
+        _ if query.enabled_only.unwrap_or(false) => cache.get_enabled(&repo).await,
         _ => repo.list_all().await,
     };
     match result {
@@ -99,6 +102,7 @@ pub async fn get_dict(
 pub async fn create_dict(
     _auth: AuthUser,
     State(repo): State<Arc<dyn DictRepository>>,
+    Extension(cache): Extension<Arc<DictCache>>,
     Json(body): Json<CreateDictRequest>,
 ) -> impl IntoResponse {
     let now = Utc::now();
@@ -124,7 +128,10 @@ pub async fn create_dict(
             .into_response();
     }
     match repo.create(&item).await {
-        Ok(()) => (StatusCode::CREATED, Json(to_response(&item))).into_response(),
+        Ok(()) => {
+            cache.invalidate().await;
+            (StatusCode::CREATED, Json(to_response(&item))).into_response()
+        }
         Err(e) => (
             StatusCode::CONFLICT,
             Json(ErrorResponse {
@@ -139,6 +146,7 @@ pub async fn create_dict(
 pub async fn update_dict(
     _auth: AuthUser,
     State(repo): State<Arc<dyn DictRepository>>,
+    Extension(cache): Extension<Arc<DictCache>>,
     Path(id): Path<Uuid>,
     Json(body): Json<UpdateDictRequest>,
 ) -> impl IntoResponse {
@@ -172,16 +180,19 @@ pub async fn update_dict(
         .update(id, &label, sort_order, enabled, remark.as_deref(), extra_data.as_ref())
         .await
     {
-        Ok(()) => match repo.find_by_id(id).await {
-            Ok(Some(d)) => (StatusCode::OK, Json(to_response(&d))).into_response(),
-            _ => (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ErrorResponse {
-                    error: "failed to reload dict item".to_string(),
-                }),
-            )
-                .into_response(),
-        },
+        Ok(()) => {
+            cache.invalidate().await;
+            match repo.find_by_id(id).await {
+                Ok(Some(d)) => (StatusCode::OK, Json(to_response(&d))).into_response(),
+                _ => (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(ErrorResponse {
+                        error: "failed to reload dict item".to_string(),
+                    }),
+                )
+                    .into_response(),
+            }
+        }
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ErrorResponse {
@@ -196,10 +207,14 @@ pub async fn update_dict(
 pub async fn delete_dict(
     _auth: AuthUser,
     State(repo): State<Arc<dyn DictRepository>>,
+    Extension(cache): Extension<Arc<DictCache>>,
     Path(id): Path<Uuid>,
 ) -> impl IntoResponse {
     match repo.delete(id).await {
-        Ok(()) => StatusCode::NO_CONTENT.into_response(),
+        Ok(()) => {
+            cache.invalidate().await;
+            StatusCode::NO_CONTENT.into_response()
+        }
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ErrorResponse {

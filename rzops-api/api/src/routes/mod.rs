@@ -119,9 +119,11 @@ pub fn change_record_routes(repo: Arc<dyn change_record_repository::ChangeRecord
     Router::new().route("/", axum::routing::get(list_change_records))
         .route("/{id}", axum::routing::get(get_change_record)).with_state(repo).layer(axum::Extension(pool))
 }
-pub fn dict_routes(repo: Arc<dyn dict_repository::DictRepository>) -> Router {
+pub fn dict_routes(repo: Arc<dyn dict_repository::DictRepository>, cache: Arc<crate::dict_cache::DictCache>) -> Router {
     Router::new().route("/", axum::routing::get(list_dicts).post(create_dict))
-        .route("/{id}", axum::routing::get(get_dict).put(update_dict).delete(delete_dict)).with_state(repo)
+        .route("/{id}", axum::routing::get(get_dict).put(update_dict).delete(delete_dict))
+        .with_state(repo)
+        .layer(axum::Extension(cache))
 }
 /// Shared state for site relation routes.
 #[derive(Clone)]

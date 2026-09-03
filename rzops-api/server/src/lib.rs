@@ -116,7 +116,10 @@ pub fn create_router(state: AppState) -> Router {
         .nest("/api/v1/attachments", rzops_api::attachment_routes(state.attachment_repo.clone(), state.pool.clone(), state.upload_dir.clone()))
         .nest("/api/v1/audit-logs", rzops_api::audit_log_routes(state.audit_log_repo.clone(), state.pool.clone()))
         .nest("/api/v1/change-records", rzops_api::change_record_routes(state.change_record_repo.clone(), state.pool.clone()))
-        .nest("/api/v1/dicts", rzops_api::dict_routes(state.dict_repo.clone()))
+        .nest("/api/v1/dicts", rzops_api::dict_routes(
+            state.dict_repo.clone(),
+            Arc::new(rzops_api::dict_cache::DictCache::new(std::time::Duration::from_secs(60))),
+        ))
         .nest("/api/v1/site-relations", rzops_api::site_relation_routes(rzops_api::SiteRelationState {
             site_server: state.site_server_relation_repo.clone(),
             site_database: state.site_database_relation_repo.clone(),
