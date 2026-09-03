@@ -115,41 +115,22 @@ impl ServerRepository for PgServerRepository {
 
     async fn find_all(&self, filter: ServerFilter) -> Result<Vec<Server>, sqlx::Error> {
         let mut sql = format!("SELECT {} FROM cmdb_server WHERE deleted_at IS NULL", SELECT_COLS);
-        let mut binds: Vec<String> = Vec::new();
         let mut idx = 1;
 
-        if let Some(ref status) = filter.status {
-            sql.push_str(&format!(" AND status::text = ${}", idx));
-            binds.push(status.clone());
-            idx += 1;
-        }
-        if let Some(ref environment) = filter.environment {
-            sql.push_str(&format!(" AND environment = ${}", idx));
-            binds.push(environment.clone());
-            idx += 1;
-        }
-        if let Some(_dc_id) = filter.data_center_id {
-            sql.push_str(&format!(" AND data_center_id = ${}", idx));
-            // bind separately below
-            let _ = idx;
-            // We can't push Uuid into Vec<String>, so use a different approach
-            // Actually, let's restructure to handle mixed types
-            return self.find_all_with_uuid_filter(filter).await;
-        }
-        if let Some(ref server_type) = filter.server_type {
-            sql.push_str(&format!(" AND server_type::text = ${}", idx));
-            binds.push(server_type.clone());
-            idx += 1;
-        }
-        if let Some(is_db) = filter.is_database_server {
-            sql.push_str(&format!(" AND is_database_server = ${}", idx));
-            binds.push(is_db.to_string());
-            idx += 1;
-        }
-        if let Some(ref q) = filter.q {
-            sql.push_str(&format!(" AND (name ILIKE ${idx} OR primary_ip ILIKE ${idx} OR asset_code ILIKE ${idx})", idx = idx));
-            binds.push(format!("%{}%", q));
-        }
+        // Store filter values to bind in the same order as $N placeholders
+        let status_val = filter.status.as_ref();
+        let environment_val = filter.environment.as_ref();
+        let dc_id_val = filter.data_center_id;
+        let server_type_val = filter.server_type.as_ref();
+        let is_db_val = filter.is_database_server;
+        let q_val = filter.q.as_ref();
+
+        if status_val.is_some() { sql.push_str(&format!(" AND status::text = ${}", idx)); idx += 1; }
+        if environment_val.is_some() { sql.push_str(&format!(" AND environment = ${}", idx)); idx += 1; }
+        if dc_id_val.is_some() { sql.push_str(&format!(" AND data_center_id = ${}", idx)); idx += 1; }
+        if server_type_val.is_some() { sql.push_str(&format!(" AND server_type::text = ${}", idx)); idx += 1; }
+        if is_db_val.is_some() { sql.push_str(&format!(" AND is_database_server = ${}", idx)); idx += 1; }
+        if q_val.is_some() { sql.push_str(&format!(" AND (name ILIKE ${idx} OR primary_ip ILIKE ${idx} OR asset_code ILIKE ${idx})", idx = idx)); }
 
         sql.push_str(" ORDER BY created_at DESC");
 
@@ -160,10 +141,14 @@ impl ServerRepository for PgServerRepository {
             sql.push_str(&format!(" OFFSET {}", offset));
         }
 
+        // Bind in the same order as $N placeholders
         let mut query = sqlx::query(&sql);
-        for bind in &binds {
-            query = query.bind(bind);
-        }
+        if let Some(s) = status_val { query = query.bind(s); }
+        if let Some(e) = environment_val { query = query.bind(e); }
+        if let Some(dc) = dc_id_val { query = query.bind(dc); }
+        if let Some(st) = server_type_val { query = query.bind(st); }
+        if let Some(is_db) = is_db_val { query = query.bind(is_db); }
+        if let Some(q) = q_val { query = query.bind(format!("%{}%", q)); }
 
         let rows = query.fetch_all(&self.pool).await?;
         Ok(rows.iter().map(|r| row_to_server(r)).collect())
@@ -171,43 +156,31 @@ impl ServerRepository for PgServerRepository {
 
     async fn count(&self, filter: ServerFilter) -> Result<i64, sqlx::Error> {
         let mut sql = String::from("SELECT COUNT(*) as count FROM cmdb_server WHERE deleted_at IS NULL");
-        let mut string_binds: Vec<String> = Vec::new();
-        let mut uuid_binds: Vec<Uuid> = Vec::new();
         let mut idx = 1;
 
-        if let Some(ref status) = filter.status {
-            sql.push_str(&format!(" AND status::text = ${}", idx));
-            string_binds.push(status.clone());
-            idx += 1;
-        }
-        if let Some(ref environment) = filter.environment {
-            sql.push_str(&format!(" AND environment = ${}", idx));
-            string_binds.push(environment.clone());
-            idx += 1;
-        }
-        if let Some(dc_id) = filter.data_center_id {
-            sql.push_str(&format!(" AND data_center_id = ${}", idx));
-            uuid_binds.push(dc_id);
-            idx += 1;
-        }
-        if let Some(ref server_type) = filter.server_type {
-            sql.push_str(&format!(" AND server_type::text = ${}", idx));
-            string_binds.push(server_type.clone());
-            idx += 1;
-        }
-        if let Some(is_db) = filter.is_database_server {
-            sql.push_str(&format!(" AND is_database_server = ${}", idx));
-            string_binds.push(is_db.to_string());
-            idx += 1;
-        }
-        if let Some(ref q) = filter.q {
-            sql.push_str(&format!(" AND (name ILIKE ${idx} OR primary_ip ILIKE ${idx} OR asset_code ILIKE ${idx})", idx = idx));
-            string_binds.push(format!("%{}%", q));
-        }
+        // Store filter values to bind in the same order as $N placeholders
+        let status_val = filter.status.as_ref();
+        let environment_val = filter.environment.as_ref();
+        let dc_id_val = filter.data_center_id;
+        let server_type_val = filter.server_type.as_ref();
+        let is_db_val = filter.is_database_server;
+        let q_val = filter.q.as_ref();
 
+        if status_val.is_some() { sql.push_str(&format!(" AND status::text = ${}", idx)); idx += 1; }
+        if environment_val.is_some() { sql.push_str(&format!(" AND environment = ${}", idx)); idx += 1; }
+        if dc_id_val.is_some() { sql.push_str(&format!(" AND data_center_id = ${}", idx)); idx += 1; }
+        if server_type_val.is_some() { sql.push_str(&format!(" AND server_type::text = ${}", idx)); idx += 1; }
+        if is_db_val.is_some() { sql.push_str(&format!(" AND is_database_server = ${}", idx)); idx += 1; }
+        if q_val.is_some() { sql.push_str(&format!(" AND (name ILIKE ${idx} OR primary_ip ILIKE ${idx} OR asset_code ILIKE ${idx})", idx = idx)); }
+
+        // Bind in the same order as $N placeholders
         let mut query = sqlx::query(&sql);
-        for s in &string_binds { query = query.bind(s); }
-        for u in &uuid_binds { query = query.bind(u); }
+        if let Some(s) = status_val { query = query.bind(s); }
+        if let Some(e) = environment_val { query = query.bind(e); }
+        if let Some(dc) = dc_id_val { query = query.bind(dc); }
+        if let Some(st) = server_type_val { query = query.bind(st); }
+        if let Some(is_db) = is_db_val { query = query.bind(is_db); }
+        if let Some(q) = q_val { query = query.bind(format!("%{}%", q)); }
 
         let row = query.fetch_one(&self.pool).await?;
         Ok(row.get::<i64, _>("count"))
