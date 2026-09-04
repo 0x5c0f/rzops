@@ -75,7 +75,17 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
     </div>
   {/if}
 
-  <Card.Root>
+  <div class="flex items-center justify-between">
+    <div></div>
+    <div class="flex gap-2">
+      <Button variant="outline" onclick={() => history.back()}>取消</Button>
+      <Button onclick={handleSave} disabled={saving}>
+        {saving ? '保存中...' : submitLabel}
+      </Button>
+    </div>
+  </div>
+
+<Card.Root>
     <Card.Header>
       <Card.Title>基本信息</Card.Title>
     </Card.Header>
