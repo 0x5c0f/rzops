@@ -14,11 +14,14 @@
 
   let {
     initial = {} as CreateServerIpRequest,
+    initialServerName = null,
     editing = false,
     submitLabel = '保存',
     onSubmit,
   }: {
     initial?: CreateServerIpRequest;
+    /** 编辑时已绑定服务器的名称，用于可靠回显（避免依赖搜索命中） */
+    initialServerName?: string | null;
     editing?: boolean;
     submitLabel?: string;
     onSubmit: (data: CreateServerIpRequest) => Promise<void>;
@@ -44,12 +47,16 @@
 
   onMount(async () => {
     providerOptions = await getProviderOptions();
-    // 编辑时回显服务器名称
+    // 编辑时回显服务器名称：优先用传入的 server_name，避免全量搜索只命中前 6 台导致显示 id
     if (form.server_id) {
-      serverDisplayOptions = await searchServerOptions('');
-      const found = serverDisplayOptions.find(o => o.value === form.server_id);
-      if (!found) {
-        serverDisplayOptions = [...serverDisplayOptions, { label: form.server_id, value: form.server_id }];
+      if (initialServerName) {
+        serverDisplayOptions = [{ label: initialServerName, value: form.server_id }];
+      } else {
+        serverDisplayOptions = await searchServerOptions('');
+        const found = serverDisplayOptions.find(o => o.value === form.server_id);
+        if (!found) {
+          serverDisplayOptions = [...serverDisplayOptions, { label: form.server_id, value: form.server_id }];
+        }
       }
     }
   });

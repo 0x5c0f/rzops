@@ -160,22 +160,24 @@
   }
 
   // 端口模板快速添加：单选模板，确认后按模板字段追加一行端口草稿
-  let templatePickerValue = $state('');
+  // 端口模板快速添加：多选模板，确认后按模板字段逐个追加端口草稿
+  let templatePickerValue = $state<string[]>([]);
   function handleTemplateConfirm(items: Record<string, unknown>[]) {
-    const t = items[0];
-    if (!t) return;
-    ports = [
-      ...ports,
-      {
-        protocol: String(t.protocol ?? 'tcp'),
-        port: String(t.port ?? ''),
-        service_name: String(t.service_name ?? ''),
-        access_scope: String(t.access_scope ?? ''),
-        is_enabled: Boolean(t.is_enabled ?? true),
-        description: String(t.description ?? ''),
-      },
-    ];
-    templatePickerValue = '';
+    for (const t of items) {
+      if (!t) continue;
+      ports = [
+        ...ports,
+        {
+          protocol: String(t.protocol ?? 'tcp'),
+          port: String(t.port ?? ''),
+          service_name: String(t.service_name ?? ''),
+          access_scope: String(t.access_scope ?? ''),
+          is_enabled: Boolean(t.is_enabled ?? true),
+          description: String(t.description ?? ''),
+        },
+      ];
+    }
+    templatePickerValue = [];
   }
   function emptyDb(): DbDraft {
     return { name: '', db_type: '', port: '', instance_name: '', importance: '', description: '' };
@@ -544,7 +546,7 @@
         <div class="w-64">
           <TableSelectModal
             label="从模板添加"
-            multiple={false}
+            multiple
             bind:value={templatePickerValue}
             searchFn={searchServerPortTemplatePaginated}
             displayOptions={[]}
@@ -585,7 +587,7 @@
           </div>
           <div class="space-y-1 md:col-span-2">
             <Label>访问范围</Label>
-            <Input bind:value={port.access_scope} placeholder="公网 / 内网" />
+            <Input bind:value={port.access_scope} placeholder="如：内网 / 公网 / 192.168.1.0/24" />
           </div>
           <div class="flex items-end gap-2 md:col-span-2">
             <label class="flex items-center gap-2 pb-2 text-sm">

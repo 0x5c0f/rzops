@@ -130,7 +130,7 @@
 
       <div class="space-y-2">
         <Label for="access_scope">访问范围</Label>
-        <Input id="access_scope" bind:value={form.access_scope} placeholder="公网 / 内网 / ..." />
+        <Input id="access_scope" bind:value={form.access_scope} placeholder="如：内网 / 公网 / 192.168.1.0/24" />
       </div>
 
       <div class="flex items-center gap-2 pt-6">

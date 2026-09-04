@@ -5,6 +5,7 @@
   import type { CreateServerIpRequest, ServerIpResponse } from '$lib/types/server_ip';
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import ServerIpForm from '$lib/components/forms/ServerIpForm.svelte';
+  import { formatResourceWithStatus } from '$lib/utils/resource-status';
   import { onMount } from 'svelte';
 
   let serverIp = $state<ServerIpResponse | null>(null);
@@ -64,6 +65,6 @@
   {:else if loadError || !serverIp}
     <p class="text-sm text-muted-foreground">加载失败，服务器IP可能不存在。</p>
   {:else}
-    <ServerIpForm initial={toForm(serverIp)} editing submitLabel="保存" onSubmit={handleUpdate} />
+    <ServerIpForm initial={toForm(serverIp)} initialServerName={formatResourceWithStatus(serverIp.server_name, serverIp.server_status, 'server')} editing submitLabel="保存" onSubmit={handleUpdate} />
   {/if}
 </div>
