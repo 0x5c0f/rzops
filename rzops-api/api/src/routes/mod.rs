@@ -4,6 +4,7 @@ pub mod datacenter_handlers;
 pub mod server_handlers;
 pub mod server_ip_handlers;
 pub mod server_port_handlers;
+pub mod server_port_template_handlers;
 pub mod certificate_domain_handlers;
 pub mod domain_handlers;
 pub mod certificate_handlers;
@@ -19,8 +20,12 @@ pub mod site_relation_handlers;
 pub mod dict_handlers;
 
 use std::sync::Arc;
-use axum::Router;
+use axum::{extract::{Extension, State}, Router, Json};
 use rzops_domain::ports::*;
+
+use crate::auth_extractor::AuthUser;
+use crate::change_log::ChangeLogState;
+use crate::dto::server_port_dto::ApplyTemplateRequest;
 
 use auth_handlers::*;
 use provider_handlers::*;
@@ -28,6 +33,7 @@ use datacenter_handlers::*;
 use server_handlers::*;
 use server_ip_handlers::*;
 use server_port_handlers::*;
+use server_port_template_handlers::*;
 use certificate_domain_handlers::*;
 use domain_handlers::*;
 use certificate_handlers::*;
@@ -66,9 +72,22 @@ pub fn server_ip_routes(repo: Arc<dyn server_ip_repository::ServerIpRepository>,
     Router::new().route("/", axum::routing::get(list_server_ips).post(create_server_ip))
         .route("/{id}", axum::routing::get(get_server_ip).put(update_server_ip).delete(delete_server_ip)).with_state(repo).layer(axum::Extension(pool))
 }
-pub fn server_port_routes(repo: Arc<dyn server_port_repository::ServerPortRepository>) -> Router {
+pub fn server_port_routes(repo: Arc<dyn server_port_repository::ServerPortRepository>, tpl_repo: Arc<dyn server_port_template_repository::ServerPortTemplateRepository>) -> Router {
+    // apply-template 需要同时访问端口与模板两个 repo，用闭包捕获绕开单一 state 类型限制
+    let apply = {
+        let repo = repo.clone();
+        let tpl_repo = tpl_repo.clone();
+        move |auth: AuthUser, change_log: Extension<ChangeLogState>, body: Json<ApplyTemplateRequest>| {
+            apply_port_template(auth, State(repo.clone()), State(tpl_repo.clone()), change_log, body)
+        }
+    };
     Router::new().route("/", axum::routing::get(list_server_ports).post(create_server_port))
+        .route("/apply-template", axum::routing::post(apply))
         .route("/{id}", axum::routing::get(get_server_port).put(update_server_port).delete(delete_server_port)).with_state(repo)
+}
+pub fn server_port_template_routes(repo: Arc<dyn server_port_template_repository::ServerPortTemplateRepository>) -> Router {
+    Router::new().route("/", axum::routing::get(list_server_port_templates).post(create_server_port_template))
+        .route("/{id}", axum::routing::get(get_server_port_template).put(update_server_port_template).delete(delete_server_port_template)).with_state(repo)
 }
 pub fn certificate_domain_routes(repo: Arc<dyn certificate_domain_repository::CertificateDomainRepository>) -> Router {
     Router::new().route("/", axum::routing::get(list_certificate_domains).post(create_certificate_domain))

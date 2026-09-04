@@ -1,11 +1,12 @@
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
-
-/// ServerPort entity — maps to cmdb_server_port (端口定义，可关联多台服务器).
+/// ServerPort entity — maps to cmdb_server_port (端口，每台服务器独立，一对多).
 #[derive(Debug, Clone)]
 pub struct ServerPort {
     pub id: Uuid,
+    /// 所属服务器 id（一对多，每台服务器拥有独立的端口记录）
+    pub server_id: Uuid,
     pub protocol: String,
     pub port: i32,
     pub service_name: String,
@@ -14,10 +15,8 @@ pub struct ServerPort {
     pub description: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
-    /// 关联的服务器 id 列表（多对多，通过 cmdb_server_port_server）
-    pub server_ids: Vec<Uuid>,
-    /// 关联的服务器名称（查询时聚合，用于展示）
-    pub server_names: Vec<String>,
-    /// 关联的服务器状态（查询时聚合，与 server_ids 一一对应，用于展示）
-    pub server_statuses: Vec<String>,
+    /// 所属服务器名称（查询时聚合，用于展示）
+    pub server_name: Option<String>,
+    /// 所属服务器状态（查询时聚合，用于展示）
+    pub server_status: Option<String>,
 }

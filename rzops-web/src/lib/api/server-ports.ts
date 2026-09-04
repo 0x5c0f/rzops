@@ -5,6 +5,7 @@ import type {
   CreateServerPortRequest,
   UpdateServerPortRequest,
   ListServerPortsQuery,
+  ApplyTemplateRequest,
 } from '$lib/types/server_port';
 
 export const serverPortsApi = {
@@ -22,4 +23,8 @@ export const serverPortsApi = {
 
   delete: (id: string) =>
     api.delete<void>(`/api/v1/server-ports/${id}`),
+
+  /** 从端口模板批量实例化到多台服务器（每台服务器独立端口记录） */
+  applyTemplate: (data: ApplyTemplateRequest) =>
+    api.post<ServerPortListResponse>('/api/v1/server-ports/apply-template', data),
 };

@@ -2,11 +2,10 @@
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import { serverPortsApi } from '$lib/api/server-ports';
-  import type { ServerPortResponse, ServerBrief } from '$lib/types/server_port';
+  import type { ServerPortResponse } from '$lib/types/server_port';
   import { Button } from '$lib/ui/button';
   import * as Card from '$lib/ui/card';
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
-  import RelatedListCard from '$lib/components/shared/RelatedListCard.svelte';
   import { getStatusLabel } from '$lib/utils/resource-status';
   import { onMount } from 'svelte';
   import ConfirmDialog from '$lib/components/shared/ConfirmDialog.svelte';
@@ -92,6 +91,23 @@
             <dt class="text-muted-foreground">访问范围</dt>
             <dd>{serverPort.access_scope || '-'}</dd>
           </div>
+          <div class="flex justify-between items-center">
+            <dt class="text-muted-foreground">所属服务器</dt>
+            <dd>
+              {#if serverPort.server_name}
+                <a class="text-primary hover:underline" href={`/servers/${serverPort.server_id}`}>
+                  {serverPort.server_name}
+                </a>
+                {#if serverPort.server_status}
+                  <span class="ml-2 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-slate-100 text-slate-600">
+                    {getStatusLabel(serverPort.server_status)}
+                  </span>
+                {/if}
+              {:else}
+                -
+              {/if}
+            </dd>
+          </div>
           <div class="flex justify-between">
             <dt class="text-muted-foreground">状态</dt>
             <dd>{serverPort.is_enabled ? '启用' : '停用'}</dd>
@@ -104,21 +120,6 @@
       </Card.Content>
     </Card.Root>
 
-    <RelatedListCard
-      title="关联服务器"
-      description="该端口当前绑定并开放的服务器"
-      items={serverPort.servers}
-      emptyText="暂无关联服务器"
-      columns={[
-        {
-          key: 'name',
-          label: '服务器',
-          link: (s: ServerBrief) => `/servers/${s.id}`,
-          render: (s: ServerBrief) => s.name,
-          badge: (s: ServerBrief) => ({ status: s.status, label: getStatusLabel(s.status) })
-        }
-      ]}
-    />
   {/if}
 
     <ConfirmDialog

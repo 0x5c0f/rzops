@@ -1,11 +1,6 @@
-export interface ServerBrief {
-  id: string;
-  name: string;
-  status: string;
-}
-
 export interface ServerPortResponse {
   id: string;
+  server_id: string;
   protocol: string;
   port: number;
   service_name: string;
@@ -14,8 +9,8 @@ export interface ServerPortResponse {
   description: string | null;
   created_at: string;
   updated_at: string;
-  server_ids: string[];
-  servers: ServerBrief[];
+  server_name: string | null;
+  server_status: string | null;
 }
 
 export interface ServerPortListResponse {
@@ -24,7 +19,7 @@ export interface ServerPortListResponse {
 }
 
 export interface CreateServerPortRequest {
-  server_ids: string[];
+  server_id: string;
   protocol: string;
   port: number;
   service_name: string;
@@ -41,4 +36,9 @@ export interface ListServerPortsQuery {
   q?: string;
   page?: number;
   per_page?: number;
+}
+
+export interface ApplyTemplateRequest {
+  template_id: string;
+  server_ids: string[];
 }

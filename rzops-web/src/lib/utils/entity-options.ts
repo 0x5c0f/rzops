@@ -12,10 +12,39 @@ import { certificatesApi } from '$lib/api/certificates';
 import { opsSitesApi } from '$lib/api/ops-sites';
 import { backupPlansApi } from '$lib/api/backup-plans';
 import { monitorTargetsApi } from '$lib/api/monitor-targets';
+import { serverPortTemplatesApi } from '$lib/api/server-port-templates';
 
 export interface SelectOption {
   label: string;
   value: string;
+}
+
+/**
+ * 分页搜索端口模板（用于 TableSelectModal）
+ */
+export async function searchServerPortTemplatePaginated(
+  keyword: string,
+  page: number,
+  perPage: number
+): Promise<{ data: Record<string, unknown>[]; total: number }> {
+  try {
+    const res = await serverPortTemplatesApi.list({ q: keyword || undefined, page, per_page: perPage });
+    return {
+      data: res.data.map(item => ({
+        id: item.id,
+        name: item.name,
+        protocol: item.protocol,
+        port: item.port,
+        service_name: item.service_name,
+        access_scope: item.access_scope || '-',
+        is_enabled: item.is_enabled,
+      })),
+      total: res.count,
+    };
+  } catch (err) {
+    console.error('Failed to search port templates paginated:', err);
+    return { data: [], total: 0 };
+  }
 }
 
 /**

@@ -26,7 +26,7 @@
 
   function toForm(p: ServerPortResponse): CreateServerPortRequest {
     return {
-      server_ids: p.server_ids,
+      server_id: p.server_id,
       protocol: p.protocol,
       port: p.port,
       service_name: p.service_name,
@@ -64,7 +64,7 @@
   {:else}
     <ServerPortForm
       initial={toForm(serverPort)}
-      initialServers={serverPort.servers}
+      initialServers={serverPort.server_id ? [{ id: serverPort.server_id, name: serverPort.server_name || '' }] : []}
       editing
       submitLabel="保存"
       onSubmit={handleUpdate}

@@ -11,6 +11,7 @@ use uuid::Uuid;
 
 use rzops_domain::models::server_port::ServerPort;
 use rzops_domain::ports::server_port_repository::{ServerPortFilter, ServerPortRepository};
+use rzops_domain::ports::server_port_template_repository::ServerPortTemplateRepository;
 
 use crate::auth_extractor::AuthUser;
 use crate::change_log::{record_change, ChangeLogState};
@@ -20,15 +21,9 @@ use crate::dto::server_port_dto::*;
 
 
 fn to_response(p: &ServerPort) -> ServerPortResponse {
-    let servers: Vec<ServerBrief> = p
-        .server_ids
-        .iter()
-        .zip(p.server_names.iter())
-        .zip(p.server_statuses.iter())
-        .map(|((id, name), status)| ServerBrief { id: *id, name: name.clone(), status: status.clone() })
-        .collect();
     ServerPortResponse {
         id: p.id,
+        server_id: p.server_id,
         protocol: p.protocol.clone(),
         port: p.port,
         service_name: p.service_name.clone(),
@@ -37,8 +32,8 @@ fn to_response(p: &ServerPort) -> ServerPortResponse {
         description: p.description.clone(),
         created_at: p.created_at,
         updated_at: p.updated_at,
-        server_ids: p.server_ids.clone(),
-        servers,
+        server_name: p.server_name.clone(),
+        server_status: p.server_status.clone(),
     }
 }
 
@@ -102,15 +97,10 @@ pub async fn create_server_port(
     Extension(change_log): Extension<ChangeLogState>,
     Json(body): Json<CreateServerPortRequest>,
 ) -> impl IntoResponse {
-    if body.server_ids.is_empty() {
-        return (
-            StatusCode::BAD_REQUEST,
-            Json(ErrorResponse { error: "server_ids must not be empty".to_string() }),
-        ).into_response();
-    }
     let now = Utc::now();
     let port = ServerPort {
         id: Uuid::new_v4(),
+        server_id: body.server_id,
         protocol: body.protocol,
         port: body.port,
         service_name: body.service_name,
@@ -119,9 +109,8 @@ pub async fn create_server_port(
         description: body.description,
         created_at: now,
         updated_at: now,
-        server_ids: body.server_ids,
-        server_names: Vec::new(),
-        server_statuses: Vec::new(),
+        server_name: None,
+        server_status: None,
     };
 
     match repo.create(&port).await {
@@ -156,15 +145,9 @@ pub async fn update_server_port(
     };
 
     let before_value = serde_json::to_value(to_response(&existing)).unwrap_or(serde_json::json!({}));
-    let server_ids = body.server_ids.clone().unwrap_or_else(|| existing.server_ids.clone());
-    if server_ids.is_empty() {
-        return (
-            StatusCode::BAD_REQUEST,
-            Json(ErrorResponse { error: "server_ids must not be empty".to_string() }),
-        ).into_response();
-    }
     let port = ServerPort {
         id: existing.id,
+        server_id: body.server_id.unwrap_or(existing.server_id),
         protocol: body.protocol.unwrap_or(existing.protocol),
         port: body.port.unwrap_or(existing.port),
         service_name: body.service_name.unwrap_or(existing.service_name),
@@ -173,9 +156,8 @@ pub async fn update_server_port(
         description: body.description.or(existing.description),
         created_at: existing.created_at,
         updated_at: Utc::now(),
-        server_ids,
-        server_names: Vec::new(),
-        server_statuses: Vec::new(),
+        server_name: existing.server_name,
+        server_status: existing.server_status,
     };
 
     match repo.update(id, &port).await {
@@ -204,4 +186,63 @@ pub async fn delete_server_port(
         Ok(false) => (StatusCode::NOT_FOUND, Json(ErrorResponse { error: "server port not found".to_string() })).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: format!("failed to delete server port: {}", e) })).into_response(),
     }
+}
+
+/// POST /server-ports/apply-template
+/// 从端口模板批量实例化端口到指定服务器（每台服务器独立端口记录）.
+#[utoipa::path(post, path = "/api/v1/server-ports/apply-template", request_body = ApplyTemplateRequest, responses((status = 201, body = ServerPortListResponse), (status = 400, body = ErrorResponse), (status = 404, body = ErrorResponse)), tag = "ServerPort", security(("bearer_auth" = [])))]
+pub async fn apply_port_template(
+    auth: AuthUser,
+    State(repo): State<Arc<dyn ServerPortRepository>>,
+    State(tpl_repo): State<Arc<dyn ServerPortTemplateRepository>>,
+    Extension(change_log): Extension<ChangeLogState>,
+    Json(body): Json<ApplyTemplateRequest>,
+) -> impl IntoResponse {
+    if body.server_ids.is_empty() {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse { error: "server_ids must not be empty".to_string() }),
+        ).into_response();
+    }
+    let tpl = match tpl_repo.find_by_id(body.template_id).await {
+        Ok(Some(t)) => t,
+        Ok(None) => {
+            return (StatusCode::NOT_FOUND, Json(ErrorResponse { error: "port template not found".to_string() })).into_response()
+        }
+        Err(e) => {
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: format!("database error: {}", e) })).into_response()
+        }
+    };
+
+    let now = Utc::now();
+    let mut created: Vec<ServerPort> = Vec::new();
+    for sid in &body.server_ids {
+        let port = ServerPort {
+            id: Uuid::new_v4(),
+            server_id: *sid,
+            protocol: tpl.protocol.clone(),
+            port: tpl.port,
+            service_name: tpl.service_name.clone(),
+            access_scope: tpl.access_scope.clone(),
+            is_enabled: tpl.is_enabled,
+            description: tpl.description.clone(),
+            created_at: now,
+            updated_at: now,
+            server_name: None,
+            server_status: None,
+        };
+        match repo.create(&port).await {
+            Ok(c) => created.push(c),
+            Err(e) => {
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(ErrorResponse { error: format!("failed to apply template: {}", e) }),
+                ).into_response()
+            }
+        }
+    }
+    record_change(&change_log, &auth, rzops_domain::enums::ChangeType::Create, "server_port", None, serde_json::json!(null), serde_json::json!({ "applied_template": body.template_id, "server_ids": body.server_ids }), None).await;
+    let data = created.iter().map(to_response).collect::<Vec<_>>();
+    let count = data.len() as i64;
+    (StatusCode::CREATED, Json(ServerPortListResponse { data, count })).into_response()
 }

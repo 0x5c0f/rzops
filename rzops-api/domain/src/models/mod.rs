@@ -5,6 +5,7 @@ pub mod data_center;
 pub mod server;
 pub mod server_ip;
 pub mod server_port;
+pub mod server_port_template;
 pub mod domain_asset;
 pub mod certificate;
 pub mod certificate_domain;

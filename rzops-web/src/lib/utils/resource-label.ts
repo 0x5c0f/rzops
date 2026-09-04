@@ -3,6 +3,7 @@ import { datacentersApi } from '$lib/api/datacenters';
 import { serversApi } from '$lib/api/servers';
 import { serverIpsApi } from '$lib/api/server-ips';
 import { serverPortsApi } from '$lib/api/server-ports';
+import { serverPortTemplatesApi } from '$lib/api/server-port-templates';
 import { domainsApi } from '$lib/api/domains';
 import { certificatesApi } from '$lib/api/certificates';
 import { databaseInstancesApi } from '$lib/api/database-instances';
@@ -33,6 +34,7 @@ const META: Record<string, ResourceMeta> = {
   server: { api: serversApi.getById, labelField: 'name', detailPath: (id) => `/servers/${id}`, zh: '服务器' },
   server_ip: { api: serverIpsApi.getById, labelField: 'ip_address', detailPath: (id) => `/server-ips/${id}`, zh: '服务器IP' },
   server_port: { api: serverPortsApi.getById, labelField: 'service_name', detailPath: (id) => `/server-ports/${id}`, zh: '服务器端口' },
+  server_port_template: { api: serverPortTemplatesApi.getById, labelField: 'name', detailPath: (id) => `/server-port-templates/${id}`, zh: '端口模板' },
   domain: { api: domainsApi.getById, labelField: 'name', detailPath: (id) => `/domains/${id}`, zh: '域名' },
   certificate: { api: certificatesApi.getById, labelField: 'name', detailPath: (id) => `/certificates/${id}`, zh: '证书' },
   database_instance: { api: databaseInstancesApi.getById, labelField: 'name', detailPath: (id) => `/database-instances/${id}`, zh: '数据库实例' },

@@ -60,6 +60,7 @@
         { href: '/certificates', label: '证书' },
         { href: '/server-ips', label: '服务器IP' },
         { href: '/server-ports', label: '服务器端口' },
+        { href: '/server-port-templates', label: '端口模板' },
       ],
     },
     {

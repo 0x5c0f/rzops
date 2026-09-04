@@ -32,10 +32,10 @@
   let form = $state<CreateServerPortRequest>(createInitial(initial));
 
   function createInitial(initial?: CreateServerPortRequest): CreateServerPortRequest {
-    // 注意：不能用 structuredClone(initial) —— Svelte 5 的 $state 会对含数组字段（如 server_ids）做 deep proxy，
+    // 注意：不能用 structuredClone(initial) —— Svelte 5 的 $state 会对含数组字段做 deep proxy，
     // structuredClone 无法克隆 proxy 数组，会抛 DataCloneError。用 JSON 深拷贝解包 proxy。
     return {
-      server_ids: [],
+      server_id: '',
       protocol: '',
       port: 0,
       service_name: '',
@@ -51,7 +51,7 @@
 
   async function handleSave() {
     formError = validate([
-      { value: form.server_ids, label: '服务器', required: true, custom: (v) => Array.isArray(v) && v.length > 0 ? null : '请至少选择一个服务器' },
+      { value: form.server_id, label: '服务器', required: true },
       { value: form.protocol, label: '协议', required: true },
       { value: form.port, label: '端口号', required: true, format: 'port' },
       { value: form.service_name, label: '服务名称', required: true, maxLength: 100 },
@@ -83,11 +83,11 @@
       <div class="md:col-span-2 lg:col-span-3">
         <TableSelectModal
           label="服务器 *"
-          multiple
-          bind:value={form.server_ids}
+          multiple={false}
+          bind:value={form.server_id}
           searchFn={searchServerPaginated}
           displayOptions={displayServerOptions}
-          placeholder="选择服务器（可多选）"
+          placeholder="选择服务器"
           searchPlaceholder="输入名称或 IP 搜索..."
           modalTitle="选择服务器"
           required

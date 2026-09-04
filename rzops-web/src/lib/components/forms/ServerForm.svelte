@@ -28,10 +28,12 @@
   } from '$lib/utils/enum-options';
   import { serverIpsApi } from '$lib/api/server-ips';
   import { serverPortsApi } from '$lib/api/server-ports';
+  import { serverPortTemplatesApi } from '$lib/api/server-port-templates';
+  import TableSelectModal from '$lib/components/shared/TableSelectModal.svelte';
   import { databaseInstancesApi } from '$lib/api/database-instances';
   import { siteRelationsApi } from '$lib/api/site-relations';
   import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.svelte';
-  import { getProviderOptions, getDataCenterOptions, getOpsSiteOptions } from '$lib/utils/entity-options';
+  import { getProviderOptions, getDataCenterOptions, getOpsSiteOptions, searchServerPortTemplatePaginated } from '$lib/utils/entity-options';
   import { siteServerRoleOptions } from '$lib/utils/enum-options';
   import { validate, validateDateRange } from '$lib/utils/validation';
   import { onMount } from 'svelte';
@@ -156,6 +158,25 @@
   function emptyPort(): PortDraft {
     return { protocol: 'tcp', port: '', service_name: '', access_scope: '', is_enabled: true, description: '' };
   }
+
+  // 端口模板快速添加：单选模板，确认后按模板字段追加一行端口草稿
+  let templatePickerValue = $state('');
+  function handleTemplateConfirm(items: Record<string, unknown>[]) {
+    const t = items[0];
+    if (!t) return;
+    ports = [
+      ...ports,
+      {
+        protocol: String(t.protocol ?? 'tcp'),
+        port: String(t.port ?? ''),
+        service_name: String(t.service_name ?? ''),
+        access_scope: String(t.access_scope ?? ''),
+        is_enabled: Boolean(t.is_enabled ?? true),
+        description: String(t.description ?? ''),
+      },
+    ];
+    templatePickerValue = '';
+  }
   function emptyDb(): DbDraft {
     return { name: '', db_type: '', port: '', instance_name: '', importance: '', description: '' };
   }
@@ -270,7 +291,8 @@
       if (row.id) {
         await serverPortsApi.update(row.id, payload);
       } else {
-        await serverPortsApi.create({ server_ids: [serverId], ...payload });
+        // 端口为每台服务器独立的记录（一对多），新建时归属当前服务器即可，不影响其他服务器
+        await serverPortsApi.create({ server_id: serverId, ...payload });
       }
     }
   }
@@ -518,7 +540,29 @@
   <Card.Root>
     <Card.Header>
       <Card.Title>服务端口</Card.Title>
-      <p class="text-sm text-muted-foreground">维护该服务器对外提供的服务端口</p>
+      <Card.Action class="justify-self-end self-center">
+        <div class="w-64">
+          <TableSelectModal
+            label="从模板添加"
+            multiple={false}
+            bind:value={templatePickerValue}
+            searchFn={searchServerPortTemplatePaginated}
+            displayOptions={[]}
+            placeholder="选择端口模板快速添加"
+            searchPlaceholder="输入模板名 / 服务名 / 端口..."
+            modalTitle="选择端口模板"
+            onConfirm={handleTemplateConfirm}
+            columns={[
+              { key: 'name', label: '模板名' },
+              { key: 'protocol', label: '协议', width: 'w-16' },
+              { key: 'port', label: '端口', width: 'w-20' },
+              { key: 'service_name', label: '服务名' },
+              { key: 'access_scope', label: '访问范围', width: 'w-24' },
+            ]}
+          />
+        </div>
+      </Card.Action>
+      <p class="text-sm text-muted-foreground col-span-2">维护该服务器对外提供的服务端口（每台服务器独立，互不影响）</p>
     </Card.Header>
     <Card.Content class="space-y-3">
       {#each ports as port, i}

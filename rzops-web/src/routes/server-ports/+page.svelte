@@ -1,7 +1,6 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { serverPortsApi } from '$lib/api/server-ports';
-  import { serversApi } from '$lib/api/servers';
   import type { ServerPortResponse, ListServerPortsQuery } from '$lib/types/server_port';
   import { Button } from '$lib/ui/button';
   import { Input } from '$lib/ui/input';
@@ -18,7 +17,6 @@
   let query = $state<ListServerPortsQuery>({ page: 1, per_page: 20 });
   let page = $derived(query.page ?? 1);
   let perPage = $derived(query.per_page ?? 20);
-  let serverStatusMap = $state<Record<string, string>>({});
   let protocolMap = $derived(Object.fromEntries($protocolOptions.map(o => [o.value, o.label])));
 
   const columns = $derived([
@@ -26,13 +24,12 @@
     { key: 'protocol', label: '协议', valueMap: protocolMap },
     { key: 'port', label: '端口' },
     {
-      key: 'servers',
-      label: '服务器',
-      render: (v: unknown) => {
-        const list = v as { id: string; name: string }[] | null | undefined;
-        if (!list || list.length === 0) return '-';
-        const shown = list.slice(0, 3).map(s => formatResourceWithStatus(s.name, serverStatusMap[s.id], 'server')).join(', ');
-        return list.length > 3 ? `${shown}, … +${list.length - 3}` : shown;
+      key: 'server_name',
+      label: '所属服务器',
+      link: (item: ServerPortResponse) => item.server_id ? `/servers/${item.server_id}` : undefined,
+      render: (v: unknown, item: ServerPortResponse) => {
+        if (!item.server_name) return '-';
+        return formatResourceWithStatus(item.server_name, item.server_status ?? '', 'server');
       },
     },
     { key: 'is_enabled', label: '启用', badge: (item: ServerPortResponse) =>
@@ -46,12 +43,8 @@
     if (!item.is_enabled) {
       return 'text-slate-400';
     }
-    // 多绑定：仅当绑定的服务器非空且全部退役/已删除时才标黄（任一在线即保持正常显示）
-    const servers = item.servers ?? [];
-    if (servers.length > 0 && servers.every(s => {
-      const st = serverStatusMap[s.id];
-      return st === undefined || isResourceOffline('server', st);
-    })) {
+    // 端口本身正常，但所属服务器已退役/删除 → 标黄
+    if (item.server_status !== undefined && item.server_status !== null && isResourceOffline('server', item.server_status)) {
       return 'text-amber-600';
     }
     return '';
@@ -70,11 +63,7 @@
     }
   }
 
-  onMount(async () => {
-    const serverList = await serversApi.list({ per_page: 200 });
-    serverStatusMap = Object.fromEntries(serverList.data.map((s: {id: string, status: string}) => [s.id, s.status]));
-    await loadData();
-  });
+  onMount(() => loadData());
 
   function handleSearch(e: Event) {
     const input = e.target as HTMLInputElement;
@@ -115,7 +104,10 @@
 
   <div class="flex items-center justify-between">
     <h1 class="text-2xl font-semibold">服务器端口管理</h1>
-    <Button onclick={() => goto('/server-ports/new')}>新建服务器端口</Button>
+    <div class="flex gap-2">
+      <Button variant="outline" onclick={() => goto('/server-port-templates')}>端口模板</Button>
+      <Button onclick={() => goto('/server-ports/new')}>新建服务器端口</Button>
+    </div>
   </div>
 
   <div class="flex flex-wrap items-center gap-2">
