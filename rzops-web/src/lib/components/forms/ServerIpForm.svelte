@@ -30,9 +30,13 @@
   let saving = $state(false);
   let formError = $state<string | null>(null);
   let providerOptions = $state<{ label: string; value: string }[]>([]);
-  let serverDisplayOptions = $state<{ label: string; value: string }[]>([]);
 
   let form = $state<CreateServerIpRequest>(createInitial(initial));
+  // 同步初始化服务器回显选项：编辑时直接使用传入的 server_name，
+  // 避免异步搜索期间 RemoteSearchSelect 回退显示原始 id（先闪 id 再变名字）
+  let serverDisplayOptions = $state<{ label: string; value: string }[]>(
+    form.server_id && initialServerName ? [{ label: initialServerName, value: form.server_id }] : []
+  );
 
   function createInitial(initial?: CreateServerIpRequest): CreateServerIpRequest {
     return {
@@ -47,16 +51,13 @@
 
   onMount(async () => {
     providerOptions = await getProviderOptions();
-    // 编辑时回显服务器名称：优先用传入的 server_name，避免全量搜索只命中前 6 台导致显示 id
-    if (form.server_id) {
-      if (initialServerName) {
-        serverDisplayOptions = [{ label: initialServerName, value: form.server_id }];
-      } else {
-        serverDisplayOptions = await searchServerOptions('');
-        const found = serverDisplayOptions.find(o => o.value === form.server_id);
-        if (!found) {
-          serverDisplayOptions = [...serverDisplayOptions, { label: form.server_id, value: form.server_id }];
-        }
+    // 编辑回显已由 serverDisplayOptions 同步初始化；
+    // 仅当已绑定服务器但缺少名称信息时（异常数据）才 fallback 搜索
+    if (form.server_id && serverDisplayOptions.length === 0) {
+      serverDisplayOptions = await searchServerOptions('');
+      const found = serverDisplayOptions.find(o => o.value === form.server_id);
+      if (!found) {
+        serverDisplayOptions = [...serverDisplayOptions, { label: form.server_id, value: form.server_id }];
       }
     }
   });
