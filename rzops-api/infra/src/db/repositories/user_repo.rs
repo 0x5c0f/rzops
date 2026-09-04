@@ -25,15 +25,20 @@ fn row_to_user(row: &sqlx::postgres::PgRow) -> User {
         is_superuser: row.get("is_superuser"),
         full_name: row.get("full_name"),
         created_at: row.get::<DateTime<Utc>, _>("created_at"),
+        deleted_at: row.get("deleted_at"),
     }
 }
+
+const SELECT_COLS: &str =
+    "id, email, hashed_password, is_active, is_superuser, full_name, created_at, deleted_at";
 
 #[async_trait]
 impl UserRepository for PgUserRepository {
     async fn find_by_id(&self, id: Uuid) -> Result<Option<User>, sqlx::Error> {
-        let row = sqlx::query(
-            "SELECT id, email, hashed_password, is_active, is_superuser, full_name, created_at FROM \"user\" WHERE id = $1"
-        )
+        let row = sqlx::query(&format!(
+            "SELECT {} FROM \"user\" WHERE id = $1 AND deleted_at IS NULL",
+            SELECT_COLS
+        ))
         .bind(id)
         .fetch_optional(&self.pool)
         .await?;
@@ -41,9 +46,10 @@ impl UserRepository for PgUserRepository {
     }
 
     async fn find_by_email(&self, email: &str) -> Result<Option<User>, sqlx::Error> {
-        let row = sqlx::query(
-            "SELECT id, email, hashed_password, is_active, is_superuser, full_name, created_at FROM \"user\" WHERE email = $1"
-        )
+        let row = sqlx::query(&format!(
+            "SELECT {} FROM \"user\" WHERE email = $1 AND deleted_at IS NULL",
+            SELECT_COLS
+        ))
         .bind(email)
         .fetch_optional(&self.pool)
         .await?;
@@ -54,7 +60,7 @@ impl UserRepository for PgUserRepository {
         let row = sqlx::query(
             r#"INSERT INTO "user" (id, email, hashed_password, is_active, is_superuser, full_name, created_at)
                VALUES ($1, $2, $3, $4, $5, $6, $7)
-               RETURNING id, email, hashed_password, is_active, is_superuser, full_name, created_at"#
+               RETURNING id, email, hashed_password, is_active, is_superuser, full_name, created_at, deleted_at"#,
         )
         .bind(user.id)
         .bind(&user.email)
@@ -66,5 +72,77 @@ impl UserRepository for PgUserRepository {
         .fetch_one(&self.pool)
         .await?;
         Ok(row_to_user(&row))
+    }
+
+    async fn list(
+        &self,
+        q: Option<&str>,
+        page: i64,
+        per_page: i64,
+    ) -> Result<(Vec<User>, i64), sqlx::Error> {
+        let offset = (page.max(1) - 1) * per_page;
+        let mut where_clause = String::from("WHERE deleted_at IS NULL");
+        if let Some(keyword) = q.map(|s| s.trim()).filter(|s| !s.is_empty()) {
+            where_clause.push_str(&format!(
+                " AND (email ILIKE '%{}%' OR full_name ILIKE '%{}%')",
+                keyword.replace('\'', "''"),
+                keyword.replace('\'', "''")
+            ));
+        }
+        let sql = format!(
+            "SELECT {} FROM \"user\" {} ORDER BY created_at DESC LIMIT {} OFFSET {}",
+            SELECT_COLS, where_clause, per_page, offset
+        );
+        let rows = sqlx::query(&sql).fetch_all(&self.pool).await?;
+        let data: Vec<User> = rows.iter().map(row_to_user).collect();
+
+        let count_sql = format!("SELECT COUNT(*) as count FROM \"user\" {}", where_clause);
+        let count_row = sqlx::query(&count_sql).fetch_one(&self.pool).await?;
+        let total: i64 = count_row.get("count");
+        Ok((data, total))
+    }
+
+    async fn update_profile(
+        &self,
+        id: Uuid,
+        email: &str,
+        full_name: Option<&str>,
+        is_active: bool,
+        is_superuser: bool,
+    ) -> Result<Option<User>, sqlx::Error> {
+        let row = sqlx::query(
+            r#"UPDATE "user" SET email = $2, full_name = $3, is_active = $4, is_superuser = $5
+               WHERE id = $1 AND deleted_at IS NULL
+               RETURNING id, email, hashed_password, is_active, is_superuser, full_name, created_at, deleted_at"#,
+        )
+        .bind(id)
+        .bind(email)
+        .bind(full_name)
+        .bind(is_active)
+        .bind(is_superuser)
+        .fetch_optional(&self.pool)
+        .await?;
+        Ok(row.map(|r| row_to_user(&r)))
+    }
+
+    async fn update_password(&self, id: Uuid, hashed_password: &str) -> Result<bool, sqlx::Error> {
+        let result = sqlx::query(
+            r#"UPDATE "user" SET hashed_password = $2 WHERE id = $1 AND deleted_at IS NULL"#,
+        )
+        .bind(id)
+        .bind(hashed_password)
+        .execute(&self.pool)
+        .await?;
+        Ok(result.rows_affected() > 0)
+    }
+
+    async fn soft_delete(&self, id: Uuid) -> Result<bool, sqlx::Error> {
+        let result = sqlx::query(
+            r#"UPDATE "user" SET deleted_at = now(), is_active = false WHERE id = $1 AND deleted_at IS NULL"#,
+        )
+        .bind(id)
+        .execute(&self.pool)
+        .await?;
+        Ok(result.rows_affected() > 0)
     }
 }

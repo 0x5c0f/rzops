@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::sync::Arc;
 use axum::{
     extract::FromRequestParts,
@@ -13,14 +14,39 @@ use rzops_domain::ports::user_repository::UserRepository;
 use crate::dto::provider_dto::ErrorResponse;
 
 /// Extracted authenticated user from JWT token.
+/// 由权限中间件解析并注入 request extensions；handler 直接以参数使用。
 #[derive(Debug, Clone)]
 pub struct AuthUser {
     pub user_id: Uuid,
     pub email: String,
     pub is_superuser: bool,
+    /// 用户拥有的角色 code 集合（多角色合并）
+    pub roles: Vec<String>,
+    /// 用户拥有的权限点集合（跨角色去重）
+    pub permissions: HashSet<String>,
 }
 
 impl AuthUser {
+    /// 是否拥有指定权限点（超管恒为 true）
+    pub fn has_perm(&self, perm: &str) -> bool {
+        self.is_superuser || self.permissions.contains(perm)
+    }
+
+    /// 校验权限点，无权限返回 403。
+    pub fn require_perm(&self, perm: &str) -> Result<(), Response> {
+        if self.has_perm(perm) {
+            Ok(())
+        } else {
+            Err((
+                StatusCode::FORBIDDEN,
+                Json(ErrorResponse {
+                    error: format!("forbidden: permission '{}' required", perm),
+                }),
+            )
+                .into_response())
+        }
+    }
+
     /// Reject the request unless the authenticated user is a superuser.
     pub fn require_superuser(&self) -> Result<(), Response> {
         if self.is_superuser {
@@ -45,18 +71,20 @@ pub struct AuthExtractorState {
 }
 
 /// Implement `FromRequestParts` for `AuthUser` to extract from JWT.
-/// Usage in handlers: `AuthUser` as the first extractor parameter.
+/// 优先读取权限中间件已注入的 extension；否则回退自行解析 token。
 impl<S> FromRequestParts<S> for AuthUser
 where
     S: Send + Sync,
-    // We need access to the AppState via axum's State
-    // But since AppState varies, we'll use a different approach:
-    // The auth state must be accessible via axum::Extension
 {
     type Rejection = Response;
 
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
-        // Get the Authorization header
+        // 优先读取权限中间件注入的 AuthUser
+        if let Some(user) = parts.extensions.get::<AuthUser>() {
+            return Ok(user.clone());
+        }
+
+        // 回退：自行解析 token（与旧逻辑一致）
         let auth_header = parts
             .headers
             .get("Authorization")
@@ -75,7 +103,6 @@ where
             }
         };
 
-        // Get the token service from extensions (injected by middleware)
         let token_service = parts
             .extensions
             .get::<Arc<dyn TokenService>>()
@@ -99,7 +126,6 @@ where
             }
         };
 
-        // Validate the token
         let claims = match token_service.validate_token(token) {
             Ok(claims) => claims,
             Err(_) => {
@@ -113,7 +139,6 @@ where
             }
         };
 
-        // Parse user ID from claims
         let user_id = match Uuid::parse_str(&claims.sub) {
             Ok(id) => id,
             Err(_) => {
@@ -127,12 +152,13 @@ where
             }
         };
 
-        // Verify user still exists and is active
         match user_repo.find_by_id(user_id).await {
             Ok(Some(user)) if user.is_active => Ok(AuthUser {
                 user_id,
                 email: claims.email,
                 is_superuser: claims.is_superuser,
+                roles: Vec::new(),
+                permissions: HashSet::new(),
             }),
             Ok(Some(_)) => Err((
                 StatusCode::FORBIDDEN,

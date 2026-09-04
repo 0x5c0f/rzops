@@ -1,4 +1,5 @@
 pub mod user;
+pub mod role;
 pub mod claims;
 pub mod provider;
 pub mod data_center;

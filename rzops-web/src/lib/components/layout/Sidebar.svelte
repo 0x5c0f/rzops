@@ -3,6 +3,7 @@
   import { browser } from '$app/environment';
   import { cn } from '$lib/utils';
   import { auth } from '$lib/stores/auth';
+  import { canRead, canSystem } from '$lib/utils/permissions';
   import * as Collapsible from '$lib/ui/collapsible';
   import ChevronDown from '@lucide/svelte/icons/chevron-down';
   import LayoutGrid from '@lucide/svelte/icons/layout-grid';
@@ -37,6 +38,8 @@
   interface NavItem {
     href: string;
     label: string;
+    /** 所需权限点；为空表示无需特殊权限（如 Dashboard） */
+    perm?: string;
   }
 
   interface NavGroup {
@@ -48,47 +51,50 @@
     {
       label: '基础设施',
       items: [
-        { href: '/servers', label: '服务器' },
-        { href: '/datacenters', label: '数据中心' },
-        { href: '/providers', label: '供应商' },
+        { href: '/servers', label: '服务器', perm: 'server:read' },
+        { href: '/datacenters', label: '数据中心', perm: 'datacenter:read' },
+        { href: '/providers', label: '供应商', perm: 'provider:read' },
       ],
     },
     {
       label: '网络',
       items: [
-        { href: '/domains', label: '域名' },
-        { href: '/certificates', label: '证书' },
-        { href: '/server-ips', label: '服务器IP' },
-        { href: '/server-ports', label: '服务器端口' },
-        { href: '/server-port-templates', label: '端口模板' },
+        { href: '/domains', label: '域名', perm: 'domain:read' },
+        { href: '/certificates', label: '证书', perm: 'certificate:read' },
+        { href: '/server-ips', label: '服务器IP', perm: 'server_ip:read' },
+        { href: '/server-ports', label: '服务器端口', perm: 'server_port:read' },
+        { href: '/server-port-templates', label: '端口模板', perm: 'server_port_template:read' },
       ],
     },
     {
       label: '应用',
       items: [
-        { href: '/ops-sites', label: '站点' },
-        { href: '/database-instances', label: '数据库实例' },
+        { href: '/ops-sites', label: '站点', perm: 'ops_site:read' },
+        { href: '/database-instances', label: '数据库实例', perm: 'database_instance:read' },
       ],
     },
     {
       label: '运维',
       items: [
-        { href: '/backup-plans', label: '备份计划' },
-        { href: '/monitor-targets', label: '监控目标' },
+        { href: '/backup-plans', label: '备份计划', perm: 'backup_plan:read' },
+        { href: '/monitor-targets', label: '监控目标', perm: 'monitor_target:read' },
       ],
     },
     {
       label: '管理',
       items: [
-        { href: '/attachments', label: '附件' },
-        { href: '/dicts', label: '字典管理' },
+        { href: '/attachments', label: '附件', perm: 'attachment:read' },
+        { href: '/dicts', label: '字典管理', perm: 'dict:read' },
+        { href: '/users', label: '用户管理', perm: 'system:user' },
+        { href: '/roles', label: '角色管理', perm: 'system:role' },
+        { href: '/recycle', label: '回收站', perm: 'system:recycle' },
       ],
     },
     {
       label: '审计',
       items: [
-        { href: '/audit-logs', label: '审计日志' },
-        { href: '/change-records', label: '变更记录' },
+        { href: '/audit-logs', label: '审计日志', perm: 'system:audit' },
+        { href: '/change-records', label: '变更记录', perm: 'system:change' },
       ],
     },
   ];
@@ -132,9 +138,17 @@
     }
   }
 
-  // Audit group (and any future admin-only entries) visible only to superusers.
+  // 按权限过滤菜单：无 read 权限的资源不显示，系统资源按 system:* 权限判断。
   const visibleGroups = $derived(
-    $auth.user?.is_superuser ? navGroups : navGroups.filter((g) => g.label !== '审计')
+    navGroups
+      .map((g) => ({
+        ...g,
+        items: g.items.filter((item) => {
+          if (!item.perm) return true;
+          return item.perm.startsWith('system:') ? canSystem(item.perm.slice(7)) : canRead(item.perm.replace(/:read$/, ''));
+        }),
+      }))
+      .filter((g) => g.items.length > 0),
   );
 
   function isActive(href: string, currentPath: string) {

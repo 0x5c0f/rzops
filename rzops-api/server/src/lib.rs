@@ -16,6 +16,7 @@ mod middleware;
 pub struct AppState {
     pub pool: Pool<Postgres>,
     pub user_repo: Arc<dyn user_repository::UserRepository>,
+    pub role_repo: Arc<dyn role_repository::RoleRepository>,
     pub provider_repo: Arc<dyn provider_repository::ProviderRepository>,
     pub datacenter_repo: Arc<dyn datacenter_repository::DataCenterRepository>,
     pub server_repo: Arc<dyn server_repository::ServerRepository>,
@@ -47,6 +48,7 @@ impl AppState {
         let upload_dir = std::env::var("UPLOAD_DIR").unwrap_or_else(|_| "uploads".to_string());
         Self {
             user_repo: Arc::new(PgUserRepository::new(pool.clone())),
+            role_repo: Arc::new(PgRoleRepository::new(pool.clone())),
             provider_repo: Arc::new(PgProviderRepository::new(pool.clone())),
             datacenter_repo: Arc::new(PgDataCenterRepository::new(pool.clone())),
             server_repo: Arc::new(PgServerRepository::new(pool.clone())),
@@ -87,7 +89,30 @@ fn cors_layer() -> CorsLayer {
 pub fn create_router(state: AppState) -> Router {
     let auth_state = rzops_api::auth_handlers::AuthState {
         user_repo: state.user_repo.clone(),
+        role_repo: state.role_repo.clone(),
         token_service: state.token_service.clone(),
+    };
+
+    let authz_state = middleware::authz::AuthzState::new(
+        state.user_repo.clone(),
+        state.role_repo.clone(),
+        state.token_service.clone(),
+    );
+
+    let user_mgmt_state = rzops_api::user_handlers::UserMgmtState {
+        user_repo: state.user_repo.clone(),
+        role_repo: state.role_repo.clone(),
+        token_service: state.token_service.clone(),
+    };
+
+    let role_mgmt_state = rzops_api::role_handlers::RoleMgmtState {
+        role_repo: state.role_repo.clone(),
+    };
+
+    let recycle_state = rzops_api::recycle_handlers::RecycleState {
+        pool: state.pool.clone(),
+        user_repo: state.user_repo.clone(),
+        role_repo: state.role_repo.clone(),
     };
 
     let change_log = rzops_api::ChangeLogState::new(
@@ -102,6 +127,9 @@ pub fn create_router(state: AppState) -> Router {
 
     let api_routes = Router::new()
         .nest("/api/v1/auth", rzops_api::auth_routes(auth_state))
+        .nest("/api/v1/users", rzops_api::user_routes(user_mgmt_state))
+        .nest("/api/v1/roles", rzops_api::role_routes(role_mgmt_state))
+        .nest("/api/v1/recycle", rzops_api::recycle_routes(recycle_state))
         .nest("/api/v1/providers", rzops_api::provider_routes(state.provider_repo.clone()))
         .nest("/api/v1/data-centers", rzops_api::datacenter_routes(state.datacenter_repo.clone()))
         .nest("/api/v1/servers", rzops_api::server_routes(state.server_repo.clone()))
@@ -137,7 +165,12 @@ pub fn create_router(state: AppState) -> Router {
             audit_state,
             middleware::audit::audit_log_middleware,
         ))
+        .layer(axum::middleware::from_fn_with_state(
+            authz_state,
+            middleware::authz::authz_middleware,
+        ))
         .layer(axum::Extension(change_log))
+        .layer(axum::Extension(state.role_repo.clone() as Arc<dyn role_repository::RoleRepository>))
         .layer(axum::Extension(state.token_service.clone() as Arc<dyn token_service::TokenService>))
         .layer(axum::Extension(state.user_repo.clone() as Arc<dyn user_repository::UserRepository>))
         .layer(cors_layer())

@@ -1,4 +1,7 @@
 pub mod auth_dto;
+pub mod user_dto;
+pub mod role_dto;
+pub mod recycle_dto;
 pub mod provider_dto;
 pub mod datacenter_dto;
 pub mod server_dto;
@@ -20,6 +23,9 @@ pub mod site_relation_dto;
 pub mod dict_dto;
 
 pub use auth_dto::*;
+pub use user_dto::*;
+pub use role_dto::*;
+pub use recycle_dto::*;
 pub use provider_dto::*;
 pub use datacenter_dto::*;
 pub use server_dto::*;

@@ -4,6 +4,7 @@ use chrono::Utc;
 use uuid::Uuid;
 
 use rzops_domain::models::user::User;
+use rzops_domain::ports::role_repository::RoleRepository;
 use rzops_domain::ports::user_repository::UserRepository;
 use rzops_domain::ports::TokenService;
 
@@ -14,6 +15,7 @@ use crate::dto::provider_dto::ErrorResponse;
 #[derive(Clone)]
 pub struct AuthState {
     pub user_repo: Arc<dyn UserRepository>,
+    pub role_repo: Arc<dyn RoleRepository>,
     pub token_service: Arc<dyn TokenService>,
 }
 
@@ -54,11 +56,15 @@ pub async fn login(
     }
 
     match state.token_service.create_token(user.id, &user.email, user.is_superuser) {
-        Ok(token) => (StatusCode::OK, Json(AuthResponse {
-            access_token: token,
-            token_type: "Bearer".to_string(),
-            user: UserInfo { id: user.id, email: user.email, full_name: user.full_name, is_superuser: user.is_superuser },
-        })).into_response(),
+        Ok(token) => {
+            let roles = state.role_repo.get_user_role_codes(user.id).await.unwrap_or_default();
+            let permissions = state.role_repo.get_user_permissions(user.id).await.unwrap_or_default();
+            (StatusCode::OK, Json(AuthResponse {
+                access_token: token,
+                token_type: "Bearer".to_string(),
+                user: UserInfo { id: user.id, email: user.email, full_name: user.full_name, is_superuser: user.is_superuser, roles, permissions },
+            })).into_response()
+        }
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: format!("failed to create token: {}", e) })).into_response(),
     }
 }
@@ -100,7 +106,7 @@ pub async fn register(
     };
 
     let now = Utc::now();
-    let user = User { id: Uuid::new_v4(), email: body.email, hashed_password, is_active: true, is_superuser: false, full_name: body.full_name, created_at: now };
+    let user = User { id: Uuid::new_v4(), email: body.email, hashed_password, is_active: true, is_superuser: false, full_name: body.full_name, created_at: now, deleted_at: None };
 
     match state.user_repo.create(&user).await {
         Ok(created) => {
@@ -108,7 +114,7 @@ pub async fn register(
                 Ok(token) => (StatusCode::CREATED, Json(AuthResponse {
                     access_token: token,
                     token_type: "Bearer".to_string(),
-                    user: UserInfo { id: created.id, email: created.email, full_name: created.full_name, is_superuser: created.is_superuser },
+                    user: UserInfo { id: created.id, email: created.email, full_name: created.full_name, is_superuser: created.is_superuser, roles: vec![], permissions: vec![] },
                 })).into_response(),
                 Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: format!("failed to create token: {}", e) })).into_response(),
             }
@@ -132,11 +138,18 @@ pub async fn register(
 )]
 pub async fn me(
     auth_user: crate::auth_extractor::AuthUser,
+    State(state): State<AuthState>,
 ) -> impl IntoResponse {
+    let full_name = match state.user_repo.find_by_id(auth_user.user_id).await {
+        Ok(Some(u)) => u.full_name,
+        _ => None,
+    };
     (StatusCode::OK, Json(MeResponse {
         id: auth_user.user_id,
         email: auth_user.email,
-        full_name: None,
+        full_name,
         is_superuser: auth_user.is_superuser,
+        roles: auth_user.roles,
+        permissions: auth_user.permissions.into_iter().collect(),
     }))
 }

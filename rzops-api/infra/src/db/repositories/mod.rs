@@ -1,4 +1,5 @@
 pub mod user_repo;
+pub mod role_repo;
 pub mod provider_repo;
 pub mod datacenter_repo;
 pub mod server_repo;
@@ -20,6 +21,7 @@ pub mod site_relation_repo;
 pub mod dict_repo;
 
 pub use user_repo::PgUserRepository;
+pub use role_repo::PgRoleRepository;
 pub use provider_repo::PgProviderRepository;
 pub use datacenter_repo::PgDataCenterRepository;
 pub use server_repo::PgServerRepository;

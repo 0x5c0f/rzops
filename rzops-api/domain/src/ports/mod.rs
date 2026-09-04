@@ -1,4 +1,5 @@
 pub mod user_repository;
+pub mod role_repository;
 pub mod token_service;
 pub mod provider_repository;
 pub mod datacenter_repository;
@@ -21,6 +22,7 @@ pub mod site_relation_repository;
 pub mod dict_repository;
 
 pub use user_repository::UserRepository;
+pub use role_repository::RoleRepository;
 pub use token_service::TokenService;
 pub use provider_repository::ProviderRepository;
 pub use datacenter_repository::DataCenterRepository;

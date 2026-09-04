@@ -31,6 +31,8 @@ pub struct UserInfo {
     pub email: String,
     pub full_name: Option<String>,
     pub is_superuser: bool,
+    pub roles: Vec<String>,
+    pub permissions: Vec<String>,
 }
 
 /// Response for GET /auth/me
@@ -40,4 +42,6 @@ pub struct MeResponse {
     pub email: String,
     pub full_name: Option<String>,
     pub is_superuser: bool,
+    pub roles: Vec<String>,
+    pub permissions: Vec<String>,
 }

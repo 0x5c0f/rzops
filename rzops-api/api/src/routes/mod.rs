@@ -1,4 +1,7 @@
 pub mod auth_handlers;
+pub mod user_handlers;
+pub mod role_handlers;
+pub mod recycle_handlers;
 pub mod provider_handlers;
 pub mod datacenter_handlers;
 pub mod server_handlers;
@@ -28,6 +31,9 @@ use crate::change_log::ChangeLogState;
 use crate::dto::server_port_dto::ApplyTemplateRequest;
 
 use auth_handlers::*;
+use user_handlers::*;
+use role_handlers::*;
+use recycle_handlers::*;
 use provider_handlers::*;
 use datacenter_handlers::*;
 use server_handlers::*;
@@ -53,6 +59,29 @@ pub fn auth_routes(state: auth_handlers::AuthState) -> Router {
         .route("/login", axum::routing::post(login))
         .route("/register", axum::routing::post(register))
         .route("/me", axum::routing::get(me))
+        .with_state(state)
+}
+
+pub fn user_routes(state: user_handlers::UserMgmtState) -> Router {
+    Router::new()
+        .route("/", axum::routing::get(list_users).post(create_user))
+        .route("/{id}", axum::routing::get(get_user).put(update_user).delete(delete_user))
+        .route("/{id}/reset-password", axum::routing::post(reset_password))
+        .with_state(state)
+}
+
+pub fn role_routes(state: role_handlers::RoleMgmtState) -> Router {
+    Router::new()
+        .route("/", axum::routing::get(list_roles).post(create_role))
+        .route("/{id}", axum::routing::get(get_role).put(update_role).delete(delete_role))
+        .with_state(state)
+}
+
+pub fn recycle_routes(state: recycle_handlers::RecycleState) -> Router {
+    Router::new()
+        .route("/", axum::routing::get(list_recycle))
+        .route("/restore", axum::routing::post(restore_item))
+        .route("/{resource_type}/{id}", axum::routing::delete(purge_item))
         .with_state(state)
 }
 

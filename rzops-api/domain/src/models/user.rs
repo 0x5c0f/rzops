@@ -11,4 +11,5 @@ pub struct User {
     pub is_superuser: bool,
     pub full_name: Option<String>,
     pub created_at: DateTime<Utc>,
+    pub deleted_at: Option<DateTime<Utc>>,
 }

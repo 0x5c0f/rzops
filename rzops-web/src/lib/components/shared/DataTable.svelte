@@ -44,6 +44,8 @@
     showIndex = true,
     page = 1,
     perPage = 20,
+    children,
+    extraActions,
   }: {
     columns: Column[];
     data: T[];
@@ -62,6 +64,10 @@
     page?: number;
     /** 每页条数，用于计算序号 */
     perPage?: number;
+    /** 默认插槽 */
+    children?: import('svelte').Snippet;
+    /** 额外操作 snippet（接收行数据），如重置密码按钮 */
+    extraActions?: import('svelte').Snippet<[T]>;
   } = $props();
 
   let hasActions = $derived(onEdit || onDelete);
@@ -263,6 +269,9 @@
               {#if hasActions}
                 <Table.Cell>
                   <div class="flex gap-1">
+                    {#if extraActions}
+                      {@render extraActions(item)}
+                    {/if}
                     {#if onEdit}
                       <Button variant="ghost" size="sm" onclick={() => onEdit(item)}>{editLabel}</Button>
                     {/if}

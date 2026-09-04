@@ -13,6 +13,23 @@ use utoipa::OpenApi;
         crate::routes::auth_handlers::login,
         crate::routes::auth_handlers::register,
         crate::routes::auth_handlers::me,
+        // User management
+        crate::routes::user_handlers::list_users,
+        crate::routes::user_handlers::get_user,
+        crate::routes::user_handlers::create_user,
+        crate::routes::user_handlers::update_user,
+        crate::routes::user_handlers::reset_password,
+        crate::routes::user_handlers::delete_user,
+        // Role management
+        crate::routes::role_handlers::list_roles,
+        crate::routes::role_handlers::get_role,
+        crate::routes::role_handlers::create_role,
+        crate::routes::role_handlers::update_role,
+        crate::routes::role_handlers::delete_role,
+        // Recycle bin
+        crate::routes::recycle_handlers::list_recycle,
+        crate::routes::recycle_handlers::restore_item,
+        crate::routes::recycle_handlers::purge_item,
         // Provider
         crate::routes::provider_handlers::get_provider,
         crate::routes::provider_handlers::list_providers,
@@ -115,6 +132,24 @@ use utoipa::OpenApi;
         crate::dto::auth_dto::AuthResponse,
         crate::dto::auth_dto::UserInfo,
         crate::dto::auth_dto::MeResponse,
+        // User management
+        crate::dto::user_dto::UserResponse,
+        crate::dto::user_dto::UserListResponse,
+        crate::dto::user_dto::CreateUserRequest,
+        crate::dto::user_dto::UpdateUserRequest,
+        crate::dto::user_dto::ResetPasswordRequest,
+        crate::dto::user_dto::ListUsersQuery,
+        // Role management
+        crate::dto::role_dto::RoleResponse,
+        crate::dto::role_dto::RoleListResponse,
+        crate::dto::role_dto::RoleDetailResponse,
+        crate::dto::role_dto::CreateRoleRequest,
+        crate::dto::role_dto::UpdateRoleRequest,
+        // Recycle bin
+        crate::dto::recycle_dto::RecycleItem,
+        crate::dto::recycle_dto::RecycleListResponse,
+        crate::dto::recycle_dto::ListRecycleQuery,
+        crate::dto::recycle_dto::RestoreRequest,
         // Common
         crate::dto::provider_dto::ErrorResponse,
         // Provider
