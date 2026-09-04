@@ -27,9 +27,41 @@ pub struct AuthUser {
 }
 
 impl AuthUser {
-    /// 是否拥有指定权限点（超管恒为 true）
+    /// 是否拥有指定权限点（超管恒为 true）。
+    /// 业务资源权限支持递进：delete 隐含 update/create/read，update 隐含 create/read，create 隐含 read。
+    /// 系统权限（system:*）不参与递进。
     pub fn has_perm(&self, perm: &str) -> bool {
-        self.is_superuser || self.permissions.contains(perm)
+        if self.is_superuser || self.permissions.contains(perm) {
+            return true;
+        }
+        // 系统权限无操作层级，不递进
+        if perm.starts_with("system:") {
+            return false;
+        }
+        // 分解为 resource:action
+        let Some((resource, action)) = perm.split_once(':') else {
+            return false;
+        };
+        // 请求动作等级；delete > update > create > read
+        let action_rank = |a: &str| match a {
+            "delete" => 4,
+            "update" => 3,
+            "create" => 2,
+            "read" => 1,
+            _ => 0,
+        };
+        let need = action_rank(action);
+        if need == 0 {
+            return false;
+        }
+        // 用户已拥有的任何同一资源权限，只要其动作等级 >= 需要等级，即满足
+        self.permissions.iter().any(|p| {
+            if let Some((r, a)) = p.split_once(':') {
+                r == resource && action_rank(a) >= need
+            } else {
+                false
+            }
+        })
     }
 
     /// 校验权限点，无权限返回 403。
