@@ -198,8 +198,8 @@
     </Button>
   </div>
 
-  <div class="rounded-md border overflow-auto max-h-[calc(100vh-280px)]">
-    <Table.Root>
+  <div class="rounded-md border">
+    <Table.Root containerClass="overflow-x-clip" class="table-fixed">
       <Table.Header>
         <Table.Row>
           {#if showIndex}
@@ -233,7 +233,7 @@
                 <Table.Cell class="sticky left-0 z-10 bg-background shadow-[1px_0_0_0_var(--border)] text-center text-muted-foreground">{(page - 1) * perPage + index + 1}</Table.Cell>
               {/if}
               {#each visibleColumns as col}
-                <Table.Cell class={col.class}>
+                <Table.Cell class={cn('truncate', col.class)}>
                   {#if col.statusBadge}
                     {@const sb = col.statusBadge(item)}
                     {#if sb}
