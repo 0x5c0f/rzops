@@ -12,6 +12,7 @@
   import { getProviderOptions } from '$lib/utils/entity-options';
   import { formatResourceWithStatus } from '$lib/utils/resource-status';
   import { onMount } from 'svelte';
+import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
 
   let data = $state<DomainResponse[]>([]);
   let total = $state(0);
@@ -109,7 +110,9 @@
 
   <div class="flex items-center justify-between">
     <h1 class="text-2xl font-semibold">域名管理</h1>
-    <Button onclick={() => goto('/domains/new')}>新建域名</Button>
+    {#if canCreate('domain')}
+      <Button onclick={() => goto('/domains/new')}>新建域名</Button>
+    {/if}
   </div>
 
   <div class="flex flex-wrap items-center gap-2">
@@ -152,8 +155,8 @@
     {columns}
     {data}
     {loading}
-    onEdit={handleEdit}
-    onDelete={handleDelete}
+    onEdit={canUpdate('domain') ? handleEdit : undefined}
+    onDelete={canDelete('domain') ? handleDelete : undefined}
     {getRowClass}
     storageKey="domains" />
 

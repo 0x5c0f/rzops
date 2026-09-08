@@ -13,6 +13,7 @@
   import { commonStatusOptions, countryOptions, getOptionColor } from '$lib/utils/enum-options';
   import { formatResourceWithStatus } from '$lib/utils/resource-status';
   import { onMount } from 'svelte';
+import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
 
   let data = $state<DataCenterResponse[]>([]);
   let total = $state(0);
@@ -128,7 +129,9 @@
 
   <div class="flex items-center justify-between">
     <h1 class="text-2xl font-semibold">数据中心管理</h1>
-    <Button onclick={() => goto('/datacenters/new')}>新建数据中心</Button>
+    {#if canCreate('datacenter')}
+      <Button onclick={() => goto('/datacenters/new')}>新建数据中心</Button>
+    {/if}
   </div>
 
   <div class="space-y-3">
@@ -216,8 +219,8 @@
     {columns}
     {data}
     {loading}
-    onEdit={handleEdit}
-    onDelete={handleDelete}
+    onEdit={canUpdate('datacenter') ? handleEdit : undefined}
+    onDelete={canDelete('datacenter') ? handleDelete : undefined}
     {getRowClass}
     storageKey="datacenters" />
 

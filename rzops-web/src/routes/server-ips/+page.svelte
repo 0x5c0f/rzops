@@ -13,6 +13,7 @@
   import { formatResourceWithStatus, isResourceOffline } from '$lib/utils/resource-status';
   import { getOptionColor } from '$lib/utils/enum-options';
   import RemoteSearchSelect from '$lib/components/shared/RemoteSearchSelect.svelte';
+import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
 
   let data = $state<ServerIpResponse[]>([]);
   let total = $state(0);
@@ -150,7 +151,9 @@
 
   <div class="flex items-center justify-between">
     <h1 class="text-2xl font-semibold">服务器IP管理</h1>
-    <Button onclick={() => goto('/server-ips/new')}>新建服务器IP</Button>
+    {#if canCreate('server_ip')}
+      <Button onclick={() => goto('/server-ips/new')}>新建服务器IP</Button>
+    {/if}
   </div>
 
   <div class="space-y-3">
@@ -254,8 +257,8 @@
     {columns}
     {data}
     {loading}
-    onEdit={handleEdit}
-    onDelete={handleDelete}
+    onEdit={canUpdate('server_ip') ? handleEdit : undefined}
+    onDelete={canDelete('server_ip') ? handleDelete : undefined}
     {getRowClass}
     storageKey="server-ips" />
 

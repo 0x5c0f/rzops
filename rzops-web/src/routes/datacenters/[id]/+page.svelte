@@ -18,6 +18,7 @@
   import { formatDate } from '$lib/utils/format';
   import { onMount } from 'svelte';
   import ConfirmDialog from '$lib/components/shared/ConfirmDialog.svelte';
+import { canUpdate, canDelete } from '$lib/utils/permissions';
 
   let datacenter = $state<DataCenterResponse | null>(null);
 
@@ -85,8 +86,12 @@
       </div>
       <div class="flex gap-2">
         <Button variant="outline" onclick={() => goto('/datacenters')}>返回列表</Button>
+        {#if canUpdate('datacenter')}
         <Button onclick={() => goto(`/datacenters/${datacenter?.id}/edit`)}>编辑</Button>
+      {/if}
+        {#if canDelete('datacenter')}
         <Button variant="destructive" onclick={handleDelete}>删除</Button>
+      {/if}
       </div>
     </div>
 

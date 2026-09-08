@@ -11,6 +11,7 @@
   import { formatDate } from '$lib/utils/format';
   import { providerTypeOptions, commonStatusOptions, getOptionColor } from '$lib/utils/enum-options';
   import { onMount } from 'svelte';
+import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
 
   let data = $state<ProviderResponse[]>([]);
   let total = $state(0);
@@ -98,7 +99,9 @@
 
   <div class="flex items-center justify-between">
     <h1 class="text-2xl font-semibold">供应商管理</h1>
-    <Button onclick={() => goto('/providers/new')}>新建供应商</Button>
+    {#if canCreate('provider')}
+      <Button onclick={() => goto('/providers/new')}>新建供应商</Button>
+    {/if}
   </div>
 
   <div class="flex flex-wrap items-center gap-2">
@@ -142,8 +145,8 @@
     {columns}
     {data}
     {loading}
-    onEdit={handleEdit}
-    onDelete={handleDelete}
+    onEdit={canUpdate('provider') ? handleEdit : undefined}
+    onDelete={canDelete('provider') ? handleDelete : undefined}
     {getRowClass}
     storageKey="providers" />
 

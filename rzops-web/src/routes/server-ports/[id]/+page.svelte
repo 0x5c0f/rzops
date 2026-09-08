@@ -9,6 +9,7 @@
   import { getStatusLabel } from '$lib/utils/resource-status';
   import { onMount } from 'svelte';
   import ConfirmDialog from '$lib/components/shared/ConfirmDialog.svelte';
+import { canUpdate, canDelete } from '$lib/utils/permissions';
 
   let serverPort = $state<ServerPortResponse | null>(null);
 
@@ -64,8 +65,12 @@
       </div>
       <div class="flex gap-2">
         <Button variant="outline" onclick={() => goto('/server-ports')}>返回列表</Button>
+        {#if canUpdate('server_port')}
         <Button onclick={() => goto(`/server-ports/${serverPort?.id}/edit`)}>编辑</Button>
+      {/if}
+        {#if canDelete('server_port')}
         <Button variant="destructive" onclick={handleDelete}>删除</Button>
+      {/if}
       </div>
     </div>
 

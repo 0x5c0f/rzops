@@ -9,6 +9,7 @@
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import { onMount } from 'svelte';
   import { protocolOptions } from '$lib/utils/enum-options';
+import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
 
   let data = $state<ServerPortTemplateResponse[]>([]);
   let total = $state(0);
@@ -85,7 +86,9 @@
 
   <div class="flex items-center justify-between">
     <h1 class="text-2xl font-semibold">端口模板管理</h1>
-    <Button onclick={() => goto('/server-port-templates/new')}>新建端口模板</Button>
+    {#if canCreate('server_port_template')}
+      <Button onclick={() => goto('/server-port-templates/new')}>新建端口模板</Button>
+    {/if}
   </div>
 
   <p class="text-sm text-muted-foreground">
@@ -105,8 +108,8 @@
     {columns}
     {data}
     {loading}
-    onEdit={handleEdit}
-    onDelete={handleDelete}
+    onEdit={canUpdate('server_port_template') ? handleEdit : undefined}
+    onDelete={canDelete('server_port_template') ? handleDelete : undefined}
     storageKey="server-port-templates" />
 
   <Pagination

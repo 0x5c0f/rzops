@@ -194,14 +194,14 @@
     </div>
   </div>
 
-  <nav class="flex-1 space-y-1 overflow-y-auto overflow-x-hidden px-2 py-3">
+  <nav class="no-scrollbar flex-1 space-y-0.5 overflow-y-auto overflow-x-hidden px-2 py-2">
     <!-- Dashboard -->
     <a
       href="/"
       onclick={onMobileClose}
       class={cn(
         'flex items-center rounded-md text-sm transition-colors hover:bg-sidebar-accent',
-        collapsed ? 'justify-center px-2 py-2' : 'gap-2.5 px-3 py-2',
+        collapsed ? 'justify-center px-2 py-1.5' : 'gap-2.5 px-3 py-1.5',
         $page.url.pathname === '/'
           ? 'bg-sidebar-accent font-medium text-sidebar-accent-foreground shadow-sm'
           : 'text-sidebar-foreground/95'
@@ -221,7 +221,7 @@
         <div class="group relative">
           <button
             class={cn(
-              'flex w-full items-center justify-center rounded-md px-2 py-2 transition-colors hover:bg-sidebar-accent',
+              'flex w-full items-center justify-center rounded-md px-2 py-1.5 transition-colors hover:bg-sidebar-accent',
               hasActive ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'text-sidebar-foreground/95'
             )}
             title={group.label}
@@ -259,7 +259,7 @@
         >
           <Collapsible.Trigger
             class={cn(
-              'flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors hover:bg-sidebar-accent',
+              'flex w-full items-center gap-2.5 rounded-md px-3 py-1.5 text-sm transition-colors hover:bg-sidebar-accent',
               hasActive
                 ? 'font-medium text-sidebar-primary'
                 : 'text-sidebar-foreground/95'
@@ -279,7 +279,7 @@
                   href={item.href}
                   onclick={onMobileClose}
                   class={cn(
-                    'relative flex items-center rounded-md px-3 py-1.5 text-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                    'relative flex items-center rounded-md px-3 py-1 text-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
                     isActive(item.href, $page.url.pathname)
                       ? 'bg-sidebar-accent font-medium text-sidebar-accent-foreground'
                       : 'text-sidebar-foreground/90'
@@ -302,7 +302,7 @@
   <div class="hidden border-t border-sidebar-border p-2 md:block">
     <button
       class={cn(
-        'flex w-full items-center rounded-md py-2 text-sm text-sidebar-foreground/90 transition-colors hover:bg-sidebar-accent',
+        'flex w-full items-center rounded-md py-1.5 text-sm text-sidebar-foreground/90 transition-colors hover:bg-sidebar-accent',
         collapsed ? 'justify-center' : 'justify-between px-3'
       )}
       onclick={toggleCollapsed}

@@ -14,6 +14,7 @@
   import { formatResourceWithStatus, getResourceStatusClass } from '$lib/utils/resource-status';
   import { onMount } from 'svelte';
   import { commonStatusOptions, backupTargetTypeOptions, getOptionColor } from '$lib/utils/enum-options';
+import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
 
   let data = $state<BackupPlanResponse[]>([]);
   let total = $state(0);
@@ -164,7 +165,9 @@
 
   <div class="flex items-center justify-between">
     <h1 class="text-2xl font-semibold">备份计划管理</h1>
-    <Button onclick={() => goto('/backup-plans/new')}>新建备份计划</Button>
+    {#if canCreate('backup_plan')}
+      <Button onclick={() => goto('/backup-plans/new')}>新建备份计划</Button>
+    {/if}
   </div>
 
   <div class="space-y-3">
@@ -252,8 +255,8 @@
     {columns}
     {data}
     {loading}
-    onEdit={handleEdit}
-    onDelete={handleDelete}
+    onEdit={canUpdate('backup_plan') ? handleEdit : undefined}
+    onDelete={canDelete('backup_plan') ? handleDelete : undefined}
     {getRowClass}
     storageKey="backup-plans" />
 

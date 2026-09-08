@@ -24,6 +24,7 @@
   import { getDataCenterOptions, getProviderOptions, ensureOption } from '$lib/utils/entity-options';
   import { formatDate } from '$lib/utils/format';
   import { onMount } from 'svelte';
+import { canUpdate, canDelete } from '$lib/utils/permissions';
 
   let server = $state<ServerResponse | null>(null);
   let ips = $state<ServerIpResponse[]>([]);
@@ -98,8 +99,12 @@
       </div>
       <div class="flex gap-2">
         <Button variant="outline" onclick={() => goto('/servers')}>返回列表</Button>
+        {#if canUpdate('server')}
         <Button onclick={() => goto(`/servers/${server?.id}/edit`)}>编辑</Button>
+      {/if}
+        {#if canDelete('server')}
         <Button variant="destructive" onclick={handleDelete}>删除</Button>
+      {/if}
       </div>
     </div>
 

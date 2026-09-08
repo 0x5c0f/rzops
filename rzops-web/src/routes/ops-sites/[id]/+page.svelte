@@ -17,6 +17,7 @@
   import { formatDate } from '$lib/utils/format';
   import { onMount } from 'svelte';
   import ConfirmDialog from '$lib/components/shared/ConfirmDialog.svelte';
+import { canUpdate, canDelete } from '$lib/utils/permissions';
 
   let site = $state<OpsSiteResponse | null>(null);
 
@@ -76,8 +77,12 @@
       </div>
       <div class="flex gap-2">
         <Button variant="outline" onclick={() => goto('/ops-sites')}>返回列表</Button>
+        {#if canUpdate('ops_site')}
         <Button onclick={() => goto(`/ops-sites/${site?.id}/edit`)}>编辑</Button>
+      {/if}
+        {#if canDelete('ops_site')}
         <Button variant="destructive" onclick={handleDelete}>删除</Button>
+      {/if}
       </div>
     </div>
 

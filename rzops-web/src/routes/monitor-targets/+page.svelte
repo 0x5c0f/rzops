@@ -16,6 +16,7 @@
   import { formatResourceWithStatus, getResourceStatusClass } from '$lib/utils/resource-status';
   import { onMount } from 'svelte';
   import { commonStatusOptions, monitorTypeOptions, assetTargetTypeOptions, getOptionColor } from '$lib/utils/enum-options';
+import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
 
   let data = $state<MonitorTargetResponse[]>([]);
   let total = $state(0);
@@ -180,7 +181,9 @@
 
   <div class="flex items-center justify-between">
     <h1 class="text-2xl font-semibold">监控目标管理</h1>
-    <Button onclick={() => goto('/monitor-targets/new')}>新建监控目标</Button>
+    {#if canCreate('monitor_target')}
+      <Button onclick={() => goto('/monitor-targets/new')}>新建监控目标</Button>
+    {/if}
   </div>
 
   <div class="space-y-3">
@@ -268,8 +271,8 @@
     {columns}
     {data}
     {loading}
-    onEdit={handleEdit}
-    onDelete={handleDelete}
+    onEdit={canUpdate('monitor_target') ? handleEdit : undefined}
+    onDelete={canDelete('monitor_target') ? handleDelete : undefined}
     {getRowClass}
     storageKey="monitor-targets" />
 

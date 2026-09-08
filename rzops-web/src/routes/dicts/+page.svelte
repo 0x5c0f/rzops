@@ -11,6 +11,7 @@
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import { validate } from '$lib/utils/validation';
   import { onMount } from 'svelte';
+import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
 
   let data = $state<DictItem[]>([]);
   let total = $state(0);
@@ -203,8 +204,8 @@
     {columns}
     {data}
     {loading}
-    onEdit={openEdit}
-    onDelete={handleDelete}
+    onEdit={canUpdate('dict') ? openEdit : undefined}
+    onDelete={canDelete('dict') ? handleDelete : undefined}
     getDeleteLabel={getDeleteLabelText}
     deleteTitle="确认停用"
   />

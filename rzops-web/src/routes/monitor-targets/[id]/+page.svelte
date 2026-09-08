@@ -11,6 +11,7 @@
   import { monitorTypeOptions, getOptionLabel } from '$lib/utils/enum-options';
   import { onMount } from 'svelte';
   import ConfirmDialog from '$lib/components/shared/ConfirmDialog.svelte';
+import { canUpdate, canDelete } from '$lib/utils/permissions';
 
   let target = $state<MonitorTargetResponse | null>(null);
 
@@ -90,8 +91,12 @@
       </div>
       <div class="flex gap-2">
         <Button variant="outline" onclick={() => goto('/monitor-targets')}>返回列表</Button>
+        {#if canUpdate('monitor_target')}
         <Button onclick={() => goto(`/monitor-targets/${target?.id}/edit`)}>编辑</Button>
+      {/if}
+        {#if canDelete('monitor_target')}
         <Button variant="destructive" onclick={handleDelete}>删除</Button>
+      {/if}
       </div>
     </div>
 

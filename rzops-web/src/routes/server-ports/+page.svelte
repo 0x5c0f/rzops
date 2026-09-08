@@ -10,6 +10,7 @@
   import { onMount } from 'svelte';
   import { protocolOptions } from '$lib/utils/enum-options';
   import { formatResourceWithStatus, isResourceOffline } from '$lib/utils/resource-status';
+import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
 
   let data = $state<ServerPortResponse[]>([]);
   let total = $state(0);
@@ -106,7 +107,9 @@
     <h1 class="text-2xl font-semibold">服务器端口管理</h1>
     <div class="flex gap-2">
       <Button variant="outline" onclick={() => goto('/server-port-templates')}>端口模板</Button>
+      {#if canCreate('server_port')}
       <Button onclick={() => goto('/server-ports/new')}>新建服务器端口</Button>
+    {/if}
     </div>
   </div>
 
@@ -137,8 +140,8 @@
     {columns}
     {data}
     {loading}
-    onEdit={handleEdit}
-    onDelete={handleDelete}
+    onEdit={canUpdate('server_port') ? handleEdit : undefined}
+    onDelete={canDelete('server_port') ? handleDelete : undefined}
     {getRowClass}
     storageKey="server-ports" />
 

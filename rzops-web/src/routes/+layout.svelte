@@ -5,7 +5,7 @@
   import { auth } from '$lib/stores/auth';
   import { authApi } from '$lib/api/auth';
   import { loadAllDicts } from '$lib/utils/enum-options';
-  import { routePerms } from '$lib/utils/route-guard';
+  import { routeGuard } from '$lib/utils/route-guard';
   import Sidebar from '$lib/components/layout/Sidebar.svelte';
   import Header from '$lib/components/layout/Header.svelte';
   import '../app.css';
@@ -68,7 +68,7 @@
   </div>
 {:else if $page.url.pathname === '/login'}
   {@render children()}
-{:else if routePerms.has($page.url.pathname) && !$auth.user?.is_superuser && !routePerms.get($page.url.pathname)!($auth.user?.permissions ?? [])}
+{:else if (() => { const g = routeGuard($page.url.pathname, $auth.user?.permissions ?? []); return g.required && !$auth.user?.is_superuser && !g.ok; })()}
   <div class="flex min-h-screen items-center justify-center">
     <div class="flex flex-col items-center gap-3">
       <div class="text-6xl font-bold text-muted-foreground/30">403</div>

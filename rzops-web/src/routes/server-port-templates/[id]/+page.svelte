@@ -9,6 +9,7 @@
   import { onMount } from 'svelte';
   import ConfirmDialog from '$lib/components/shared/ConfirmDialog.svelte';
   import { protocolOptions } from '$lib/utils/enum-options';
+import { canUpdate, canDelete } from '$lib/utils/permissions';
 
   let tpl = $state<ServerPortTemplateResponse | null>(null);
   let confirmOpen = $state(false);
@@ -62,8 +63,12 @@
       </div>
       <div class="flex gap-2">
         <Button variant="outline" onclick={() => goto('/server-port-templates')}>返回列表</Button>
+        {#if canUpdate('server_port_template')}
         <Button onclick={() => goto(`/server-port-templates/${tpl.id}/edit`)}>编辑</Button>
+      {/if}
+        {#if canDelete('server_port_template')}
         <Button variant="destructive" onclick={() => confirmOpen = true}>删除</Button>
+      {/if}
       </div>
     </div>
 

@@ -19,6 +19,7 @@
   import { formatDate } from '$lib/utils/format';
   import { onMount } from 'svelte';
   import ConfirmDialog from '$lib/components/shared/ConfirmDialog.svelte';
+import { canUpdate, canDelete } from '$lib/utils/permissions';
 
   let instance = $state<DatabaseInstanceResponse | null>(null);
 
@@ -78,8 +79,12 @@
       </div>
       <div class="flex gap-2">
         <Button variant="outline" onclick={() => goto('/database-instances')}>返回列表</Button>
+        {#if canUpdate('database_instance')}
         <Button onclick={() => goto(`/database-instances/${instance?.id}/edit`)}>编辑</Button>
+      {/if}
+        {#if canDelete('database_instance')}
         <Button variant="destructive" onclick={handleDelete}>删除</Button>
+      {/if}
       </div>
     </div>
 

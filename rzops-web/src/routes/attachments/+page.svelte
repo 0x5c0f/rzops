@@ -8,6 +8,7 @@
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import { formatDate, formatBytes } from '$lib/utils/format';
   import { onMount } from 'svelte';
+import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
 
   let data = $state<AttachmentResponse[]>([]);
   let total = $state(0);
@@ -218,7 +219,7 @@
     {loading}
     editLabel="下载"
     onEdit={handleDownload}
-    onDelete={handleDelete} storageKey="attachments" />
+    onDelete={canDelete('attachment') ? handleDelete : undefined} storageKey="attachments" />
 
   <Pagination
     {page}

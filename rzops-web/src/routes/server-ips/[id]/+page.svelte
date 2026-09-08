@@ -12,6 +12,7 @@
   import { formatResourceWithStatus, getResourceStatusClass } from '$lib/utils/resource-status';
   import { onMount } from 'svelte';
   import ConfirmDialog from '$lib/components/shared/ConfirmDialog.svelte';
+import { canUpdate, canDelete } from '$lib/utils/permissions';
 
   let serverIp = $state<ServerIpResponse | null>(null);
 
@@ -71,8 +72,12 @@
       </div>
       <div class="flex gap-2">
         <Button variant="outline" onclick={() => goto('/server-ips')}>返回列表</Button>
+        {#if canUpdate('server_ip')}
         <Button onclick={() => goto(`/server-ips/${serverIp?.id}/edit`)}>编辑</Button>
+      {/if}
+        {#if canDelete('server_ip')}
         <Button variant="destructive" onclick={handleDelete}>删除</Button>
+      {/if}
       </div>
     </div>
 

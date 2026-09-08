@@ -12,6 +12,7 @@
   import { getProviderOptions } from '$lib/utils/entity-options';
   import { certificateStatusOptions, certificateTypeOptions, getOptionColor } from '$lib/utils/enum-options';
   import { formatResourceWithStatus } from '$lib/utils/resource-status';
+import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
 
   let data = $state<CertificateResponse[]>([]);
   let total = $state(0);
@@ -109,7 +110,9 @@
 
   <div class="flex items-center justify-between">
     <h1 class="text-2xl font-semibold">证书管理</h1>
-    <Button onclick={() => goto('/certificates/new')}>新建证书</Button>
+    {#if canCreate('certificate')}
+      <Button onclick={() => goto('/certificates/new')}>新建证书</Button>
+    {/if}
   </div>
 
   <div class="flex flex-wrap items-center gap-2">
@@ -153,8 +156,8 @@
     {columns}
     {data}
     {loading}
-    onEdit={handleEdit}
-    onDelete={handleDelete}
+    onEdit={canUpdate('certificate') ? handleEdit : undefined}
+    onDelete={canDelete('certificate') ? handleDelete : undefined}
     {getRowClass}
     storageKey="certificates" />
 

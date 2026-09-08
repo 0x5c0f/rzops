@@ -11,6 +11,7 @@
   import { onMount } from 'svelte';
   import { backupTargetTypeOptions } from '$lib/utils/enum-options';
   import ConfirmDialog from '$lib/components/shared/ConfirmDialog.svelte';
+import { canUpdate, canDelete } from '$lib/utils/permissions';
 
   let plan = $state<BackupPlanResponse | null>(null);
 
@@ -80,8 +81,12 @@
       </div>
       <div class="flex gap-2">
         <Button variant="outline" onclick={() => goto('/backup-plans')}>返回列表</Button>
+        {#if canUpdate('backup_plan')}
         <Button onclick={() => goto(`/backup-plans/${plan?.id}/edit`)}>编辑</Button>
+      {/if}
+        {#if canDelete('backup_plan')}
         <Button variant="destructive" onclick={handleDelete}>删除</Button>
+      {/if}
       </div>
     </div>
 
