@@ -67,7 +67,7 @@ import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
 
   const columns = [
     { key: 'name', label: '名称' , link: (item: BackupPlanResponse) => `/backup-plans/${item.id}`, lockVisible: true },
-    { key: 'target_type', label: '目标类型', valueMap: targetTypeMap },
+    { key: 'target_type', label: '目标类型', hideBelow: 'md', valueMap: targetTypeMap },
     { key: 'target_name', label: '关联目标', link: targetHref, render: (v: unknown, item: BackupPlanResponse) => {
       const status = getTargetStatus(item);
       const resType = getTargetResourceType(item);
@@ -78,8 +78,8 @@ import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
       return name;
     }},
     { key: 'status', label: '状态', valueMap: statusMap, statusBadge: (item: BackupPlanResponse) => ({ status: item.status, color: getOptionColor($commonStatusOptions, item.status), label: statusMap[item.status] }) },
-    { key: 'schedule', label: '调度计划', hideInTable: true },
-    { key: 'retention_days', label: '保留天数', hideInTable: true },
+    { key: 'schedule', label: '调度计划', hideBelow: 'xl', hideInTable: true },
+    { key: 'retention_days', label: '保留天数', hideBelow: 'lg', hideInTable: true },
     { key: 'created_at', label: '创建时间', render: (v: unknown) => formatDate(v as string), hideInTable: true },
   ];
 

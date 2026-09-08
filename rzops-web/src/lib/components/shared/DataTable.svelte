@@ -1,5 +1,6 @@
 <script lang="ts" generics="T">
   import { onMount } from 'svelte';
+  import { browser } from '$app/environment';
   import * as Table from '$lib/ui/table';
   import { Button } from '$lib/ui/button';
   import * as Dialog from '$lib/ui/dialog';
@@ -16,6 +17,8 @@
     hideInTable?: boolean;
     /** 锁定可见，不允许在列设置中隐藏 */
     lockVisible?: boolean;
+    /** 视口宽度低于该断点时自动隐藏（响应式列） */
+    hideBelow?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
     /** Optional value map for resolving IDs to display names */
     valueMap?: Record<string, string>;
     /** Optional render function for custom display */
@@ -150,12 +153,27 @@
     saveVisibility();
   }
 
-  let visibleColumns = $derived(columns.filter((c) => columnVisibility[c.key] !== false));
-  let visibleCount = $derived(visibleColumns.length);
+  // 响应式列隐藏：视口宽度低于断点时自动隐藏
+  const BREAKPOINTS: Record<string, number> = { sm: 640, md: 768, lg: 1024, xl: 1280, '2xl': 1536 };
+  let windowWidth = $state(browser ? window.innerWidth : 9999);
 
   onMount(() => {
     loadVisibility();
+    const onResize = () => {
+      windowWidth = window.innerWidth;
+    };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
   });
+
+  let visibleColumns = $derived(
+    columns.filter(
+      (c) =>
+        columnVisibility[c.key] !== false &&
+        (!c.hideBelow || windowWidth >= BREAKPOINTS[c.hideBelow]),
+    ),
+  );
+  let visibleCount = $derived(visibleColumns.length);
 
   function getValue(item: T, key: string): unknown {
     return (item as Record<string, unknown>)[key];
@@ -209,7 +227,7 @@
             <Table.Head class={cn('sticky top-0 z-10 bg-background shadow-[0_1px_0_0_var(--border)]', col.class)}>{col.label}</Table.Head>
           {/each}
           {#if hasActions}
-            <Table.Head class="w-[100px] sticky top-0 z-10 bg-background shadow-[0_1px_0_0_var(--border)]">操作</Table.Head>
+            <Table.Head class="w-[90px] sticky top-0 z-10 bg-background shadow-[0_1px_0_0_var(--border)]">操作</Table.Head>
           {/if}
         </Table.Row>
       </Table.Header>
@@ -268,15 +286,15 @@
               {/each}
               {#if hasActions}
                 <Table.Cell>
-                  <div class="flex gap-1">
+                  <div class="flex gap-0.5">
                     {#if extraActions}
                       {@render extraActions(item)}
                     {/if}
                     {#if onEdit}
-                      <Button variant="ghost" size="sm" onclick={() => onEdit(item)}>{editLabel}</Button>
+                      <Button variant="ghost" size="sm" class="px-1.5" onclick={() => onEdit(item)}>{editLabel}</Button>
                     {/if}
                     {#if onDelete}
-                      <Button variant="ghost" size="sm" onclick={() => handleDeleteClick(item)}>删除</Button>
+                      <Button variant="ghost" size="sm" class="px-1.5" onclick={() => handleDeleteClick(item)}>删除</Button>
                     {/if}
                   </div>
                 </Table.Cell>
@@ -309,7 +327,7 @@
               onchange={() => toggleColumn(col.key)}
               class="h-4 w-4"
             />
-            <span>{col.label}</span>
+            <span>{col.label} {#if col.hideBelow}<span class="text-xs text-muted-foreground">(窄屏自动隐藏)</span>{/if}</span>
           {/if}
         </label>
       {/each}

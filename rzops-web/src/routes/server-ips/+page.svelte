@@ -41,10 +41,10 @@ import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
       if (!item.server_name) return '已删除';
       return formatResourceWithStatus(item.server_name, item.server_status, 'server');
     }},
-    { key: 'ip_type', label: '类型', valueMap: ipTypeMap },
+    { key: 'ip_type', label: '类型', hideBelow: 'md', valueMap: ipTypeMap },
     { key: 'status', label: '状态', valueMap: ipStatusMap, statusBadge: (item: ServerIpResponse) => ({ status: item.status, color: getOptionColor($ipStatusOptions, item.status), label: ipStatusMap[item.status] }) },
-    { key: 'nic_name', label: '网卡', render: (v: unknown) => v || '-', hideInTable: true },
-    { key: 'is_primary', label: '主IP', render: (v: unknown) => v ? '是' : '否', hideInTable: true },
+    { key: 'nic_name', label: '网卡', hideBelow: 'lg', render: (v: unknown) => v || '-', hideInTable: true },
+    { key: 'is_primary', label: '主IP', hideBelow: 'lg', render: (v: unknown) => v ? '是' : '否', hideInTable: true },
   ]);
 
   function getRowClass(item: ServerIpResponse): string {

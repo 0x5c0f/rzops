@@ -28,10 +28,10 @@ import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
 
   const columns = $derived([
     { key: 'name', label: '名称' , link: (item: CertificateResponse) => `/certificates/${item.id}`, lockVisible: true },
-    { key: 'certificate_type', label: '类型', valueMap: certificateTypeMap },
+    { key: 'certificate_type', label: '类型', hideBelow: 'md', valueMap: certificateTypeMap },
     { key: 'status', label: '状态', valueMap: certificateStatusMap, statusBadge: (item: CertificateResponse) => ({ status: item.status, color: getOptionColor($certificateStatusOptions, item.status), label: certificateStatusMap[item.status] }) },
     { key: 'lease_end_date', label: '到期日期' },
-    { key: 'provider_id', label: '供应商', render: (v: unknown, item: CertificateResponse) => {
+    { key: 'provider_id', label: '供应商', hideBelow: 'lg', render: (v: unknown, item: CertificateResponse) => {
       if (!item.provider_id) return '-';
       if (!providerMap[item.provider_id]) return '已删除';
       return formatResourceWithStatus(providerMap[item.provider_id], providerStatusMap[item.provider_id], 'provider');

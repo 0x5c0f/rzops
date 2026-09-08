@@ -88,10 +88,10 @@ import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
       }
       return name;
     }},
-    { key: 'monitor_type', label: '监控类型', valueMap: monitorTypeMap },
+    { key: 'monitor_type', label: '监控类型', hideBelow: 'md', valueMap: monitorTypeMap },
     { key: 'status', label: '状态', valueMap: statusMap, statusBadge: (item: MonitorTargetResponse) => ({ status: item.status, color: getOptionColor($commonStatusOptions, item.status), label: statusMap[item.status] }) },
-    { key: 'endpoint', label: '端点', hideInTable: true },
-    { key: 'interval_seconds', label: '间隔(秒)', hideInTable: true },
+    { key: 'endpoint', label: '端点', hideBelow: 'xl', hideInTable: true },
+    { key: 'interval_seconds', label: '间隔(秒)', hideBelow: 'lg', hideInTable: true },
     { key: 'created_at', label: '创建时间', render: (v: unknown) => formatDate(v as string), hideInTable: true },
   ];
 

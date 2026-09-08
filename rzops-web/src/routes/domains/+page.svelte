@@ -26,7 +26,7 @@ import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
 
   const columns = $derived([
     { key: 'domain_name', label: '域名' , link: (item: DomainResponse) => `/domains/${item.id}`, lockVisible: true },
-    { key: 'provider_id', label: '注册商', render: (v: unknown, item: DomainResponse) => {
+    { key: 'provider_id', label: '注册商', hideBelow: 'lg', render: (v: unknown, item: DomainResponse) => {
       if (!item.provider_id) return '-';
       if (!providerMap[item.provider_id]) return '已删除';
       return formatResourceWithStatus(providerMap[item.provider_id], providerStatusMap[item.provider_id], 'provider');

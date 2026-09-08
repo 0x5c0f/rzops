@@ -21,10 +21,10 @@ import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
 
   const columns = $derived([
     { key: 'name', label: '模板名称', link: (item: ServerPortTemplateResponse) => `/server-port-templates/${item.id}`, lockVisible: true },
-    { key: 'protocol', label: '协议', valueMap: protocolMap },
+    { key: 'protocol', label: '协议', hideBelow: 'sm', valueMap: protocolMap },
     { key: 'port', label: '端口' },
-    { key: 'service_name', label: '服务名称' },
-    { key: 'access_scope', label: '访问范围' },
+    { key: 'service_name', label: '服务名称', hideBelow: 'lg' },
+    { key: 'access_scope', label: '访问范围', hideBelow: 'lg' },
     { key: 'is_enabled', label: '启用', badge: (item: ServerPortTemplateResponse) =>
       item.is_enabled
         ? { label: '启用', className: 'bg-green-100 text-green-700 border-transparent' }

@@ -26,15 +26,15 @@ import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
   const columns = $derived([
     { key: 'name', label: '名称' , link: (item: ProviderResponse) => `/providers/${item.id}`, lockVisible: true },
     {
-      key: 'provider_types', label: '类型',
+      key: 'provider_types', label: '类型', hideBelow: 'lg',
       render: (v: unknown) => {
         const arr = v as string[];
         return (arr || []).map(t => providerTypeMap[t] || t).join(', ') || '-';
       }
     },
     { key: 'status', label: '状态', valueMap: commonStatusMap, statusBadge: (item: ProviderResponse) => ({ status: item.status, color: getOptionColor($commonStatusOptions, item.status), label: commonStatusMap[item.status] }) },
-    { key: 'contact_name', label: '联系人', hideInTable: true },
-    { key: 'contact_phone', label: '电话', hideInTable: true },
+    { key: 'contact_name', label: '联系人', hideBelow: 'lg', hideInTable: true },
+    { key: 'contact_phone', label: '电话', hideBelow: 'xl', hideInTable: true },
     { key: 'created_at', label: '创建时间', render: (v: unknown) => formatDate(v as string), hideInTable: true },
   ]);
 

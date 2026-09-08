@@ -48,12 +48,12 @@ import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
     { key: 'dict_type', label: '字典类型' },
     { key: 'dict_code', label: '编码' },
     { key: 'dict_label', label: '显示名称' },
-    { key: 'sort_order', label: '排序' },
+    { key: 'sort_order', label: '排序', hideBelow: 'md' },
     {
       key: 'enabled', label: '状态',
       display: (item: DictItem) => (item.enabled ? '启用' : '停用'),
     },
-    { key: 'remark', label: '备注' },
+    { key: 'remark', label: '备注', hideBelow: 'lg' },
   ]);
 
   async function loadData() {

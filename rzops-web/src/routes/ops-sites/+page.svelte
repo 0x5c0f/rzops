@@ -39,11 +39,11 @@ import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
 
   const columns = $derived([
     { key: 'name', label: '名称' , link: (item: OpsSiteResponse) => `/ops-sites/${item.id}`, lockVisible: true },
-    { key: 'url', label: 'URL' },
-    { key: 'environment', label: '环境', valueMap: environmentMap },
+    { key: 'url', label: 'URL', hideBelow: 'xl' },
+    { key: 'environment', label: '环境', hideBelow: 'lg', valueMap: environmentMap },
     { key: 'status', label: '状态', valueMap: siteStatusMap, statusBadge: (item: OpsSiteResponse) => ({ status: item.status, color: getOptionColor($siteStatusOptions, item.status), label: siteStatusMap[item.status] }) },
-    { key: 'service_target', label: '服务目标', valueMap: serviceTargetMap, hideInTable: true },
-    { key: 'importance', label: '重要性', valueMap: importanceMap, hideInTable: true },
+    { key: 'service_target', label: '服务目标', hideBelow: 'xl', valueMap: serviceTargetMap, hideInTable: true },
+    { key: 'importance', label: '重要性', hideBelow: 'lg', valueMap: importanceMap, hideInTable: true },
     { key: 'created_at', label: '创建时间', render: (v: unknown) => formatDate(v as string), hideInTable: true },
   ]);
 

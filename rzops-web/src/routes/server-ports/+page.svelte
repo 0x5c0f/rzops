@@ -22,7 +22,7 @@ import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
 
   const columns = $derived([
     { key: 'service_name', label: '服务名称' , link: (item: ServerPortResponse) => `/server-ports/${item.id}`, lockVisible: true },
-    { key: 'protocol', label: '协议', valueMap: protocolMap },
+    { key: 'protocol', label: '协议', hideBelow: 'sm', valueMap: protocolMap },
     { key: 'port', label: '端口' },
     {
       key: 'server_name',

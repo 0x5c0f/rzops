@@ -71,7 +71,7 @@ import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
       },
       link: (item: AttachmentResponse) => targetHref(item.target_type, item.target_id),
     },
-    { key: 'content_type', label: '内容类型' },
+    { key: 'content_type', label: '内容类型', hideBelow: 'md' },
     { key: 'size_bytes', label: '文件大小', render: (v: unknown) => formatBytes(v as number) },
     { key: 'created_at', label: '上传时间', render: (v: unknown) => formatDate(v as string) },
   ];
