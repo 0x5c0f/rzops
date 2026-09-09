@@ -41,10 +41,10 @@ docker compose up -d --build api     # 后端（musl 静态编译，首次较慢
 
 ## 架构与数据流（读代码前先看）
 
-- **后端 7-crate workspace**（`rzops-api/`）：`app`(入口，仅装配) → `server`(路由/State/中间件/migrations/seeder) → `api`(handlers+DTO)；`infra`(sqlx 仓储，**全项目唯一允许写 SQL 的层**) → `domain`(模型+port trait，**禁 sqlx/axum/HTTP 类型**)；`config`(环境变量)；`common`(共享错误)。依赖方向单向，违反即架构错误。
+- **后端 7-crate workspace**（`rzops-api/`）：`app`(入口，仅装配) → `server`(路由/State/中间件/seeder) → `api`(handlers+DTO)；`infra`(sqlx 仓储，**全项目唯一允许写 SQL 的层**) → `domain`(模型+port trait，**禁 sqlx/axum/HTTP 类型**)；`config`(环境变量)；`common`(共享错误)。依赖方向单向，违反即架构错误。
 - **前端**：`src/lib/api/`（统一 client.ts：JWT 注入、401 跳转、`sanitizeEmptyRefs` 剔除空 `_id/_date/_time` 字段——**后端 Option 字段拒绝空串，提交前必须清洗**）；`src/lib/types/`（与后端 DTO 一一对应）；`src/lib/components/`（DataTable、表单、TableSelectModal 等共享组件）；页面在 `src/routes/`。
 - **认证**：JWT(HS256)，登录返回 `access_token`；401 仅非 `/login` 路径跳转（防死循环）。
-- **迁移**：`server/migrations/NNN_*.sql`，`sqlx::migrate!` 启动自动应用。**禁止直接改表**，只加新 migration。
+- **表结构（无迁移机制）**：`database/schema.sql`（标准 SQL）是唯一权威，**不使用 sqlx 迁移**（`server/migrations/` 仅历史，不运行）。改表直接改 schema.sql（开发）+ 手动执行增量 ALTER（生产）；`database/seed-data.sql` 仅基础数据（字典/角色/角色权限）。
 
 ## 核心约定（改代码前必读）
 
@@ -55,7 +55,7 @@ docker compose up -d --build api     # 后端（musl 静态编译，首次较慢
 5. **列表页规范**：序号列固定、表头固定、分页大小可选、列显隐、下线/退役行置底+状态色（字体颜色）；列表/筛选排序按 `created_at` 倒序、非活跃置底。
 6. **表单规范**：右上角操作栏 + 底部保存统一；"编辑直达编辑页、首列/名称进详情"；时间字段校验（开始≤结束）；前端校验 + 后端校验双保险。
 7. **错误处理**：前端 `request()` 统一抛 ApiError + 全局 toast；后端 `common` 定义 AppError（thiserror）→ api 层 `IntoResponse`。
-8. **seed/ 目录**：历史开发脚本（`_` 前缀临时脚本用完即删，不提交）；`database/schema.sql + seed-data.sql` 是当前库的权威快照（compose 自动初始化）。
+8. **seed/ 目录**：历史开发脚本（`_` 前缀临时脚本用完即删，不提交）；`database/schema.sql`（标准 DDL）+ `database/seed-data.sql`（仅基础数据 INSERT）是初始化的权威文件（compose 自动执行）。
 
 ## 已知坑速查（详细见 HANDOVER §6）
 

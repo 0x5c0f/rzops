@@ -1,8 +1,5 @@
--- PostgreSQL database dump
 
 
--- Dumped from database version 16.15
--- Dumped by pg_dump version 16.15
 
 
 -- Name: set_updated_at(); Type: FUNCTION; Schema: public; Owner: -
@@ -19,16 +16,7 @@ $$;
 
 
 
--- Name: _sqlx_migrations; Type: TABLE; Schema: public; Owner: -
 
-CREATE TABLE public._sqlx_migrations (
-    version bigint NOT NULL,
-    description text NOT NULL,
-    installed_on timestamp with time zone DEFAULT now() NOT NULL,
-    success boolean NOT NULL,
-    checksum bytea NOT NULL,
-    execution_time bigint NOT NULL
-);
 
 
 -- Name: cmdb_attachment; Type: TABLE; Schema: public; Owner: -
@@ -524,10 +512,7 @@ CREATE TABLE public.user_role (
 COMMENT ON TABLE public.user_role IS '用户-角色关联表（多对多）';
 
 
--- Name: _sqlx_migrations _sqlx_migrations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 
-ALTER TABLE ONLY public._sqlx_migrations
-    ADD CONSTRAINT _sqlx_migrations_pkey PRIMARY KEY (version);
 
 
 -- Name: cmdb_attachment cmdb_attachment_pkey; Type: CONSTRAINT; Schema: public; Owner: -

@@ -74,7 +74,7 @@ docker compose up -d --build
 
 **Default account**: `admin@rzops.local` / `admin123` (superuser, auto-created by the backend seeder on first boot; override via `RZOPS_SEED_ADMIN_EMAIL` / `RZOPS_SEED_ADMIN_PASSWORD`).
 
-Database init is automated from the `database/` directory: `schema.sql` (full DDL) + `seed-data.sql` (dicts, accounts, sample data, incl. migration records so the API skips migrations automatically).
+Database init is automated from the `database/` directory: `schema.sql` (standard SQL DDL) + `seed-data.sql` (only base data — dicts / roles / role permissions, INSERT syntax; accounts are created by the seeder). No sqlx migration mechanism is used; business data (servers, domains, etc.) starts empty and is entered through the UI.
 
 ---
 
@@ -99,7 +99,7 @@ export RZOPS_DATABASE__HOST=localhost RZOPS_DATABASE__USER=rzops RZOPS_DATABASE_
 cargo run --release -p rzops-app
 ```
 
-> `sqlx::migrate!` validates/applies `server/migrations/` on startup (skipped when seed-data.sql already initialized it).
+> The schema comes from `database/schema.sql` (standard SQL). The API only runs seeders on startup (admin account, base dicts) — **no migrations are executed**.
 
 **Cross-platform static build** (optional): produces a pure static binary (musl, no glibc dependency) runnable on any Linux distribution:
 
@@ -151,7 +151,7 @@ Full backend vars: `rzops-api/.env.example`.
 RzOps/
 ├── rzops-api/            # Rust backend (7-crate workspace)
 │   ├── app/              #   entry (main.rs, wiring only)
-│   ├── server/           #   router, AppState, middleware, migrations, seeder
+│   ├── server/           #   router, AppState, middleware, seeder
 │   ├── api/              #   HTTP handlers + DTOs
 │   ├── domain/           #   domain models & ports (pure, zero I/O deps)
 │   ├── infra/            #   sqlx repository impls (the only layer touching SQL)
@@ -165,7 +165,7 @@ RzOps/
 │   ├── src/lib/types/    #   type mirror (mapped to backend DTOs)
 │   ├── src/lib/components/ # shared components (DataTable / forms / pickers…)
 │   └── docs/             #   frontend audit (FRONTEND_AUDIT_REPORT.md)
-├── database/             # DB snapshot (schema.sql + seed-data.sql, auto-init for compose)
+├── database/             # Schema (schema.sql) + base data (seed-data.sql), auto-init for compose
 ├── seed/                 # historical dev seed scripts (usage documented in HANDOVER)
 ├── docker-compose.yml    # one-command startup
 └── .env.example          # env template

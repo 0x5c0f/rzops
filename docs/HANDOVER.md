@@ -38,7 +38,7 @@ docker compose up -d --build
 # 默认账号 admin@rzops.local / admin123（seeder 自动创建，幂等）
 ```
 
-初始化原理：`database/schema.sql`（完整表结构）+ `database/seed-data.sql`（字典/账号/示例数据，**含 `_sqlx_migrations` 记录**）挂载到 postgres 的 `/docker-entrypoint-initdb.d`，容器首次启动自动建库；API 启动时 `sqlx::migrate!` 检测迁移已应用即跳过，无需额外操作。
+初始化原理：`database/schema.sql`（标准 SQL 建表）+ `database/seed-data.sql`（仅基础数据：字典/角色/角色权限，INSERT 语法）挂载到 postgres 的 `/docker-entrypoint-initdb.d`，容器首次启动自动建库；API 启动仅执行 seeder（创建 admin 账号、补齐字典），**不使用 sqlx 迁移机制**。业务数据（服务器/域名/站点等）首启为空，由用户录入。
 
 ### 2.3 手动启动（开发）
 
@@ -90,7 +90,7 @@ app → server → api → domain
 
 关键机制：
 - **State 注入**：`AppState { Arc<dyn Trait>... }`，handler 通过 `State(state)` 获取服务。
-- **迁移**：`sqlx::migrate!("./migrations")` 启动自动应用，10 个 migration 文件是表结构演进的唯一权威。
+- **表结构**：以 `database/schema.sql`（标准 SQL）为唯一权威；启动**不执行迁移**（迁移模式已废弃，`server/migrations/` 仅留作历史记录）。
 - **Seeder**：`server/src/seeder.rs` 启动时按环境变量创建超级管理员（幂等），并写入基础字典（若空）。
 - **错误处理**：`common` 定义 `AppError`（NotFound/Unauthorized/Validation/Internal...）→ `api` 层实现 `IntoResponse` 统一 JSON 结构 `{ "error": ... }`；未知错误返回 500 且前端 toast 提示"未知错误"。
 
@@ -129,7 +129,7 @@ rzops-web/
 
 ## 4. 数据库设计
 
-### 4.1 表总览（26 张，含 `_sqlx_migrations`）
+### 4.1 表总览（25 张，不含迁移记录表）
 
 | 分组 | 表 | 说明 |
 |---|---|---|
@@ -177,17 +177,18 @@ erDiagram
 - **软删除**：业务表带 `is_deleted` / `deleted_at` / `deleted_by`；删除=UPDATE，列表默认过滤；回收站单独查快照。
 - **时间字段**：`created_at` / `updated_at` 由数据库默认值维护；`deleted_at` 软删时间。
 
-### 4.3 迁移规范
+### 4.3 表结构演进规范（标准 SQL，无迁移机制）
 
-- 全部演进在 `server/migrations/NNN_*.sql`，**禁止直接改表**，只新增 migration。
-- `sqlx::migrate!` 启动自动应用；`database/schema.sql` 是当前结构快照（pg_dump），供快速初始化（含迁移记录，API 启动自动跳过）。
-- 命名规范：`NNN_简短描述.sql`（如 `009_rbac.sql`、`010_system_soft_delete.sql`）。
+- **唯一权威**：`database/schema.sql`（标准 `CREATE TABLE` / `ALTER TABLE`，PostgreSQL 方言）。**不使用 sqlx 迁移模式**（`sqlx::migrate!` 已从启动流程移除，`server/migrations/` 目录仅保留作历史记录，不参与运行）。
+- **结构变更**：直接修改 `database/schema.sql`（开发环境）→ 在已部署库上手动执行对应的 `ALTER TABLE` 增量 SQL（生产环境）。**每次结构变更同步更新 schema.sql**，保持文件即权威。
+- **数据初始化**：`database/seed-data.sql` 仅含基础数据（字典/角色/角色权限，INSERT 语法），账号由 seeder 创建；业务数据首启为空。
+- 历史迁移文件命名：`NNN_简短描述.sql`（如 `009_rbac.sql`、`010_system_soft_delete.sql`），仅作演进审计。
 
 ### 4.4 数据库兼容性说明（决策记录）
 
 - **现状**：项目从首个提交起就**只支持 PostgreSQL**——`sqlx` 仅启用 `postgres` feature；10 个迁移全为 PG 方言（`jsonb` / `timestamptz` / plpgsql 触发器 / `ON CONFLICT`）；infra 层 SQL 使用 PG `$1` 占位符体系。**SQLite / MySQL 从未实现过**（早期"支持多库"仅停留在口头设想）。
 - **决策（2026-09）**：保持 Postgres 为主数据库（CMDB 多用户、并发、JSON 查询场景下最合适）；`database/` 快照明确为 PG 方言。
-- **演进通道（已就绪）**：`domain` 层服务 trait 隔离 + `infra` 是唯一 SQL 层。未来支持 MySQL 的路径：仅需在 `infra` 新增 MySQL 方言仓储实现 + `server/migrations/` 提供 `NNN_xxx.mysql.sql` 方言迁移（sqlx 支持同版本多方言文件），`domain`/`api`/`server` 上层零改动。
+- **演进通道（已就绪）**：`domain` 层服务 trait 隔离 + `infra` 是唯一 SQL 层。未来支持 MySQL 的路径：仅需在 `infra` 新增 MySQL 方言仓储实现 + `database/` 提供 `schema.mysql.sql` 方言文件，`domain`/`api`/`server` 上层零改动。
 - **代价提示**（若未来立项）：迁移双写 + 全部仓储 SQL 双写（占位符体系不同）+ 类型降级（jsonb 函数、触发器、timestamptz 语义）+ 双库测试矩阵，估算数周级；SQLite 因全局写锁/弱类型不推荐用于多用户 CMDB。
 
 ---
@@ -480,7 +481,7 @@ user ──< user_role >── role ──< role_permission >── 权限点
 2. **托管**：任意静态服务器（nginx 参考 `rzops-web/nginx.conf`：SPA fallback + `/api` 反代 + 静态资源缓存）。
 3. **后端**：`cargo build --release --workspace` → `target/release/rzops-app` + 环境变量（`RZOPS_JWT__SECRET` **必须更换**）。
    - **静态链接（推荐）**：`cargo build --release --target x86_64-unknown-linux-musl --workspace` 产出纯静态二进制（无 glibc 依赖），任意 Linux 直接运行；Dockerfile 已采用此方案（rust:1-alpine 构建 → alpine 运行）。
-4. **数据库**：initdb 初始化（`database/schema.sql` + `seed-data.sql`）或空库由 API 自动迁移。
+4. **数据库**：initdb 初始化（`database/schema.sql` 建表 + `database/seed-data.sql` 基础数据）——无迁移机制；生产空库同样先执行这两个文件（或手动执行增量 ALTER）。
 5. **公网注意**：勿直接暴露 Vite dev；WAF 需放行 PUT（OWASP CRS 默认拦截，见 §6.6）。
 
 ### 9.3 Docker Compose（快速示例）

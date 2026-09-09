@@ -81,12 +81,11 @@ impl AppState {
         }
     }
 
-    /// 从配置构建完整应用状态：建连接池 → 执行迁移 → 初始化种子数据。
+    /// 从配置构建完整应用状态：建连接池 → 初始化种子数据。
     /// 职责收敛点：app 层只负责调用，业务初始化全部在 server 层完成。
+    /// 说明：不使用 sqlx 迁移机制（迁移模式已废弃）；表结构由 database/schema.sql 标准 SQL 初始化。
     pub async fn build(settings: &rzops_config::Settings) -> Result<Self, anyhow::Error> {
         let pool = rzops_infra::db::create_pool(&settings.database.url()).await?;
-        sqlx::migrate!("./migrations").run(&pool).await?;
-        tracing::info!("database migrations completed");
         seeder::seed_admin_user(&pool).await?;
         seeder::seed_dicts(&pool).await?;
         Ok(Self::new(

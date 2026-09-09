@@ -38,7 +38,7 @@ docker compose up -d --build
 # default account admin@rzops.local / admin123 (seeder creates it idempotently)
 ```
 
-Init logic: `database/schema.sql` (full DDL) + `database/seed-data.sql` (dicts / accounts / sample data, **incl. `_sqlx_migrations` rows**) are mounted into postgres `/docker-entrypoint-initdb.d`; the container builds the DB on first boot, and the API's `sqlx::migrate!` sees the migrations as applied and skips them.
+Init logic: `database/schema.sql` (standard SQL DDL) + `database/seed-data.sql` (only base data: dicts / roles / role permissions, INSERT syntax) are mounted into postgres `/docker-entrypoint-initdb.d`; the container builds the DB on first boot. The API only runs seeders (admin account, base dicts) and **does not use the sqlx migration mechanism**. Business data (servers/domains/sites, etc.) starts empty and is entered by users.
 
 ### 2.3 Manual startup (dev)
 
@@ -90,7 +90,7 @@ app → server → api → domain
 
 Key mechanisms:
 - **State injection**: `AppState { Arc<dyn Trait>... }`, handlers use `State(state)`.
-- **Migrations**: `sqlx::migrate!("./migrations")` auto-applies on startup; the 10 migration files are the single source of truth for DDL evolution.
+- **Schema**: `database/schema.sql` (standard SQL) is the single source of truth; startup does **not** run migrations (migration mode is deprecated; `server/migrations/` is kept as historical record only).
 - **Seeder** (`server/src/seeder.rs`): idempotently creates the superuser from env vars and writes base dicts when empty.
 - **Errors**: `common` defines `AppError` (NotFound/Unauthorized/Validation/Internal…) → `api` implements `IntoResponse` → uniform JSON `{ "error": ... }`; unknown errors return 500 and the frontend shows a toast.
 
@@ -129,7 +129,7 @@ Browser → (JWT Bearer) → api handlers → State.services → infra repos →
 
 ## 4. Database Design
 
-### 4.1 Tables (26 incl. `_sqlx_migrations`)
+### 4.1 Tables (25, excluding migration-record table)
 
 | Group | Tables | Notes |
 |---|---|---|
@@ -177,11 +177,12 @@ Design principles:
 - **Soft delete**: business tables carry `is_deleted` / `deleted_at` / `deleted_by`; delete = UPDATE; lists filter by default; recycle bin reads the deleted snapshot.
 - **Timestamps**: `created_at` / `updated_at` maintained by DB defaults.
 
-### 4.3 Migration conventions
+### 4.3 Schema-evolution conventions (standard SQL, no migration mechanism)
 
-- All evolution lives in `server/migrations/NNN_*.sql`; **never edit tables directly**, only add new migrations.
-- `sqlx::migrate!` applies on startup; `database/schema.sql` is the current-structure snapshot (pg_dump) for fast init (it includes migration records so the API skips).
-- Naming: `NNN_short-description.sql` (e.g. `009_rbac.sql`).
+- **Single source of truth**: `database/schema.sql` (standard `CREATE TABLE` / `ALTER TABLE`, PostgreSQL dialect). **No sqlx migration mode** (`sqlx::migrate!` has been removed from startup; `server/migrations/` is kept only as historical record and is not executed).
+- **Schema changes**: edit `database/schema.sql` directly (dev) → run the matching `ALTER TABLE` delta manually on deployed DBs (prod). **Always keep schema.sql in sync** — the file is the authority.
+- **Data init**: `database/seed-data.sql` contains only base data (dicts/roles/role permissions, INSERT syntax); accounts are created by the seeder; business data starts empty.
+- Historical migration files are named `NNN_short-description.sql` (e.g. `009_rbac.sql`) and serve as an evolution audit trail only.
 
 ### 4.4 Database compatibility note (decision record)
 
@@ -480,7 +481,7 @@ superuser (user.is_superuser=true) bypasses all checks
 2. **Host**: any static server (nginx reference `rzops-web/nginx.conf`: SPA fallback + `/api` proxy + asset caching).
 3. **Backend**: `cargo build --release --workspace` → `target/release/rzops-app` + env vars (`RZOPS_JWT__SECRET` **must be changed**).
    - **Static link (recommended)**: `cargo build --release --target x86_64-unknown-linux-musl --workspace` produces a pure static binary (no glibc dependency) runnable on any Linux; the Dockerfile already uses this (rust:1-alpine build → alpine runtime).
-4. **Database**: init via `database/schema.sql` + `database/seed-data.sql`, or an empty DB migrated automatically by the API.
+4. **Database**: init via `database/schema.sql` (DDL) + `database/seed-data.sql` (base data) — no migration mechanism; for a production empty DB run these two files first (or apply incremental `ALTER` statements manually).
 5. **Public access**: never expose Vite dev directly; WAFs must allow PUT (OWASP CRS blocks it by default, §6.6).
 
 ### 9.3 Docker Compose (quick sample)

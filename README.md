@@ -76,7 +76,7 @@ docker compose up -d --build
 
 **默认账号**：`admin@rzops.local` / `admin123`（超级管理员，由后端 seeder 首次启动自动创建，可通过环境变量 `RZOPS_SEED_ADMIN_EMAIL` / `RZOPS_SEED_ADMIN_PASSWORD` 修改）。
 
-数据库初始化由 `database/` 目录自动完成：`schema.sql`（完整表结构）+ `seed-data.sql`（字典、账号、示例业务数据，含迁移记录，API 启动自动跳过迁移）。
+数据库初始化由 `database/` 目录自动完成：`schema.sql`（标准 SQL 建表）+ `seed-data.sql`（仅基础数据：字典/角色/角色权限，INSERT 语法；账号由后端 seeder 创建）。不使用 sqlx 迁移机制；业务数据（服务器/域名等）首启为空，由用户在前端录入。
 
 ---
 
@@ -102,7 +102,7 @@ export RZOPS_DATABASE__HOST=localhost RZOPS_DATABASE__USER=rzops RZOPS_DATABASE_
 cargo run --release -p rzops-app   # 或 cargo build --release --workspace 后运行 target/release/rzops-app
 ```
 
-> 启动时 `sqlx::migrate!` 会自动校验/应用 `server/migrations/` 下的迁移（已用 seed-data.sql 初始化时自动跳过）。
+> 表结构由 `database/schema.sql` 标准 SQL 建好；API 启动仅做 seeder（创建 admin 账号、补齐字典），**不执行迁移**。
 
 **跨平台静态构建**（可选）：产物为纯静态二进制（musl，无 glibc 依赖），可在任意 Linux 发行版直接运行：
 
