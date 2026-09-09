@@ -18,6 +18,7 @@ fn ct_to_string(t: &ChangeType) -> String {
         ChangeType::Delete => "delete",
         ChangeType::Bind => "bind",
         ChangeType::Unbind => "unbind",
+        ChangeType::Purge => "purge",
     }
     .to_string()
 }

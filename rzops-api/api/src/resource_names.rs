@@ -17,7 +17,7 @@ const RESOURCE_TYPES: &[(&str, &str, &str)] = &[
     ("server", "name", "cmdb_server"),
     ("server_ip", "ip_address", "cmdb_server_ip"),
     ("server_port", "service_name", "cmdb_server_port"),
-    ("domain", "name", "cmdb_domain"),
+    ("domain", "domain_name", "cmdb_domain"),
     ("certificate", "name", "cmdb_certificate"),
     ("database_instance", "name", "cmdb_database_instance"),
     ("ops_site", "name", "cmdb_ops_site"),

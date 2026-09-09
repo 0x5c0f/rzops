@@ -11,4 +11,6 @@ pub enum ChangeType {
     Delete,
     Bind,
     Unbind,
+    /// 永久删除（回收站彻底清除）
+    Purge,
 }

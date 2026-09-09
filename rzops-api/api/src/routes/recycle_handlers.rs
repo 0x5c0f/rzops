@@ -10,8 +10,12 @@ use chrono::{DateTime, Utc};
 use sqlx::{Pool, Postgres, Row};
 use uuid::Uuid;
 
+use rzops_domain::models::change_record::ChangeRecord;
+use rzops_domain::ports::audit_log_repository::AuditLogRepository;
+use rzops_domain::ports::change_record_repository::ChangeRecordRepository;
 use rzops_domain::ports::role_repository::RoleRepository;
 use rzops_domain::ports::user_repository::UserRepository;
+use rzops_domain::enums::ChangeType;
 
 use crate::auth_extractor::AuthUser;
 use crate::dto::provider_dto::ErrorResponse;
@@ -23,6 +27,8 @@ pub struct RecycleState {
     pub pool: Pool<Postgres>,
     pub user_repo: Arc<dyn UserRepository>,
     pub role_repo: Arc<dyn RoleRepository>,
+    pub change_repo: Arc<dyn ChangeRecordRepository>,
+    pub audit_repo: Arc<dyn AuditLogRepository>,
 }
 
 /// 资源类型 → (表名, 名称列 SQL 表达式)
@@ -189,17 +195,38 @@ pub async fn restore_item(
     tag = "Recycle"
 )]
 pub async fn purge_item(
-    _auth: AuthUser,
+    auth: AuthUser,
     State(state): State<RecycleState>,
     axum::extract::Path((resource_type, id)): axum::extract::Path<(String, Uuid)>,
 ) -> impl IntoResponse {
-    let (table, _) = match table_for(&resource_type) {
+    let (table, name_col) = match table_for(&resource_type) {
         Some(t) => t,
         None => return (StatusCode::BAD_REQUEST, Json(ErrorResponse { error: format!("unsupported resource type: {}", resource_type) })).into_response(),
     };
+
+    // 尝试取资源名称（用于日志；失败不影响主流程）
+    let name_sql = format!("SELECT {} AS name FROM {} WHERE id = $1 AND deleted_at IS NOT NULL", name_col, table);
+    let resource_name: Option<String> = sqlx::query_scalar(&name_sql).bind(id).fetch_optional(&state.pool).await.ok().flatten();
+
     let sql = format!("DELETE FROM {} WHERE id = $1 AND deleted_at IS NOT NULL", table);
     match sqlx::query(&sql).bind(id).execute(&state.pool).await {
         Ok(result) if result.rows_affected() > 0 => {
+            // 永久删除：记录变更日志（purge）与审计日志（purge），与软删除（delete）区分
+            let change = ChangeRecord {
+                id: Uuid::new_v4(),
+                actor_id: Some(auth.user_id),
+                change_type: ChangeType::Purge,
+                resource_type: resource_type.clone(),
+                resource_id: Some(id),
+                before_data: serde_json::json!({ "name": resource_name }),
+                after_data: serde_json::json!(null),
+                remarks: None,
+                created_at: chrono::Utc::now(),
+            };
+            if let Err(e) = state.change_repo.create(&change).await {
+                tracing::error!("failed to record purge change for {}: {}", resource_type, e);
+            }
+            // 审计日志由审计中间件统一记录（action=purge），此处不再重复写入
             (StatusCode::OK, Json(serde_json::json!({ "ok": true }))).into_response()
         }
         Ok(_) => (StatusCode::NOT_FOUND, Json(ErrorResponse { error: "item not found in recycle bin".to_string() })).into_response(),

@@ -322,6 +322,7 @@ export const changeTypeOptions: SelectOption[] = [
   { label: '更新', value: 'update' },
   { label: '状态变更', value: 'status_change' },
   { label: '删除', value: 'delete' },
+  { label: '永久删除', value: 'purge' },
   { label: '绑定', value: 'bind' },
   { label: '解绑', value: 'unbind' },
 ];

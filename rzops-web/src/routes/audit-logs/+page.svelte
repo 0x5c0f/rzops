@@ -35,6 +35,7 @@
     { label: '创建', value: 'create' },
     { label: '更新', value: 'update' },
     { label: '删除', value: 'delete' },
+    { label: '永久删除', value: 'purge' },
     { label: '其他', value: 'other' },
   ];
 
@@ -54,7 +55,7 @@
       key: 'action',
       label: '操作',
       display: (item: AuditLogResponse) =>
-        ({ create: '创建', update: '更新', delete: '删除', other: '其他' } as Record<string, string>)[item.action] || item.action,
+        ({ create: '创建', update: '更新', delete: '删除', purge: '永久删除', other: '其他' } as Record<string, string>)[item.action] || item.action,
     },
     {
       key: 'resource_type',

@@ -40,13 +40,17 @@ fn parse_resource_type(seg: &str) -> &'static str {
     match seg {
         "auth" => "auth",
         "users" => "user",
+        "roles" => "role",
+        "recycle" => "recycle",
         "providers" => "provider",
         "data-centers" => "datacenter",
         "servers" => "server",
         "server-ips" => "server_ip",
         "server-ports" => "server_port",
+        "server-port-templates" => "server_port_template",
         "domains" => "domain",
         "certificates" => "certificate",
+        "certificate-domains" => "certificate_domain",
         "database-instances" => "database_instance",
         "ops-sites" => "ops_site",
         "credentials" => "credential",
@@ -57,19 +61,28 @@ fn parse_resource_type(seg: &str) -> &'static str {
         "site-relations" => "site_relation",
         "audit-logs" => "audit_log",
         "change-records" => "change_record",
+        "dicts" => "dict",
         _ => "unknown",
     }
 }
 
 /// 从路径提取资源类型与可选资源 ID。
-fn parse_path(path: &str) -> (Option<&'static str>, Option<Uuid>) {
+/// `/recycle/{resource_type}/{id}` 这类多段路径也会被正确解析：
+/// 返回的 resource_type 为回收站中被操作资源（如 domain），resource_id 为末段 UUID。
+fn parse_path(path: &str) -> (Option<String>, Option<Uuid>) {
     let mut segs = path.split('/').filter(|s| !s.is_empty());
     // 跳过 api / v1
     let _ = segs.next();
     let _ = segs.next();
     let resource = segs.next().unwrap_or("");
+    if resource == "recycle" {
+        // /api/v1/recycle/{resource_type}/{id}
+        let rt = segs.next().unwrap_or("unknown").to_string();
+        let id = segs.next().and_then(|s| Uuid::parse_str(s).ok());
+        return (Some(rt), id);
+    }
     let id = segs.next().and_then(|s| Uuid::parse_str(s).ok());
-    (Some(parse_resource_type(resource)), id)
+    (Some(parse_resource_type(resource).to_string()), id)
 }
 
 /// 审计中间件：写请求时记录一条审计日志，随后继续处理。
@@ -107,7 +120,14 @@ pub async fn audit_log_middleware(
         let action = match method {
             Method::POST => "create",
             Method::PUT | Method::PATCH => "update",
-            Method::DELETE => "delete",
+            Method::DELETE => {
+                // 回收站彻底删除（永久删除）与普通软删除区分
+                if path.contains("/recycle/") {
+                    "purge"
+                } else {
+                    "delete"
+                }
+            }
             _ => "other",
         };
 

@@ -9,8 +9,8 @@ use rzops_domain::ports::change_record_repository::{ChangeRecordFilter, ChangeRe
 pub struct PgChangeRecordRepository { pool: Pool<Postgres> }
 impl PgChangeRecordRepository { pub fn new(pool: Pool<Postgres>) -> Self { Self { pool } } }
 
-fn parse_change_type(s: &str) -> ChangeType { match s { "create" => ChangeType::Create, "update" => ChangeType::Update, "status_change" => ChangeType::StatusChange, "delete" => ChangeType::Delete, "bind" => ChangeType::Bind, "unbind" => ChangeType::Unbind, _ => ChangeType::Create } }
-fn change_type_to_string(t: &ChangeType) -> String { match t { ChangeType::Create => "create", ChangeType::Update => "update", ChangeType::StatusChange => "status_change", ChangeType::Delete => "delete", ChangeType::Bind => "bind", ChangeType::Unbind => "unbind" }.to_string() }
+fn parse_change_type(s: &str) -> ChangeType { match s { "create" => ChangeType::Create, "update" => ChangeType::Update, "status_change" => ChangeType::StatusChange, "delete" => ChangeType::Delete, "bind" => ChangeType::Bind, "unbind" => ChangeType::Unbind, "purge" => ChangeType::Purge, _ => ChangeType::Create } }
+fn change_type_to_string(t: &ChangeType) -> String { match t { ChangeType::Create => "create", ChangeType::Update => "update", ChangeType::StatusChange => "status_change", ChangeType::Delete => "delete", ChangeType::Bind => "bind", ChangeType::Unbind => "unbind", ChangeType::Purge => "purge" }.to_string() }
 
 fn row_to_entity(row: &sqlx::postgres::PgRow) -> ChangeRecord {
     ChangeRecord { id: row.get("id"), actor_id: row.get("actor_id"), change_type: parse_change_type(&row.get::<String, _>("change_type")), resource_type: row.get("resource_type"), resource_id: row.get("resource_id"), before_data: row.get("before_data"), after_data: row.get("after_data"), remarks: row.get("remarks"), created_at: row.get::<DateTime<Utc>, _>("created_at") }

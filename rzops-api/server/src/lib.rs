@@ -113,6 +113,8 @@ pub fn create_router(state: AppState) -> Router {
         pool: state.pool.clone(),
         user_repo: state.user_repo.clone(),
         role_repo: state.role_repo.clone(),
+        change_repo: state.change_record_repo.clone(),
+        audit_repo: state.audit_log_repo.clone(),
     };
 
     let change_log = rzops_api::ChangeLogState::new(
