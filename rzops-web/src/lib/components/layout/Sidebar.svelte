@@ -83,11 +83,11 @@
     {
       label: '管理',
       items: [
-        { href: '/attachments', label: '附件', perm: 'attachment:read' },
-        { href: '/dicts', label: '字典管理', perm: 'dict:read' },
         { href: '/users', label: '用户管理', perm: 'system:user' },
         { href: '/roles', label: '角色管理', perm: 'system:role' },
+        { href: '/dicts', label: '字典管理', perm: 'dict:read' },
         { href: '/recycle', label: '回收站', perm: 'system:recycle' },
+        { href: '/attachments', label: '附件', perm: 'attachment:read' },
       ],
     },
     {
