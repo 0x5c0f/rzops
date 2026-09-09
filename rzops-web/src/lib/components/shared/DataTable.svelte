@@ -50,6 +50,7 @@
     children,
     extraActions,
     actionsWidth = 'w-[90px]',
+    expandContent,
   }: {
     columns: Column[];
     data: T[];
@@ -74,9 +75,13 @@
     extraActions?: import('svelte').Snippet<[T]>;
     /** 操作列宽度，默认 w-[90px]；操作按钮较多时可覆盖为更宽 */
     actionsWidth?: string;
+    /** 行展开内容 snippet（接收行数据）；传入后首列出现展开箭头，点击展开详情 */
+    expandContent?: import('svelte').Snippet<[T]>;
   } = $props();
 
   let hasActions = $derived(!!(onEdit || onDelete || extraActions));
+  let hasExpand = $derived(!!expandContent);
+  let expandedKey = $state<string | null>(null);
   let confirmOpen = $state(false);
   let pendingDelete = $state<T | null>(null);
 
@@ -251,8 +256,11 @@
     <Table.Root containerClass="overflow-x-clip" class="table-fixed">
       <Table.Header>
         <Table.Row>
+          {#if hasExpand}
+            <Table.Head class="sticky left-0 top-0 z-30 w-10 bg-background shadow-[1px_0_0_0_var(--border),0_1px_0_0_var(--border)]"></Table.Head>
+          {/if}
           {#if showIndex}
-            <Table.Head class="w-[60px] sticky top-0 left-0 z-20 bg-background shadow-[1px_0_0_0_var(--border),0_1px_0_0_var(--border)] text-center">#</Table.Head>
+            <Table.Head class={cn('w-[60px] sticky top-0 bg-background shadow-[0_1px_0_0_var(--border)] text-center', hasExpand ? 'left-10 z-20' : 'left-0 z-20')}>#</Table.Head>
           {/if}
           {#each visibleColumns as col}
             <Table.Head class={cn('sticky top-0 z-10 bg-background shadow-[0_1px_0_0_var(--border)]', col.class)}>{col.label}</Table.Head>
@@ -265,21 +273,30 @@
       <Table.Body>
         {#if loading || !storageInitialized}
           <Table.Row>
-            <Table.Cell colspan={visibleColumns.length + (hasActions ? 1 : 0) + (showIndex ? 1 : 0)} class="h-24 text-center text-muted-foreground">
+            <Table.Cell colspan={visibleColumns.length + (hasActions ? 1 : 0) + (showIndex ? 1 : 0) + (hasExpand ? 1 : 0)} class="h-24 text-center text-muted-foreground">
               加载中...
             </Table.Cell>
           </Table.Row>
         {:else if data.length === 0}
           <Table.Row>
-            <Table.Cell colspan={visibleColumns.length + (hasActions ? 1 : 0) + (showIndex ? 1 : 0)} class="h-24 text-center text-muted-foreground">
+            <Table.Cell colspan={visibleColumns.length + (hasActions ? 1 : 0) + (showIndex ? 1 : 0) + (hasExpand ? 1 : 0)} class="h-24 text-center text-muted-foreground">
               暂无数据
             </Table.Cell>
           </Table.Row>
         {:else}
           {#each data as item, index}
+            {@const rk = String((item as Record<string, unknown>).id ?? index)}
+            {@const isOpen = expandedKey === rk}
             <Table.Row class={getRowClass ? getRowClass(item) : ''}>
+              {#if hasExpand}
+                <Table.Cell class="sticky left-0 z-20 w-10 bg-background text-center shadow-[1px_0_0_0_var(--border)]">
+                  <Button variant="ghost" size="sm" class="h-7 w-7 p-0" onclick={() => (expandedKey = isOpen ? null : rk)} aria-label={isOpen ? '收起' : '展开'}>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class={cn('transition-transform', isOpen && 'rotate-90')}><path d="m9 18 6-6-6-6"/></svg>
+                  </Button>
+                </Table.Cell>
+              {/if}
               {#if showIndex}
-                <Table.Cell class="sticky left-0 z-10 bg-background shadow-[1px_0_0_0_var(--border)] text-center text-muted-foreground">{(page - 1) * perPage + index + 1}</Table.Cell>
+                <Table.Cell class={cn('sticky bg-background text-center text-muted-foreground shadow-[1px_0_0_0_var(--border)]', hasExpand ? 'left-10 z-10' : 'left-0 z-20')}>{(page - 1) * perPage + index + 1}</Table.Cell>
               {/if}
               {#each visibleColumns as col}
                 <Table.Cell
@@ -336,6 +353,13 @@
                 </Table.Cell>
               {/if}
             </Table.Row>
+            {#if isOpen && expandContent}
+              <Table.Row class="bg-muted/30">
+                <Table.Cell colspan={visibleColumns.length + (hasActions ? 1 : 0) + (showIndex ? 1 : 0) + (hasExpand ? 1 : 0)}>
+                  {@render expandContent(item)}
+                </Table.Cell>
+              </Table.Row>
+            {/if}
           {/each}
         {/if}
       </Table.Body>

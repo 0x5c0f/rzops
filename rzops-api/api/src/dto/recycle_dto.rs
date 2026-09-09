@@ -13,6 +13,8 @@ pub struct RecycleItem {
     /// 展示名称（不同资源取对应名称字段）
     pub name: String,
     pub deleted_at: DateTime<Utc>,
+    /// 删除前的完整数据快照（该表整行转 JSON）
+    pub data: Option<serde_json::Value>,
 }
 
 /// 回收站列表响应

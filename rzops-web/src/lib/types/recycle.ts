@@ -3,6 +3,8 @@ export interface RecycleItem {
   id: string;
   name: string;
   deleted_at: string;
+  /** 删除前的完整数据快照（该表整行转 JSON） */
+  data?: Record<string, unknown> | null;
 }
 
 export interface RecycleListResponse {

@@ -93,7 +93,7 @@ pub async fn list_recycle(
         }
         filter_resources.push(rtype);
         parts.push(format!(
-            "SELECT '{}' AS resource_type, id, ({} )::text AS name, deleted_at FROM {} WHERE deleted_at IS NOT NULL",
+            "SELECT '{}' AS resource_type, t.id, ({} )::text AS name, t.deleted_at, row_to_json(t) AS data FROM {} t WHERE t.deleted_at IS NOT NULL",
             rtype, name_col, table
         ));
     }
@@ -101,7 +101,7 @@ pub async fn list_recycle(
         return (StatusCode::OK, Json(RecycleListResponse { data: vec![], count: 0 })).into_response();
     }
 
-    let mut sql = format!("SELECT resource_type, id, name, deleted_at FROM (\n{}\n) AS rc", parts.join("\nUNION ALL\n"));
+    let mut sql = format!("SELECT resource_type, id, name, deleted_at, data FROM (\n{}\n) AS rc", parts.join("\nUNION ALL\n"));
 
     // 搜索过滤（按名称 / id 文本）
     let mut conds: Vec<String> = Vec::new();
@@ -128,6 +128,7 @@ pub async fn list_recycle(
                     id: r.get("id"),
                     name: r.get("name"),
                     deleted_at: r.get::<DateTime<Utc>, _>("deleted_at"),
+                    data: r.get("data"),
                 })
                 .collect();
 
