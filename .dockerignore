@@ -1,0 +1,9 @@
+# 构建上下文排除（加速 Docker 构建）
+**/node_modules
+**/target
+**/build
+**/.git
+seed
+docs
+*.md
+.env

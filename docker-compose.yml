@@ -1,0 +1,64 @@
+# ============================================================
+# RzOps CMDB — 快速启动示例（docker compose up -d）
+# 默认端口：Web http://localhost:8080 · API http://localhost:8000 · Postgres 5432
+# 所有密码均为示例值，生产部署务必通过 .env 覆盖。
+# ============================================================
+
+services:
+  db:
+    restart: unless-stopped
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-rzops}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rzops}
+      POSTGRES_DB: ${POSTGRES_DB:-rzopsdb}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # 首次初始化：schema.sql（表结构）→ seed-data.sql（含字典/账号/示例数据与迁移记录）
+      - ./database:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-rzops} -d ${POSTGRES_DB:-rzopsdb}"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  api:
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: rzops-api/Dockerfile
+    environment:
+      RZOPS_SERVER__HOST: 0.0.0.0
+      RZOPS_SERVER__PORT: 8000
+      RZOPS_DATABASE__HOST: db
+      RZOPS_DATABASE__PORT: 5432
+      RZOPS_DATABASE__USER: ${POSTGRES_USER:-rzops}
+      RZOPS_DATABASE__PASSWORD: ${POSTGRES_PASSWORD:-rzops}
+      RZOPS_DATABASE__NAME: ${POSTGRES_DB:-rzopsdb}
+      RZOPS_JWT__SECRET: ${RZOPS_JWT__SECRET:-dev-only-secret-change-me}
+      RZOPS_JWT__EXPIRATION_SECONDS: ${RZOPS_JWT__EXPIRATION_SECONDS:-86400}
+      RZOPS_SEED_ADMIN_EMAIL: ${RZOPS_SEED_ADMIN_EMAIL:-admin@rzops.local}
+      RZOPS_SEED_ADMIN_PASSWORD: ${RZOPS_SEED_ADMIN_PASSWORD:-admin123}
+    volumes:
+      - uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "${API_PORT:-8000}:8000"
+
+  web:
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: rzops-web/Dockerfile
+    depends_on:
+      - api
+    ports:
+      - "${WEB_PORT:-8080}:80"
+
+volumes:
+  pgdata:
+  uploads:
