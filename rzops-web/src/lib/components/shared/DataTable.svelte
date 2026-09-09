@@ -205,6 +205,34 @@
     const name = (pendingDelete as Record<string, unknown>).name;
     return name ? String(name) : '该项';
   }
+
+  // —— 单元格截断 tooltip ——
+  let tooltip = $state({ visible: false, x: 0, y: 0, text: '' });
+  let tooltipTimer: ReturnType<typeof setTimeout> | null = null;
+
+  function handleCellEnter(e: MouseEvent) {
+    const td = e.currentTarget as HTMLElement;
+    // 仅内容被截断（省略号）的单元格显示完整内容提示
+    if (td.scrollWidth <= td.clientWidth) return;
+    const text = td.textContent?.trim() ?? '';
+    if (!text) return;
+    clearTimeout(tooltipTimer ?? undefined);
+    tooltipTimer = setTimeout(() => {
+      tooltip = { visible: true, x: e.clientX + 12, y: e.clientY + 14, text };
+    }, 250);
+  }
+
+  function handleCellMove(e: MouseEvent) {
+    if (!tooltip.visible) return;
+    tooltip.x = Math.min(e.clientX + 12, window.innerWidth - 260);
+    tooltip.y = e.clientY + 14;
+  }
+
+  function handleCellLeave() {
+    if (tooltipTimer) clearTimeout(tooltipTimer);
+    tooltipTimer = null;
+    tooltip.visible = false;
+  }
 </script>
 
 <div class="relative">
@@ -251,7 +279,12 @@
                 <Table.Cell class="sticky left-0 z-10 bg-background shadow-[1px_0_0_0_var(--border)] text-center text-muted-foreground">{(page - 1) * perPage + index + 1}</Table.Cell>
               {/if}
               {#each visibleColumns as col}
-                <Table.Cell class={cn('truncate', col.class)}>
+                <Table.Cell
+                  class={cn('truncate', col.class)}
+                  onmouseenter={handleCellEnter}
+                  onmousemove={handleCellMove}
+                  onmouseleave={handleCellLeave}
+                >
                   {#if col.statusBadge}
                     {@const sb = col.statusBadge(item)}
                     {#if sb}
@@ -347,4 +380,13 @@
     confirmLabel="删除"
     onConfirm={confirmDelete}
   />
+{/if}
+
+{#if tooltip.visible}
+  <div
+    class="pointer-events-none fixed z-[100] max-w-[260px] truncate rounded-md border bg-popover px-2.5 py-1.5 text-xs text-popover-foreground shadow-md"
+    style="left: {tooltip.x}px; top: {tooltip.y}px;"
+  >
+    {tooltip.text}
+  </div>
 {/if}
