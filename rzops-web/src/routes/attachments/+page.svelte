@@ -47,7 +47,7 @@ import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
     domain: '/domains/',
     certificate: '/certificates/',
     provider: '/providers/',
-    data_center: '/data-centers/',
+    data_center: '/datacenters/',
     monitor_target: '/monitor-targets/',
     backup_plan: '/backup-plans/',
     contract: '/contracts/',

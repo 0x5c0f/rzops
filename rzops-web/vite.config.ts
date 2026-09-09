@@ -10,6 +10,9 @@ export default defineConfig(({ mode }) => {
 	const publicHost = env.RZOPS_PUBLIC_HOST || '';
 
 	return {
+		// 依赖预构建缓存放到 WSL 原生盘（ext4）——项目位于 /mnt/c（9P 跨盘 IO 慢），
+		// 将 node_modules/.vite 的依赖扫描/预构建产物移出慢盘，可显著缩短冷启动时间。
+		cacheDir: '/home/chenxiaodong/.cache/rzops-vite',
 		plugins: [
 			tailwindcss(),
 			sveltekit({
@@ -23,6 +26,16 @@ export default defineConfig(({ mode }) => {
 		server: {
 			// 允许通过内网穿透 / 公网域名 / nginx 反代访问（开发环境）
 			host: true,
+			// 预热常用模块：登录、布局与主要列表页在服务就绪时即预转换，降低首个页面访问延迟
+			warmup: {
+				clientFiles: [
+					'./src/routes/+layout.svelte',
+					'./src/routes/login/+page.svelte',
+					'./src/routes/servers/+page.svelte',
+					'./src/routes/dicts/+page.svelte',
+					'./src/lib/components/layout/Sidebar.svelte',
+				]
+			},
 			allowedHosts: [
 				'localhost',
 				'127.0.0.1',
