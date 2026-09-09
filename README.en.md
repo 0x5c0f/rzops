@@ -76,6 +76,9 @@ docker compose up -d --build
 
 Database init is automated from the `database/` directory: `schema.sql` (standard SQL DDL) + `seed-data.sql` (only base data — dicts / roles / role permissions, INSERT syntax; accounts are created by the seeder). No sqlx migration mechanism is used; business data (servers, domains, etc.) starts empty and is entered through the UI.
 
+> Optional: `database/test-data.sql` holds realistic sample data (test users, business records, audit/change logs) and is **not** executed on first boot. For manual testing/demo:
+> `docker exec -i rzops-db-1 psql -U rzops -d rzopsdb < database/test-data.sql` (idempotent — truncates business tables first).
+
 ---
 
 ## Manual Deployment (without Docker)
@@ -88,6 +91,9 @@ docker run -d --name rzops-postgres -e POSTGRES_USER=rzops -e POSTGRES_PASSWORD=
 
 docker exec -i rzops-postgres psql -U rzops -d rzopsdb < database/schema.sql
 docker exec -i rzops-postgres psql -U rzops -d rzopsdb < database/seed-data.sql
+
+# Optional: load realistic test data (not executed automatically on first boot)
+docker exec -i rzops-postgres psql -U rzops -d rzopsdb < database/test-data.sql
 ```
 
 ### 2. Backend (Rust)
@@ -165,7 +171,7 @@ RzOps/
 │   ├── src/lib/types/    #   type mirror (mapped to backend DTOs)
 │   ├── src/lib/components/ # shared components (DataTable / forms / pickers…)
 │   └── docs/             #   frontend audit (FRONTEND_AUDIT_REPORT.md)
-├── database/             # Schema (schema.sql) + base data (seed-data.sql), auto-init for compose
+├── database/             # Schema (schema.sql) + base data (seed-data.sql), auto-init for compose; test-data.sql (optional sample data, manual)
 ├── seed/                 # historical dev seed scripts (usage documented in HANDOVER)
 ├── docker-compose.yml    # one-command startup
 └── .env.example          # env template

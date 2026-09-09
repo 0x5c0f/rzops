@@ -38,7 +38,9 @@ docker compose up -d --build
 # default account admin@rzops.local / admin123 (seeder creates it idempotently)
 ```
 
-Init logic: `database/schema.sql` (standard SQL DDL) + `database/seed-data.sql` (only base data: dicts / roles / role permissions, INSERT syntax) are mounted into postgres `/docker-entrypoint-initdb.d`; the container builds the DB on first boot. The API only runs seeders (admin account, base dicts) and **does not use the sqlx migration mechanism**. Business data (servers/domains/sites, etc.) starts empty and is entered by users.
+Init logic: `database/schema.sql` (standard SQL DDL) + `database/seed-data.sql` (only base data: dicts / roles / role permissions, INSERT syntax) are mounted as **named files** into postgres `/docker-entrypoint-initdb.d`; the container builds the DB on first boot. The API only runs seeders (admin account, base dicts) and **does not use the sqlx migration mechanism**. Business data (servers/domains/sites, etc.) starts empty and is entered by users.
+
+> Optional test data: `database/test-data.sql` (realistic sample data — test users gust/eval, 21 business tables, audit/change logs) is **not** auto-executed; run it manually, idempotently (TRUNCATEs business tables first): `docker exec -i rzops-db-1 psql -U rzops -d rzopsdb < database/test-data.sql`. Note: compose mounts are named files (`01-schema.sql`/`02-seed-data.sql`); reverting to a directory mount would auto-run test-data.sql on first boot.
 
 ### 2.3 Manual startup (dev)
 

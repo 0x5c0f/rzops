@@ -38,7 +38,9 @@ docker compose up -d --build
 # 默认账号 admin@rzops.local / admin123（seeder 自动创建，幂等）
 ```
 
-初始化原理：`database/schema.sql`（标准 SQL 建表）+ `database/seed-data.sql`（仅基础数据：字典/角色/角色权限，INSERT 语法）挂载到 postgres 的 `/docker-entrypoint-initdb.d`，容器首次启动自动建库；API 启动仅执行 seeder（创建 admin 账号、补齐字典），**不使用 sqlx 迁移机制**。业务数据（服务器/域名/站点等）首启为空，由用户录入。
+初始化原理：`database/schema.sql`（标准 SQL 建表）+ `database/seed-data.sql`（仅基础数据：字典/角色/角色权限，INSERT 语法）以**指定文件**挂载到 postgres 的 `/docker-entrypoint-initdb.d`，容器首次启动自动建库；API 启动仅执行 seeder（创建 admin 账号、补齐字典），**不使用 sqlx 迁移机制**。业务数据（服务器/域名/站点等）首启为空，由用户录入。
+
+> 可选测试数据：`database/test-data.sql`（模拟真实环境：测试用户 gust/eval、21 张业务表样例、审计/变更记录）**不参与自动初始化**，需手动执行且可重复（自带 TRUNCATE 清空业务表）：`docker exec -i rzops-db-1 psql -U rzops -d rzopsdb < database/test-data.sql`。注意：compose 挂载已改为**指定文件**（`01-schema.sql`/`02-seed-data.sql`），若改回目录挂载会导致 test-data.sql 被首启自动执行。
 
 ### 2.3 手动启动（开发）
 

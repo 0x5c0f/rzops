@@ -78,6 +78,9 @@ docker compose up -d --build
 
 数据库初始化由 `database/` 目录自动完成：`schema.sql`（标准 SQL 建表）+ `seed-data.sql`（仅基础数据：字典/角色/角色权限，INSERT 语法；账号由后端 seeder 创建）。不使用 sqlx 迁移机制；业务数据（服务器/域名等）首启为空，由用户在前端录入。
 
+> 可选：`database/test-data.sql` 为模拟真实环境的测试数据（含测试用户、业务样例与审计/变更记录），**不会**随首次启动自动执行；如需人工复测/演示，手动执行：
+> `docker exec -i rzops-db-1 psql -U rzops -d rzopsdb < database/test-data.sql`（可重复执行，自带清空业务数据）。
+
 ---
 
 ## 手动部署（不使用 Docker）
@@ -91,6 +94,9 @@ docker run -d --name rzops-postgres -e POSTGRES_USER=rzops -e POSTGRES_PASSWORD=
 # 初始化表结构与基础数据
 docker exec -i rzops-postgres psql -U rzops -d rzopsdb < database/schema.sql
 docker exec -i rzops-postgres psql -U rzops -d rzopsdb < database/seed-data.sql
+
+# 可选：加载模拟真实环境的测试数据（不随首次启动自动执行）
+docker exec -i rzops-postgres psql -U rzops -d rzopsdb < database/test-data.sql
 ```
 
 ### 2. 后端（Rust）
@@ -168,7 +174,7 @@ RzOps/
 │   ├── src/lib/types/    #   类型镜像（与后端 DTO 对应）
 │   ├── src/lib/components/ # 共享组件（DataTable / 表单 / 选择器…）
 │   └── docs/             #   前端审计报告（FRONTEND_AUDIT_REPORT.md）
-├── database/             # 数据库快照（schema.sql + seed-data.sql，compose 自动初始化）
+├── database/             # 数据库：schema.sql + seed-data.sql（compose 自动初始化）；test-data.sql（可选测试数据，手动执行）
 ├── seed/                 # 历史开发期种子脚本（SQL + 工具脚本，文档化用途见 HANDOVER）
 ├── docker-compose.yml    # 一键启动示例
 └── .env.example          # 环境变量模板

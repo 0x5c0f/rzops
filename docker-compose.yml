@@ -14,8 +14,11 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-rzopsdb}
     volumes:
       - pgdata:/var/lib/postgresql/data
-      # 首次初始化：schema.sql（表结构）→ seed-data.sql（含字典/账号/示例数据与迁移记录）
-      - ./database:/docker-entrypoint-initdb.d:ro
+      # 首次初始化：仅基础数据（表结构 + 字典/角色/权限）。test-data.sql 为可选的
+      # 模拟真实环境测试数据，需手动执行，不参与自动初始化：
+      #   docker exec -i rzops-db-1 psql -U rzops -d rzopsdb < database/test-data.sql
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./database/seed-data.sql:/docker-entrypoint-initdb.d/02-seed-data.sql:ro
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     healthcheck:
