@@ -26,8 +26,8 @@
       render: (v: unknown) => resourceTypeLabels[v as string] || String(v),
     },
     { key: 'name', label: '名称' },
-    { key: 'id', label: 'ID', render: (v: unknown) => String(v).slice(0, 8) + '…' },
-    { key: 'deleted_at', label: '删除时间', render: (v: unknown) => formatDate(v as string) },
+    { key: 'id', label: 'ID', hideBelow: 'md', render: (v: unknown) => String(v).slice(0, 8) + '…' },
+    { key: 'deleted_at', label: '删除时间', hideBelow: 'md', render: (v: unknown) => formatDate(v as string) },
   ];
 
   async function loadData() {
@@ -97,47 +97,16 @@
     />
   </div>
 
-  <div class="rounded-md border">
-    <div class="overflow-x-auto">
-      <table class="w-full text-sm">
-        <thead>
-          <tr class="border-b bg-muted/40 text-left text-muted-foreground">
-            <th class="w-[60px] px-3 py-2 text-center">#</th>
-            <th class="px-3 py-2 font-medium">资源类型</th>
-            <th class="px-3 py-2 font-medium">名称</th>
-            <th class="px-3 py-2 font-medium">ID</th>
-            <th class="px-3 py-2 font-medium">删除时间</th>
-            <th class="px-3 py-2 text-right font-medium">操作</th>
-          </tr>
-        </thead>
-        <tbody>
-          {#if loading}
-            <tr><td colspan="6" class="px-3 py-8 text-center text-muted-foreground">加载中...</td></tr>
-          {:else if data.length === 0}
-            <tr><td colspan="6" class="px-3 py-8 text-center text-muted-foreground">回收站为空</td></tr>
-          {:else}
-            {#each data as item, i}
-              <tr class="border-b last:border-0 hover:bg-muted/20">
-                <td class="px-3 py-2 text-center text-muted-foreground">{(page - 1) * perPage + i + 1}</td>
-                <td class="px-3 py-2">{resourceTypeLabels[item.resource_type] || item.resource_type}</td>
-                <td class="px-3 py-2 font-medium">{item.name}</td>
-                <td class="px-3 py-2 text-muted-foreground">{item.id.slice(0, 8)}…</td>
-                <td class="px-3 py-2">{formatDate(item.deleted_at)}</td>
-                <td class="px-3 py-2 text-right">
-                  <div class="flex justify-end gap-2">
-                    <Button variant="outline" size="sm" onclick={() => handleRestore(item)}>恢复</Button>
-                    {#if canDelete('recycle')}
-                      <Button variant="destructive" size="sm" onclick={() => handlePurge(item)}>彻底删除</Button>
-                    {/if}
-                  </div>
-                </td>
-              </tr>
-            {/each}
-          {/if}
-        </tbody>
-      </table>
-    </div>
-  </div>
+  <DataTable
+    {columns}
+    {data}
+    {loading}
+    storageKey="recycle"
+    actionsWidth="w-[150px]"
+    {page}
+    {perPage}
+    extraActions={rowActions}
+  />
 
   <Pagination
     {page}
@@ -147,3 +116,10 @@
     onPerPageChange={(s) => { perPage = s; page = 1; loadData(); }}
   />
 </div>
+
+{#snippet rowActions(item: RecycleItem)}
+  <Button variant="outline" size="sm" class="px-1.5" onclick={() => handleRestore(item)}>恢复</Button>
+  {#if canDelete('recycle')}
+    <Button variant="destructive" size="sm" class="px-1.5" onclick={() => handlePurge(item)}>彻底删除</Button>
+  {/if}
+{/snippet}

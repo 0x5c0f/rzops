@@ -49,6 +49,7 @@
     perPage = 20,
     children,
     extraActions,
+    actionsWidth = 'w-[90px]',
   }: {
     columns: Column[];
     data: T[];
@@ -71,9 +72,11 @@
     children?: import('svelte').Snippet;
     /** 额外操作 snippet（接收行数据），如重置密码按钮 */
     extraActions?: import('svelte').Snippet<[T]>;
+    /** 操作列宽度，默认 w-[90px]；操作按钮较多时可覆盖为更宽 */
+    actionsWidth?: string;
   } = $props();
 
-  let hasActions = $derived(onEdit || onDelete);
+  let hasActions = $derived(!!(onEdit || onDelete || extraActions));
   let confirmOpen = $state(false);
   let pendingDelete = $state<T | null>(null);
 
@@ -255,7 +258,7 @@
             <Table.Head class={cn('sticky top-0 z-10 bg-background shadow-[0_1px_0_0_var(--border)]', col.class)}>{col.label}</Table.Head>
           {/each}
           {#if hasActions}
-            <Table.Head class="w-[90px] sticky top-0 z-10 bg-background shadow-[0_1px_0_0_var(--border)]">操作</Table.Head>
+            <Table.Head class={cn('sticky top-0 z-10 bg-background shadow-[0_1px_0_0_var(--border)]', actionsWidth)}>操作</Table.Head>
           {/if}
         </Table.Row>
       </Table.Header>
