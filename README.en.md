@@ -4,7 +4,7 @@ A Configuration Management Database (CMDB) for small-to-medium ops teams, coveri
 
 - Backend: [Rust](https://www.rust-lang.org/) (axum + sqlx + Postgres 16)
 - Frontend: [Svelte 5](https://svelte.dev/) / [SvelteKit](https://kit.svelte.dev/) (Vite 8 + TypeScript 6 + Tailwind v4)
-- Deployment: `docker compose` one-command startup / systemd / pure static files (nginx / CDN)
+- Deployment: `docker compose` one-command startup (recommended, dev & test unified) / pure static files (nginx / CDN)
 
 ---
 
@@ -43,7 +43,7 @@ Backend  Rust 2021 edition · axum 0.8 · sqlx 0.8 (runtime-tokio + tls-rustls) 
          7-crate workspace: app / server / api / domain / infra / config / common
 Frontend Svelte 5.56 (runes) · SvelteKit 2.63 · Vite 8 · TypeScript 6 (strict) ·
          Tailwind v4 · bits-ui (shadcn-svelte style) · lucide icons
-Deploy   Docker (compose: postgres / api / web) · systemd (WSL dev) ·
+Deploy   Docker (compose: postgres / api / web, **dev & test unified**) ·
          nginx static hosting (SPA fallback + /api proxy)
 ```
 

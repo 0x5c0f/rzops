@@ -13,7 +13,7 @@
 | Positioning | CMDB / asset management platform for small-to-medium ops teams |
 | Backend | Rust 2021 edition · axum 0.8 · sqlx 0.8 (runtime-tokio / tls-rustls) · tokio 1 · tower-http |
 | Frontend | Svelte 5.56 (runes) · SvelteKit 2.63 · Vite 8 · TypeScript 6 (strict) · Tailwind v4 · bits-ui |
-| Database | PostgreSQL 16 (dev: Docker container `rzops-postgres`, db `rzopsdb`) |
+| Database | PostgreSQL 16 (compose: `rzops-db-1`, db `rzopsdb`) |
 | Auth | JWT (HS256); login returns `access_token` |
 | Menus | 19 business menus + Dashboard (see §5) |
 | History | 106 commits on main (2026-06-22 → 2026-09-09) |
@@ -26,8 +26,8 @@
 
 ### 2.1 Requirements
 
-- Docker (with Compose) — recommended; or local Rust (stable) + Node 22+ + PostgreSQL 16.
-- Dev environment is **WSL** (Ubuntu + systemd): services `rzops-api.service`, `rzops-web.service`.
+- Docker (with Compose) — recommended (**dev & test unified on compose**); or local Rust (stable) + Node 22+ + PostgreSQL 16.
+- Runtime is WSL Docker Compose: `rzops-db-1`(5432) / `rzops-api-1`(8000) / `rzops-web-1`(8080). The legacy systemd setup (`rzops-api.service` / `rzops-web.service`) and the `rzops-postgres` dev-db container are stopped & disabled, kept only as background history.
 
 ### 2.2 One-command startup (Docker Compose)
 
@@ -59,12 +59,12 @@ cd rzops-web && npm install && npm run dev         # :5173, /api proxied to 8000
 ### 2.4 Common commands
 
 ```bash
-docker exec -it rzops-postgres psql -U rzops -d rzopsdb   # psql
-cd rzops-api && cargo clippy --workspace -- -D warnings   # lint
-cd rzops-web && npm run check                             # svelte-check
+docker exec -it rzops-db-1 psql -U rzops -d rzopsdb      # psql (compose primary)
+cd rzops-api && cargo clippy --workspace -- -D warnings  # lint
+cd rzops-web && npm run check                            # svelte-check
 ```
 
-> WSL note: Vite's watcher does not notice file changes under `/mnt/c`; after frontend edits run `sudo systemctl restart rzops-web.service` (sudo password `1`).
+> Compose mode: rebuild the web service with `docker compose up -d --build web` after frontend edits (the legacy WSL systemd `/mnt/c` watcher issue no longer applies).
 
 ---
 
@@ -349,8 +349,9 @@ Design principles:
 
 ### 6.8 Vite cross-drive performance (WSL dev)
 
-- **Symptom**: Vite very slow on `/mnt/c`; code changes not picked up.
-- **Decision**: `vite.config.ts` `cacheDir` on the native disk (`~/.cache/rzops-vite`) + `warmup`; cross-drive watcher misses changes → **restart `rzops-web.service` after edits**.
+- **Symptom**: Vite very slow on `/mnt/c`; code changes not picked up (legacy systemd dev mode only).
+- **Decision**: `vite.config.ts` `cacheDir` on the native disk (`~/.cache/rzops-vite`) + `warmup`; cross-drive watcher misses changes.
+- **Now (compose mode)**: `docker compose up -d --build web` after frontend edits; no watcher/systemd involved.
 
 ### 6.9 Edit page "ID first, name later" (UX)
 
@@ -461,15 +462,17 @@ superuser (user.is_superuser=true) bypasses all checks
 
 ## 9. Deployment & Operations
 
-### 9.1 Dev environment (WSL + systemd)
+### 9.1 Runtime (Docker Compose, recommended)
 
-| Service | Notes | Restart |
-|---|---|---|
-| `rzops-api.service` | backend (release binary) | after Rust edits: `sudo systemctl restart rzops-api.service` |
-| `rzops-web.service` | Vite dev frontend | must restart after frontend edits (cross-drive watcher) |
+| Service | Container | Port | Update |
+|---|---|---|---|
+| Postgres | `rzops-db-1` | 5432 | volume `rzops_pgdata`; init mounted from `database/` |
+| API | `rzops-api-1` | 8000 | after Rust edits: `docker compose up -d --build api` |
+| Web | `rzops-web-1` | 8080 | after frontend edits: `docker compose up -d --build web` |
 
-- DB container `rzops-postgres` (postgres:16-alpine); API connection in `rzops-api/.env`.
-- Attachments stored in `rzops-api/uploads/`.
+- Port conflicts: override `API_PORT` / `POSTGRES_PORT` / `WEB_PORT` in root `.env` (not committed).
+- Attachments: uploads volume; API connection via `RZOPS_*` in `docker-compose.yml`.
+- **Legacy (disabled)**: WSL systemd `rzops-api.service` / `rzops-web.service` and the `rzops-postgres` dev container are stopped & `systemctl disable`d — background history only.
 
 ### 9.2 Production
 

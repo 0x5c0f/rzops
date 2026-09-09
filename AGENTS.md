@@ -20,17 +20,21 @@ cd rzops-web && npm ci && npm run dev                 # 开发 http://localhost:
 npm run build                                          # 静态产物 build/（adapter-static SPA）
 npm run check                                          # svelte-check
 
-# 数据库（Docker 容器 rzops-postgres，库 rzopsdb，用户 rzops）
-docker exec -it rzops-postgres psql -U rzops -d rzopsdb
+# 数据库（compose 容器 rzops-db-1，库 rzopsdb，用户 rzops）
+docker exec -it rzops-db-1 psql -U rzops -d rzopsdb
 
-# 一键启动（推荐）
-docker compose up -d --build                           # web:8080 api:8000 db:5432
+# 一键启动（正式运行方式，Web:8080 API:8000 DB:5432）
+docker compose up -d --build
+# 开发迭代：改前端/后端后重建对应服务
+docker compose up -d --build web     # 前端（nginx 静态托管）
+docker compose up -d --build api     # 后端（musl 静态编译，首次较慢）
 ```
 
 ## 运行环境（非显然，必读）
 
-- **开发环境在 WSL**（Ubuntu + systemd）：`rzops-api.service`、`rzops-web.service`。
-- **跨盘（/mnt/c）文件变更 Vite watcher 不感知**：改前端代码后必须 `sudo systemctl restart rzops-web.service`（sudo 密码 `1`）。
+- **运行与开发测试统一走 docker compose**（WSL Docker）：三服务 `rzops-db-1`(5432) / `rzops-api-1`(8000) / `rzops-web-1`(8080)。旧 systemd 方式（`rzops-api.service`/`rzops-web.service`）与开发库容器 `rzops-postgres` 已停用并 `systemctl disable`，勿再使用。
+- **端口冲突**：若 8000/5432/8080 被占，根 `.env`（不入库，模板 `.env.example`）覆盖 `API_PORT`/`POSTGRES_PORT`/`WEB_PORT` 后 `docker compose up -d`。
+- **跨盘（/mnt/c）文件变更 Vite watcher 不感知**（仅历史 systemd dev 模式）；compose 模式改前端后执行 `docker compose up -d --build web` 即可。
 - Vite 缓存目录已指到原生盘（`vite.config.ts` cacheDir），勿改回。
 - 附件上传存储：`rzops-api/uploads/`（compose 中为 uploads 卷）。
 - 数据库密码/JWT 密钥在 `rzops-api/.env` 与根 `.env.example`（占位）。
@@ -57,7 +61,7 @@ docker compose up -d --build                           # web:8080 api:8000 db:54
 
 | 坑 | 表现 | 解法 |
 |---|---|---|
-| Vite 跨盘 watcher | 改代码不生效 | 重启 rzops-web.service |
+| Vite 跨盘 watcher | 改代码不生效（仅历史 dev 模式） | compose：`docker compose up -d --build web` |
 | 公网反代 | Blocked request / 无限刷新 | Vite `allowedHosts` 加域名；公网生产用**静态构建**（hmr 不参与） |
 | 云端 WAF(ModSecurity) | 保存 403（PUT/含"ssh"字段被拦） | WAF 规则问题非应用缺陷，放行 PUT/调整规则 |
 | 后端 Option 空串 | 保存报错 | 前端 `sanitizeEmptyRefs`（已统一） |

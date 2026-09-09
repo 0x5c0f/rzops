@@ -26,8 +26,8 @@
 
 ### 2.1 环境要求
 
-- Docker（含 Compose）——推荐一键启动；或本机 Rust（stable）+ Node 22+ + PostgreSQL 16。
-- 开发环境为 **WSL**（Ubuntu + systemd），服务：`rzops-api.service`、`rzops-web.service`。
+- Docker（含 Compose）——推荐一键启动（**开发与测试统一走 compose**）；或本机 Rust（stable）+ Node 22+ + PostgreSQL 16。
+- 运行环境为 WSL 内 Docker Compose 三服务：`rzops-db-1`(5432) / `rzops-api-1`(8000) / `rzops-web-1`(8080)。历史 systemd 方式（`rzops-api.service`/`rzops-web.service`）与开发库容器 `rzops-postgres` 已停用（`systemctl disable`），仅作背景记录。
 
 ### 2.2 一键启动（Docker Compose）
 
@@ -59,12 +59,12 @@ cd rzops-web && npm install && npm run dev         # :5173，/api 代理到 8000
 ### 2.4 数据库与常用操作
 
 ```bash
-docker exec -it rzops-postgres psql -U rzops -d rzopsdb   # psql
-cd rzops-api && cargo clippy --workspace -- -D warnings   # lint
-cd rzops-web && npm run check                             # svelte-check
+docker exec -it rzops-db-1 psql -U rzops -d rzopsdb      # psql（compose 主库）
+cd rzops-api && cargo clippy --workspace -- -D warnings  # lint
+cd rzops-web && npm run check                            # svelte-check
 ```
 
-> WSL 注意：`/mnt/c` 跨盘文件变更 Vite watcher 不感知，改前端后需 `sudo systemctl restart rzops-web.service`（sudo 密码 `1`）。
+> compose 模式改前端后：`docker compose up -d --build web` 即可生效（历史 WSL systemd dev 模式的 `/mnt/c` 跨盘 watcher 问题不再适用）。
 
 ---
 
@@ -349,8 +349,9 @@ erDiagram
 
 ### 6.8 Vite 跨盘性能（WSL 开发环境）
 
-- **现象**：`/mnt/c` 下 Vite 启动极慢、改代码不生效。
-- **决策**：`vite.config.ts` 设 `cacheDir` 到原生盘（`~/.cache/rzops-vite`）+ `warmup`；跨盘 watcher 不感知变更 → **改代码后重启 `rzops-web.service`**。
+- **现象**：`/mnt/c` 下 Vite 启动极慢、改代码不生效（仅历史 systemd dev 模式）。
+- **决策**：`vite.config.ts` 设 `cacheDir` 到原生盘（`~/.cache/rzops-vite`）+ `warmup`；跨盘 watcher 不感知变更。
+- **现状（compose 模式）**：改前端后 `docker compose up -d --build web` 生效，不再依赖 watcher/systemd。
 
 ### 6.9 编辑页"先显示 ID 再显示名称"（体验）
 
@@ -461,15 +462,17 @@ user ──< user_role >── role ──< role_permission >── 权限点
 
 ## 9. 部署与运维
 
-### 9.1 开发环境（WSL + systemd）
+### 9.1 运行环境（Docker Compose，推荐）
 
-| 服务 | 说明 | 重启 |
-|---|---|---|
-| `rzops-api.service` | 后端（release 二进制） | 改 Rust 后 `sudo systemctl restart rzops-api.service` |
-| `rzops-web.service` | Vite dev 前端 | 改前端后必须重启（跨盘 watcher 不感知） |
+| 服务 | 容器 | 端口 | 更新 |
+|---|---|---|---|
+| Postgres | `rzops-db-1` | 5432 | 数据卷 `rzops_pgdata`；初始化挂载 `database/` |
+| API | `rzops-api-1` | 8000 | 改 Rust 后 `docker compose up -d --build api` |
+| Web | `rzops-web-1` | 8080 | 改前端后 `docker compose up -d --build web` |
 
-- 数据库容器 `rzops-postgres`（postgres:16-alpine）；API 连接参数在 `rzops-api/.env`。
-- 附件存储 `rzops-api/uploads/`。
+- 端口冲突：根 `.env`（不入库）覆盖 `API_PORT`/`POSTGRES_PORT`/`WEB_PORT`。
+- 附件存储：uploads 卷；API 连接参数见 `docker-compose.yml` 的 `RZOPS_*`。
+- **历史（已停用）**：WSL systemd 服务 `rzops-api.service`/`rzops-web.service` 与开发库容器 `rzops-postgres` 已 `systemctl disable`/停止，仅作背景记录。
 
 ### 9.2 生产部署
 

@@ -4,7 +4,7 @@
 
 - 后端：[Rust](https://www.rust-lang.org/)（axum + sqlx + Postgres 16）
 - 前端：[Svelte 5](https://svelte.dev/) / [SvelteKit](https://kit.svelte.dev/)（Vite 8 + TypeScript 6 + Tailwind v4）
-- 部署：`docker compose` 一键启动 / systemd / 纯静态文件（nginx / CDN）
+- 部署：`docker compose` 一键启动（推荐，开发/测试统一） / 纯静态文件（nginx / CDN）
 
 ---
 
@@ -43,7 +43,7 @@
         7-crate workspace: app / server / api / domain / infra / config / common
 前端    Svelte 5.56（runes）· SvelteKit 2.63 · Vite 8 · TypeScript 6（strict）·
         Tailwind v4 · bits-ui（shadcn-svelte 风格）· lucide 图标
-部署    Docker（compose 三服务：postgres / api / web）· systemd（WSL 开发环境）·
+部署    Docker（compose 三服务：postgres / api / web，**开发与测试统一走 compose**）·
         nginx 静态托管（SPA fallback + /api 反代）
 ```
 
