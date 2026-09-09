@@ -19,4 +19,5 @@ pub mod contract;
 pub mod attachment;
 pub mod audit_log;
 pub mod change_record;
+pub mod recycle;
 pub mod dict;

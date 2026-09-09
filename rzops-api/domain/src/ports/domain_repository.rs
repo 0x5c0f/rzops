@@ -16,10 +16,10 @@ pub struct DomainFilter {
 /// Domain repository port.
 #[async_trait]
 pub trait DomainRepository: Send + Sync {
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<DomainAsset>, sqlx::Error>;
-    async fn find_all(&self, filter: DomainFilter) -> Result<Vec<DomainAsset>, sqlx::Error>;
-    async fn count(&self, filter: DomainFilter) -> Result<i64, sqlx::Error>;
-    async fn create(&self, domain: &DomainAsset) -> Result<DomainAsset, sqlx::Error>;
-    async fn update(&self, id: Uuid, domain: &DomainAsset) -> Result<Option<DomainAsset>, sqlx::Error>;
-    async fn delete(&self, id: Uuid) -> Result<bool, sqlx::Error>;
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<DomainAsset>, crate::errors::RepositoryError>;
+    async fn find_all(&self, filter: DomainFilter) -> Result<Vec<DomainAsset>, crate::errors::RepositoryError>;
+    async fn count(&self, filter: DomainFilter) -> Result<i64, crate::errors::RepositoryError>;
+    async fn create(&self, domain: &DomainAsset) -> Result<DomainAsset, crate::errors::RepositoryError>;
+    async fn update(&self, id: Uuid, domain: &DomainAsset) -> Result<Option<DomainAsset>, crate::errors::RepositoryError>;
+    async fn delete(&self, id: Uuid) -> Result<bool, crate::errors::RepositoryError>;
 }

@@ -19,10 +19,10 @@ pub struct ServerFilter {
 /// Server repository port — domain defines the interface, infra implements it.
 #[async_trait]
 pub trait ServerRepository: Send + Sync {
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<Server>, sqlx::Error>;
-    async fn find_all(&self, filter: ServerFilter) -> Result<Vec<Server>, sqlx::Error>;
-    async fn count(&self, filter: ServerFilter) -> Result<i64, sqlx::Error>;
-    async fn create(&self, server: &Server) -> Result<Server, sqlx::Error>;
-    async fn update(&self, id: Uuid, server: &Server) -> Result<Option<Server>, sqlx::Error>;
-    async fn delete(&self, id: Uuid) -> Result<bool, sqlx::Error>;
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<Server>, crate::errors::RepositoryError>;
+    async fn find_all(&self, filter: ServerFilter) -> Result<Vec<Server>, crate::errors::RepositoryError>;
+    async fn count(&self, filter: ServerFilter) -> Result<i64, crate::errors::RepositoryError>;
+    async fn create(&self, server: &Server) -> Result<Server, crate::errors::RepositoryError>;
+    async fn update(&self, id: Uuid, server: &Server) -> Result<Option<Server>, crate::errors::RepositoryError>;
+    async fn delete(&self, id: Uuid) -> Result<bool, crate::errors::RepositoryError>;
 }

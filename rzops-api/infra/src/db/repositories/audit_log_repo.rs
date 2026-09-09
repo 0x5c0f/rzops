@@ -1,3 +1,5 @@
+use crate::db::IntoRepoResult;
+use rzops_domain::errors::RepositoryError;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use sqlx::{Pool, Postgres, Row};
@@ -16,10 +18,10 @@ const COLS: &str = "id, actor_id, action, resource_type, resource_id, ip_address
 
 #[async_trait]
 impl AuditLogRepository for PgAuditLogRepository {
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<AuditLog>, sqlx::Error> {
-        Ok(sqlx::query(&format!("SELECT {} FROM cmdb_audit_log WHERE id=$1", COLS)).bind(id).fetch_optional(&self.pool).await?.map(|r| row_to_entity(&r)))
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<AuditLog>, RepositoryError> {
+        Ok(sqlx::query(&format!("SELECT {} FROM cmdb_audit_log WHERE id=$1", COLS)).bind(id).fetch_optional(&self.pool).await.repo()?.map(|r| row_to_entity(&r)))
     }
-    async fn find_all(&self, f: AuditLogFilter) -> Result<Vec<AuditLog>, sqlx::Error> {
+    async fn find_all(&self, f: AuditLogFilter) -> Result<Vec<AuditLog>, RepositoryError> {
         let mut sql = format!("SELECT {} FROM cmdb_audit_log WHERE 1=1", COLS);
         let mut string_binds: Vec<String> = Vec::new();
         let mut uuid_binds: Vec<Uuid> = Vec::new();
@@ -37,9 +39,9 @@ impl AuditLogRepository for PgAuditLogRepository {
         for u in &uuid_binds { query = query.bind(u); }
         for s in &string_binds { query = query.bind(s); }
         for d in &dt_binds { query = query.bind(d); }
-        Ok(query.fetch_all(&self.pool).await?.iter().map(|r| row_to_entity(r)).collect())
+        Ok(query.fetch_all(&self.pool).await.repo()?.iter().map(|r| row_to_entity(r)).collect())
     }
-    async fn count(&self, f: AuditLogFilter) -> Result<i64, sqlx::Error> {
+    async fn count(&self, f: AuditLogFilter) -> Result<i64, RepositoryError> {
         let mut sql = "SELECT COUNT(*) as count FROM cmdb_audit_log WHERE 1=1".to_string();
         let mut string_binds: Vec<String> = Vec::new();
         let mut uuid_binds: Vec<Uuid> = Vec::new();
@@ -54,11 +56,11 @@ impl AuditLogRepository for PgAuditLogRepository {
         for u in &uuid_binds { query = query.bind(u); }
         for s in &string_binds { query = query.bind(s); }
         for d in &dt_binds { query = query.bind(d); }
-        Ok(query.fetch_one(&self.pool).await?.get::<i64, _>("count"))
+        Ok(query.fetch_one(&self.pool).await.repo()?.get::<i64, _>("count"))
     }
-    async fn create(&self, e: &AuditLog) -> Result<AuditLog, sqlx::Error> {
+    async fn create(&self, e: &AuditLog) -> Result<AuditLog, RepositoryError> {
         Ok(row_to_entity(&sqlx::query(&format!("INSERT INTO cmdb_audit_log (id,actor_id,action,resource_type,resource_id,ip_address,user_agent,extra_data,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING {}", COLS))
             .bind(e.id).bind(e.actor_id).bind(&e.action).bind(&e.resource_type).bind(e.resource_id).bind(&e.ip_address).bind(&e.user_agent).bind(&e.extra_data).bind(e.created_at)
-            .fetch_one(&self.pool).await?))
+            .fetch_one(&self.pool).await.repo()?))
     }
 }

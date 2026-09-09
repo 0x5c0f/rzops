@@ -16,10 +16,10 @@ pub struct CertificateFilter {
 /// Certificate repository port.
 #[async_trait]
 pub trait CertificateRepository: Send + Sync {
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<Certificate>, sqlx::Error>;
-    async fn find_all(&self, filter: CertificateFilter) -> Result<Vec<Certificate>, sqlx::Error>;
-    async fn count(&self, filter: CertificateFilter) -> Result<i64, sqlx::Error>;
-    async fn create(&self, cert: &Certificate) -> Result<Certificate, sqlx::Error>;
-    async fn update(&self, id: Uuid, cert: &Certificate) -> Result<Option<Certificate>, sqlx::Error>;
-    async fn delete(&self, id: Uuid) -> Result<bool, sqlx::Error>;
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<Certificate>, crate::errors::RepositoryError>;
+    async fn find_all(&self, filter: CertificateFilter) -> Result<Vec<Certificate>, crate::errors::RepositoryError>;
+    async fn count(&self, filter: CertificateFilter) -> Result<i64, crate::errors::RepositoryError>;
+    async fn create(&self, cert: &Certificate) -> Result<Certificate, crate::errors::RepositoryError>;
+    async fn update(&self, id: Uuid, cert: &Certificate) -> Result<Option<Certificate>, crate::errors::RepositoryError>;
+    async fn delete(&self, id: Uuid) -> Result<bool, crate::errors::RepositoryError>;
 }

@@ -14,10 +14,10 @@ pub struct AttachmentFilter {
 
 #[async_trait]
 pub trait AttachmentRepository: Send + Sync {
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<Attachment>, sqlx::Error>;
-    async fn find_all(&self, filter: AttachmentFilter) -> Result<Vec<Attachment>, sqlx::Error>;
-    async fn count(&self, filter: AttachmentFilter) -> Result<i64, sqlx::Error>;
-    async fn create(&self, item: &Attachment) -> Result<Attachment, sqlx::Error>;
-    async fn update(&self, id: Uuid, item: &Attachment) -> Result<Option<Attachment>, sqlx::Error>;
-    async fn delete(&self, id: Uuid) -> Result<bool, sqlx::Error>;
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<Attachment>, crate::errors::RepositoryError>;
+    async fn find_all(&self, filter: AttachmentFilter) -> Result<Vec<Attachment>, crate::errors::RepositoryError>;
+    async fn count(&self, filter: AttachmentFilter) -> Result<i64, crate::errors::RepositoryError>;
+    async fn create(&self, item: &Attachment) -> Result<Attachment, crate::errors::RepositoryError>;
+    async fn update(&self, id: Uuid, item: &Attachment) -> Result<Option<Attachment>, crate::errors::RepositoryError>;
+    async fn delete(&self, id: Uuid) -> Result<bool, crate::errors::RepositoryError>;
 }

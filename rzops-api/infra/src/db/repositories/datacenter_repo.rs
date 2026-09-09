@@ -1,3 +1,5 @@
+use crate::db::IntoRepoResult;
+use rzops_domain::errors::RepositoryError;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use sqlx::{Pool, Postgres, Row};
@@ -47,7 +49,7 @@ fn row_to_datacenter(row: &sqlx::postgres::PgRow) -> DataCenter {
 
 #[async_trait]
 impl DataCenterRepository for PgDataCenterRepository {
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<DataCenter>, sqlx::Error> {
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<DataCenter>, RepositoryError> {
         let row = sqlx::query(
             r#"SELECT id, name, provider_id, phone, address, country,
                       line_type, description, status::text, created_at, updated_at
@@ -55,12 +57,12 @@ impl DataCenterRepository for PgDataCenterRepository {
         )
         .bind(id)
         .fetch_optional(&self.pool)
-        .await?;
+        .await.repo()?;
 
         Ok(row.map(|r| row_to_datacenter(&r)))
     }
 
-    async fn find_all(&self, filter: DataCenterFilter) -> Result<Vec<DataCenter>, sqlx::Error> {
+    async fn find_all(&self, filter: DataCenterFilter) -> Result<Vec<DataCenter>, RepositoryError> {
         let mut sql = String::from(
             r#"SELECT id, name, provider_id, phone, address, country,
                       line_type, description, status::text, created_at, updated_at
@@ -98,11 +100,11 @@ impl DataCenterRepository for PgDataCenterRepository {
             query = query.bind(bind);
         }
 
-        let rows = query.fetch_all(&self.pool).await?;
+        let rows = query.fetch_all(&self.pool).await.repo()?;
         Ok(rows.iter().map(|r| row_to_datacenter(r)).collect())
     }
 
-    async fn count(&self, filter: DataCenterFilter) -> Result<i64, sqlx::Error> {
+    async fn count(&self, filter: DataCenterFilter) -> Result<i64, RepositoryError> {
         let mut sql = String::from("SELECT COUNT(*) as count FROM cmdb_data_center WHERE 1=1");
         let mut binds: Vec<String> = Vec::new();
         let mut idx = 1;
@@ -127,11 +129,11 @@ impl DataCenterRepository for PgDataCenterRepository {
             query = query.bind(bind);
         }
 
-        let row = query.fetch_one(&self.pool).await?;
+        let row = query.fetch_one(&self.pool).await.repo()?;
         Ok(row.get::<i64, _>("count"))
     }
 
-    async fn create(&self, dc: &DataCenter) -> Result<DataCenter, sqlx::Error> {
+    async fn create(&self, dc: &DataCenter) -> Result<DataCenter, RepositoryError> {
         let row = sqlx::query(
             r#"INSERT INTO cmdb_data_center
                (id, name, provider_id, phone, address, country,
@@ -152,12 +154,12 @@ impl DataCenterRepository for PgDataCenterRepository {
         .bind(dc.created_at)
         .bind(dc.updated_at)
         .fetch_one(&self.pool)
-        .await?;
+        .await.repo()?;
 
         Ok(row_to_datacenter(&row))
     }
 
-    async fn update(&self, id: Uuid, dc: &DataCenter) -> Result<Option<DataCenter>, sqlx::Error> {
+    async fn update(&self, id: Uuid, dc: &DataCenter) -> Result<Option<DataCenter>, RepositoryError> {
         let row = sqlx::query(
             r#"UPDATE cmdb_data_center SET
                 name = $2, provider_id = $3, phone = $4, address = $5,
@@ -178,16 +180,16 @@ impl DataCenterRepository for PgDataCenterRepository {
         .bind(dc.status.clone())
         .bind(dc.updated_at)
         .fetch_optional(&self.pool)
-        .await?;
+        .await.repo()?;
 
         Ok(row.map(|r| row_to_datacenter(&r)))
     }
 
-    async fn delete(&self, id: Uuid) -> Result<bool, sqlx::Error> {
+    async fn delete(&self, id: Uuid) -> Result<bool, RepositoryError> {
         let result = sqlx::query("DELETE FROM cmdb_data_center WHERE id = $1")
             .bind(id)
             .execute(&self.pool)
-            .await?;
+            .await.repo()?;
 
         Ok(result.rows_affected() > 0)
     }

@@ -8,7 +8,7 @@ use axum::{
     Json,
 };
 use chrono::Utc;
-use sqlx::PgPool;
+use rzops_domain::ports::resource_name_service::ResourceNameService;
 use uuid::Uuid;
 
 use rzops_domain::models::server_ip::ServerIP;
@@ -18,7 +18,7 @@ use crate::auth_extractor::AuthUser;
 use crate::change_log::{record_change, ChangeLogState};
 use crate::dto::provider_dto::ErrorResponse;
 use crate::dto::server_ip_dto::*;
-use crate::resource_names::resolve_server_briefs;
+
 
 fn to_response(ip: &ServerIP, server_name: Option<String>, server_status: Option<String>) -> ServerIpResponse {
     ServerIpResponse {
@@ -39,9 +39,9 @@ fn to_response(ip: &ServerIP, server_name: Option<String>, server_status: Option
 }
 
 /// 批量解析服务器名称与状态映射。
-async fn resolve_servers(pool: &PgPool, ips: &[ServerIP]) -> HashMap<Uuid, (String, String)> {
+async fn resolve_servers(ns: &Arc<dyn ResourceNameService>, ips: &[ServerIP]) -> HashMap<Uuid, (String, String)> {
     let ids: Vec<Option<Uuid>> = ips.iter().map(|ip| ip.server_id).collect();
-    resolve_server_briefs(pool, &ids).await
+    ns.resolve_server_briefs(&ids).await
 }
 
 /// GET /server-ips/:id
@@ -49,12 +49,12 @@ async fn resolve_servers(pool: &PgPool, ips: &[ServerIP]) -> HashMap<Uuid, (Stri
 pub async fn get_server_ip(
     _auth: AuthUser,
     State(repo): State<Arc<dyn ServerIpRepository>>,
-    Extension(pool): Extension<PgPool>,
+    Extension(ns): Extension<Arc<dyn ResourceNameService>>,
     Path(id): Path<Uuid>,
 ) -> impl IntoResponse {
     match repo.find_by_id(id).await {
         Ok(Some(ip)) => {
-            let briefs = resolve_servers(&pool, &[ip.clone()]).await;
+            let briefs = resolve_servers(&ns, &[ip.clone()]).await;
             let (sname, sstatus) = ip.server_id.as_ref()
                 .and_then(|sid| briefs.get(sid))
                 .cloned()
@@ -78,7 +78,7 @@ pub async fn get_server_ip(
 pub async fn list_server_ips(
     _auth: AuthUser,
     State(repo): State<Arc<dyn ServerIpRepository>>,
-    Extension(pool): Extension<PgPool>,
+    Extension(ns): Extension<Arc<dyn ResourceNameService>>,
     Query(query): Query<ListServerIpsQuery>,
 ) -> impl IntoResponse {
     let page = query.page.unwrap_or(1).max(1);
@@ -97,7 +97,7 @@ pub async fn list_server_ips(
     match repo.find_all(filter.clone()).await {
         Ok(ips) => {
             let count = repo.count(filter).await.unwrap_or(0);
-            let briefs = resolve_servers(&pool, &ips).await;
+            let briefs = resolve_servers(&ns, &ips).await;
             let data = ips.iter().map(|ip| {
                 let (sname, sstatus) = ip.server_id.as_ref()
                     .and_then(|sid| briefs.get(sid))

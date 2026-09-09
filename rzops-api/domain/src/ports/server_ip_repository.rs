@@ -17,10 +17,10 @@ pub struct ServerIpFilter {
 /// ServerIP repository port.
 #[async_trait]
 pub trait ServerIpRepository: Send + Sync {
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<ServerIP>, sqlx::Error>;
-    async fn find_all(&self, filter: ServerIpFilter) -> Result<Vec<ServerIP>, sqlx::Error>;
-    async fn count(&self, filter: ServerIpFilter) -> Result<i64, sqlx::Error>;
-    async fn create(&self, ip: &ServerIP) -> Result<ServerIP, sqlx::Error>;
-    async fn update(&self, id: Uuid, ip: &ServerIP) -> Result<Option<ServerIP>, sqlx::Error>;
-    async fn delete(&self, id: Uuid) -> Result<bool, sqlx::Error>;
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<ServerIP>, crate::errors::RepositoryError>;
+    async fn find_all(&self, filter: ServerIpFilter) -> Result<Vec<ServerIP>, crate::errors::RepositoryError>;
+    async fn count(&self, filter: ServerIpFilter) -> Result<i64, crate::errors::RepositoryError>;
+    async fn create(&self, ip: &ServerIP) -> Result<ServerIP, crate::errors::RepositoryError>;
+    async fn update(&self, id: Uuid, ip: &ServerIP) -> Result<Option<ServerIP>, crate::errors::RepositoryError>;
+    async fn delete(&self, id: Uuid) -> Result<bool, crate::errors::RepositoryError>;
 }

@@ -1,3 +1,5 @@
+use crate::db::IntoRepoResult;
+use rzops_domain::errors::RepositoryError;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use sqlx::{Pool, Postgres, Row};
@@ -49,13 +51,13 @@ fn row_to_server_port(row: &sqlx::postgres::PgRow) -> ServerPort {
 
 #[async_trait]
 impl ServerPortRepository for PgServerPortRepository {
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<ServerPort>, sqlx::Error> {
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<ServerPort>, RepositoryError> {
         let sql = format!(r#"{} WHERE p.id = $1"#, PORT_SELECT);
-        let row = sqlx::query(&sql).bind(id).fetch_optional(&self.pool).await?;
+        let row = sqlx::query(&sql).bind(id).fetch_optional(&self.pool).await.repo()?;
         Ok(row.map(|r| row_to_server_port(&r)))
     }
 
-    async fn find_all(&self, filter: ServerPortFilter) -> Result<Vec<ServerPort>, sqlx::Error> {
+    async fn find_all(&self, filter: ServerPortFilter) -> Result<Vec<ServerPort>, RepositoryError> {
         let mut sql = format!(r#"{} WHERE 1=1"#, PORT_SELECT);
 
         let mut string_binds: Vec<String> = Vec::new();
@@ -87,11 +89,11 @@ impl ServerPortRepository for PgServerPortRepository {
         let mut query = sqlx::query(&sql);
         for u in &uuid_binds { query = query.bind(u); }
         for s in &string_binds { query = query.bind(s); }
-        let rows = query.fetch_all(&self.pool).await?;
+        let rows = query.fetch_all(&self.pool).await.repo()?;
         Ok(rows.iter().map(|r| row_to_server_port(r)).collect())
     }
 
-    async fn count(&self, filter: ServerPortFilter) -> Result<i64, sqlx::Error> {
+    async fn count(&self, filter: ServerPortFilter) -> Result<i64, RepositoryError> {
         let mut sql = String::from("SELECT COUNT(*) as count FROM cmdb_server_port p WHERE 1=1");
 
         let mut string_binds: Vec<String> = Vec::new();
@@ -115,11 +117,11 @@ impl ServerPortRepository for PgServerPortRepository {
         let mut query = sqlx::query(&sql);
         for u in &uuid_binds { query = query.bind(u); }
         for s in &string_binds { query = query.bind(s); }
-        let row = query.fetch_one(&self.pool).await?;
+        let row = query.fetch_one(&self.pool).await.repo()?;
         Ok(row.get::<i64, _>("count"))
     }
 
-    async fn create(&self, port: &ServerPort) -> Result<ServerPort, sqlx::Error> {
+    async fn create(&self, port: &ServerPort) -> Result<ServerPort, RepositoryError> {
         sqlx::query(
             r#"INSERT INTO cmdb_server_port
                (id, server_id, protocol, port, service_name, access_scope,
@@ -137,15 +139,15 @@ impl ServerPortRepository for PgServerPortRepository {
         .bind(port.created_at)
         .bind(port.updated_at)
         .execute(&self.pool)
-        .await?;
+        .await.repo()?;
 
         match self.find_by_id(port.id).await? {
             Some(p) => Ok(p),
-            None => Err(sqlx::Error::RowNotFound),
+            None => Err(RepositoryError::NotFound("server port not found".into())),
         }
     }
 
-    async fn update(&self, id: Uuid, port: &ServerPort) -> Result<Option<ServerPort>, sqlx::Error> {
+    async fn update(&self, id: Uuid, port: &ServerPort) -> Result<Option<ServerPort>, RepositoryError> {
         let row = sqlx::query(
             r#"UPDATE cmdb_server_port SET
                 server_id = $2, protocol = $3, port = $4, service_name = $5,
@@ -162,7 +164,7 @@ impl ServerPortRepository for PgServerPortRepository {
         .bind(&port.description)
         .bind(port.updated_at)
         .execute(&self.pool)
-        .await?;
+        .await.repo()?;
 
         if row.rows_affected() == 0 {
             return Ok(None);
@@ -170,11 +172,11 @@ impl ServerPortRepository for PgServerPortRepository {
         Ok(self.find_by_id(id).await?)
     }
 
-    async fn delete(&self, id: Uuid) -> Result<bool, sqlx::Error> {
+    async fn delete(&self, id: Uuid) -> Result<bool, RepositoryError> {
         let result = sqlx::query("DELETE FROM cmdb_server_port WHERE id = $1")
             .bind(id)
             .execute(&self.pool)
-            .await?;
+            .await.repo()?;
         Ok(result.rows_affected() > 0)
     }
 }

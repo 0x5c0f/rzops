@@ -16,10 +16,10 @@ pub struct DataCenterFilter {
 /// DataCenter repository port — domain defines the interface, infra implements it.
 #[async_trait]
 pub trait DataCenterRepository: Send + Sync {
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<DataCenter>, sqlx::Error>;
-    async fn find_all(&self, filter: DataCenterFilter) -> Result<Vec<DataCenter>, sqlx::Error>;
-    async fn count(&self, filter: DataCenterFilter) -> Result<i64, sqlx::Error>;
-    async fn create(&self, datacenter: &DataCenter) -> Result<DataCenter, sqlx::Error>;
-    async fn update(&self, id: Uuid, datacenter: &DataCenter) -> Result<Option<DataCenter>, sqlx::Error>;
-    async fn delete(&self, id: Uuid) -> Result<bool, sqlx::Error>;
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<DataCenter>, crate::errors::RepositoryError>;
+    async fn find_all(&self, filter: DataCenterFilter) -> Result<Vec<DataCenter>, crate::errors::RepositoryError>;
+    async fn count(&self, filter: DataCenterFilter) -> Result<i64, crate::errors::RepositoryError>;
+    async fn create(&self, datacenter: &DataCenter) -> Result<DataCenter, crate::errors::RepositoryError>;
+    async fn update(&self, id: Uuid, datacenter: &DataCenter) -> Result<Option<DataCenter>, crate::errors::RepositoryError>;
+    async fn delete(&self, id: Uuid) -> Result<bool, crate::errors::RepositoryError>;
 }

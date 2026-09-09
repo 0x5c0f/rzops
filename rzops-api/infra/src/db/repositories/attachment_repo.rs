@@ -1,3 +1,5 @@
+use crate::db::IntoRepoResult;
+use rzops_domain::errors::RepositoryError;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use sqlx::{Pool, Postgres, Row};
@@ -17,10 +19,10 @@ const COLS: &str = "id, filename, target_type, target_id, storage_key, content_t
 
 #[async_trait]
 impl AttachmentRepository for PgAttachmentRepository {
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<Attachment>, sqlx::Error> {
-        Ok(sqlx::query(&format!("SELECT {} FROM cmdb_attachment WHERE id=$1", COLS)).bind(id).fetch_optional(&self.pool).await?.map(|r| row_to_entity(&r)))
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<Attachment>, RepositoryError> {
+        Ok(sqlx::query(&format!("SELECT {} FROM cmdb_attachment WHERE id=$1", COLS)).bind(id).fetch_optional(&self.pool).await.repo()?.map(|r| row_to_entity(&r)))
     }
-    async fn find_all(&self, f: AttachmentFilter) -> Result<Vec<Attachment>, sqlx::Error> {
+    async fn find_all(&self, f: AttachmentFilter) -> Result<Vec<Attachment>, RepositoryError> {
         let mut sql = format!("SELECT {} FROM cmdb_attachment WHERE 1=1", COLS);
         let mut string_binds: Vec<String> = Vec::new();
         let mut uuid_binds: Vec<Uuid> = Vec::new();
@@ -35,9 +37,9 @@ impl AttachmentRepository for PgAttachmentRepository {
         let mut query = sqlx::query(&sql);
         for s in &string_binds { query = query.bind(s); }
         for u in &uuid_binds { query = query.bind(u); }
-        Ok(query.fetch_all(&self.pool).await?.iter().map(|r| row_to_entity(r)).collect())
+        Ok(query.fetch_all(&self.pool).await.repo()?.iter().map(|r| row_to_entity(r)).collect())
     }
-    async fn count(&self, f: AttachmentFilter) -> Result<i64, sqlx::Error> {
+    async fn count(&self, f: AttachmentFilter) -> Result<i64, RepositoryError> {
         let mut sql = "SELECT COUNT(*) as count FROM cmdb_attachment WHERE 1=1".to_string();
         let mut string_binds: Vec<String> = Vec::new();
         let mut uuid_binds: Vec<Uuid> = Vec::new();
@@ -49,19 +51,19 @@ impl AttachmentRepository for PgAttachmentRepository {
         let mut query = sqlx::query(&sql);
         for s in &string_binds { query = query.bind(s); }
         for u in &uuid_binds { query = query.bind(u); }
-        Ok(query.fetch_one(&self.pool).await?.get::<i64, _>("count"))
+        Ok(query.fetch_one(&self.pool).await.repo()?.get::<i64, _>("count"))
     }
-    async fn create(&self, e: &Attachment) -> Result<Attachment, sqlx::Error> {
+    async fn create(&self, e: &Attachment) -> Result<Attachment, RepositoryError> {
         Ok(row_to_entity(&sqlx::query(&format!("INSERT INTO cmdb_attachment (id,filename,target_type,target_id,storage_key,content_type,size_bytes,uploaded_by_id,status,remarks,created_at,updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING {}", COLS))
             .bind(e.id).bind(&e.filename).bind(&e.target_type).bind(e.target_id).bind(&e.storage_key).bind(&e.content_type).bind(e.size_bytes).bind(e.uploaded_by_id).bind(e.status.clone()).bind(&e.remarks).bind(e.created_at).bind(e.updated_at)
-            .fetch_one(&self.pool).await?))
+            .fetch_one(&self.pool).await.repo()?))
     }
-    async fn update(&self, id: Uuid, e: &Attachment) -> Result<Option<Attachment>, sqlx::Error> {
+    async fn update(&self, id: Uuid, e: &Attachment) -> Result<Option<Attachment>, RepositoryError> {
         Ok(sqlx::query(&format!("UPDATE cmdb_attachment SET filename=$2,target_type=$3,target_id=$4,storage_key=$5,content_type=$6,size_bytes=$7,uploaded_by_id=$8,status=$9,remarks=$10,updated_at=$11 WHERE id=$1 RETURNING {}", COLS))
             .bind(id).bind(&e.filename).bind(&e.target_type).bind(e.target_id).bind(&e.storage_key).bind(&e.content_type).bind(e.size_bytes).bind(e.uploaded_by_id).bind(e.status.clone()).bind(&e.remarks).bind(e.updated_at)
-            .fetch_optional(&self.pool).await?.map(|r| row_to_entity(&r)))
+            .fetch_optional(&self.pool).await.repo()?.map(|r| row_to_entity(&r)))
     }
-    async fn delete(&self, id: Uuid) -> Result<bool, sqlx::Error> {
-        Ok(sqlx::query("DELETE FROM cmdb_attachment WHERE id=$1").bind(id).execute(&self.pool).await?.rows_affected() > 0)
+    async fn delete(&self, id: Uuid) -> Result<bool, RepositoryError> {
+        Ok(sqlx::query("DELETE FROM cmdb_attachment WHERE id=$1").bind(id).execute(&self.pool).await.repo()?.rows_affected() > 0)
     }
 }

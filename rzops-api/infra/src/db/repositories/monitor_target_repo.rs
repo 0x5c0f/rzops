@@ -1,3 +1,5 @@
+use crate::db::IntoRepoResult;
+use rzops_domain::errors::RepositoryError;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use sqlx::{Pool, Postgres, Row};
@@ -18,10 +20,10 @@ const COLS: &str = "id, name, target_type, target_id, monitor_type::text, endpoi
 
 #[async_trait]
 impl MonitorTargetRepository for PgMonitorTargetRepository {
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<MonitorTarget>, sqlx::Error> {
-        Ok(sqlx::query(&format!("SELECT {} FROM cmdb_monitor_target WHERE id=$1", COLS)).bind(id).fetch_optional(&self.pool).await?.map(|r| row_to_entity(&r)))
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<MonitorTarget>, RepositoryError> {
+        Ok(sqlx::query(&format!("SELECT {} FROM cmdb_monitor_target WHERE id=$1", COLS)).bind(id).fetch_optional(&self.pool).await.repo()?.map(|r| row_to_entity(&r)))
     }
-    async fn find_all(&self, f: MonitorTargetFilter) -> Result<Vec<MonitorTarget>, sqlx::Error> {
+    async fn find_all(&self, f: MonitorTargetFilter) -> Result<Vec<MonitorTarget>, RepositoryError> {
         let mut sql = format!("SELECT {} FROM cmdb_monitor_target WHERE 1=1", COLS);
         let mut idx = 1;
         let s_status = f.status.as_ref();
@@ -39,9 +41,9 @@ impl MonitorTargetRepository for PgMonitorTargetRepository {
         if let Some(t) = s_tt { query = query.bind(t); }
         if let Some(tid) = f.target_id { query = query.bind(tid); }
         if let Some(q) = s_q { query = query.bind(format!("%{}%", q)); }
-        Ok(query.fetch_all(&self.pool).await?.iter().map(|r| row_to_entity(r)).collect())
+        Ok(query.fetch_all(&self.pool).await.repo()?.iter().map(|r| row_to_entity(r)).collect())
     }
-    async fn count(&self, f: MonitorTargetFilter) -> Result<i64, sqlx::Error> {
+    async fn count(&self, f: MonitorTargetFilter) -> Result<i64, RepositoryError> {
         let mut sql = "SELECT COUNT(*) as count FROM cmdb_monitor_target WHERE 1=1".to_string();
         let mut idx = 1;
         let s_status = f.status.as_ref();
@@ -56,19 +58,19 @@ impl MonitorTargetRepository for PgMonitorTargetRepository {
         if let Some(t) = s_tt { query = query.bind(t); }
         if let Some(tid) = f.target_id { query = query.bind(tid); }
         if let Some(q) = s_q { query = query.bind(format!("%{}%", q)); }
-        Ok(query.fetch_one(&self.pool).await?.get::<i64, _>("count"))
+        Ok(query.fetch_one(&self.pool).await.repo()?.get::<i64, _>("count"))
     }
-    async fn create(&self, e: &MonitorTarget) -> Result<MonitorTarget, sqlx::Error> {
+    async fn create(&self, e: &MonitorTarget) -> Result<MonitorTarget, RepositoryError> {
         Ok(row_to_entity(&sqlx::query(&format!("INSERT INTO cmdb_monitor_target (id,name,target_type,target_id,monitor_type,endpoint,interval_seconds,status,remarks,created_at,updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING {}", COLS))
             .bind(e.id).bind(&e.name).bind(&e.target_type).bind(e.target_id).bind(e.monitor_type.clone()).bind(&e.endpoint).bind(e.interval_seconds).bind(e.status.clone()).bind(&e.remarks).bind(e.created_at).bind(e.updated_at)
-            .fetch_one(&self.pool).await?))
+            .fetch_one(&self.pool).await.repo()?))
     }
-    async fn update(&self, id: Uuid, e: &MonitorTarget) -> Result<Option<MonitorTarget>, sqlx::Error> {
+    async fn update(&self, id: Uuid, e: &MonitorTarget) -> Result<Option<MonitorTarget>, RepositoryError> {
         Ok(sqlx::query(&format!("UPDATE cmdb_monitor_target SET name=$2,target_type=$3,target_id=$4,monitor_type=$5,endpoint=$6,interval_seconds=$7,status=$8,remarks=$9,updated_at=$10 WHERE id=$1 RETURNING {}", COLS))
             .bind(id).bind(&e.name).bind(&e.target_type).bind(e.target_id).bind(e.monitor_type.clone()).bind(&e.endpoint).bind(e.interval_seconds).bind(e.status.clone()).bind(&e.remarks).bind(e.updated_at)
-            .fetch_optional(&self.pool).await?.map(|r| row_to_entity(&r)))
+            .fetch_optional(&self.pool).await.repo()?.map(|r| row_to_entity(&r)))
     }
-    async fn delete(&self, id: Uuid) -> Result<bool, sqlx::Error> {
-        Ok(sqlx::query("DELETE FROM cmdb_monitor_target WHERE id=$1").bind(id).execute(&self.pool).await?.rows_affected() > 0)
+    async fn delete(&self, id: Uuid) -> Result<bool, RepositoryError> {
+        Ok(sqlx::query("DELETE FROM cmdb_monitor_target WHERE id=$1").bind(id).execute(&self.pool).await.repo()?.rows_affected() > 0)
     }
 }

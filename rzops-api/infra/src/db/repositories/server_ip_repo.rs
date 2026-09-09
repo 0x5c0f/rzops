@@ -1,3 +1,5 @@
+use crate::db::IntoRepoResult;
+use rzops_domain::errors::RepositoryError;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use sqlx::{Pool, Postgres, Row};
@@ -37,7 +39,7 @@ fn row_to_server_ip(row: &sqlx::postgres::PgRow) -> ServerIP {
 
 #[async_trait]
 impl ServerIpRepository for PgServerIpRepository {
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<ServerIP>, sqlx::Error> {
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<ServerIP>, RepositoryError> {
         let row = sqlx::query(
             r#"SELECT id, server_id, ip_address, nic_name, ip_type, is_primary,
                       isp_provider_id, description, status::text, created_at, updated_at
@@ -45,11 +47,11 @@ impl ServerIpRepository for PgServerIpRepository {
         )
         .bind(id)
         .fetch_optional(&self.pool)
-        .await?;
+        .await.repo()?;
         Ok(row.map(|r| row_to_server_ip(&r)))
     }
 
-    async fn find_all(&self, filter: ServerIpFilter) -> Result<Vec<ServerIP>, sqlx::Error> {
+    async fn find_all(&self, filter: ServerIpFilter) -> Result<Vec<ServerIP>, RepositoryError> {
         let mut sql = String::from(
             r#"SELECT id, server_id, ip_address, nic_name, ip_type, is_primary,
                       isp_provider_id, description, status::text, created_at, updated_at
@@ -75,11 +77,11 @@ impl ServerIpRepository for PgServerIpRepository {
         let mut query = sqlx::query(&sql);
         for u in &uuid_binds { query = query.bind(u); }
         for s in &string_binds { query = query.bind(s); }
-        let rows = query.fetch_all(&self.pool).await?;
+        let rows = query.fetch_all(&self.pool).await.repo()?;
         Ok(rows.iter().map(|r| row_to_server_ip(r)).collect())
     }
 
-    async fn count(&self, filter: ServerIpFilter) -> Result<i64, sqlx::Error> {
+    async fn count(&self, filter: ServerIpFilter) -> Result<i64, RepositoryError> {
         let mut sql = String::from("SELECT COUNT(*) as count FROM cmdb_server_ip WHERE 1=1");
 
         let mut string_binds: Vec<String> = Vec::new();
@@ -93,11 +95,11 @@ impl ServerIpRepository for PgServerIpRepository {
         let mut query = sqlx::query(&sql);
         for u in &uuid_binds { query = query.bind(u); }
         for s in &string_binds { query = query.bind(s); }
-        let row = query.fetch_one(&self.pool).await?;
+        let row = query.fetch_one(&self.pool).await.repo()?;
         Ok(row.get::<i64, _>("count"))
     }
 
-    async fn create(&self, ip: &ServerIP) -> Result<ServerIP, sqlx::Error> {
+    async fn create(&self, ip: &ServerIP) -> Result<ServerIP, RepositoryError> {
         let row = sqlx::query(
             r#"INSERT INTO cmdb_server_ip
                (id, server_id, ip_address, nic_name, ip_type, is_primary, isp_provider_id,
@@ -118,11 +120,11 @@ impl ServerIpRepository for PgServerIpRepository {
         .bind(ip.created_at)
         .bind(ip.updated_at)
         .fetch_one(&self.pool)
-        .await?;
+        .await.repo()?;
         Ok(row_to_server_ip(&row))
     }
 
-    async fn update(&self, id: Uuid, ip: &ServerIP) -> Result<Option<ServerIP>, sqlx::Error> {
+    async fn update(&self, id: Uuid, ip: &ServerIP) -> Result<Option<ServerIP>, RepositoryError> {
         let row = sqlx::query(
             r#"UPDATE cmdb_server_ip SET
                 ip_address = $2, nic_name = $3, ip_type = $4, is_primary = $5, isp_provider_id = $6,
@@ -141,15 +143,15 @@ impl ServerIpRepository for PgServerIpRepository {
         .bind(ip.status.clone())
         .bind(ip.updated_at)
         .fetch_optional(&self.pool)
-        .await?;
+        .await.repo()?;
         Ok(row.map(|r| row_to_server_ip(&r)))
     }
 
-    async fn delete(&self, id: Uuid) -> Result<bool, sqlx::Error> {
+    async fn delete(&self, id: Uuid) -> Result<bool, RepositoryError> {
         let result = sqlx::query("DELETE FROM cmdb_server_ip WHERE id = $1")
             .bind(id)
             .execute(&self.pool)
-            .await?;
+            .await.repo()?;
         Ok(result.rows_affected() > 0)
     }
 }

@@ -1,3 +1,5 @@
+use crate::db::IntoRepoResult;
+use rzops_domain::errors::RepositoryError;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use sqlx::{Pool, Postgres, Row};
@@ -34,15 +36,15 @@ fn row_to_tpl(row: &sqlx::postgres::PgRow) -> ServerPortTemplate {
 
 #[async_trait]
 impl ServerPortTemplateRepository for PgServerPortTemplateRepository {
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<ServerPortTemplate>, sqlx::Error> {
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<ServerPortTemplate>, RepositoryError> {
         let row = sqlx::query("SELECT * FROM cmdb_server_port_template WHERE id = $1")
             .bind(id)
             .fetch_optional(&self.pool)
-            .await?;
+            .await.repo()?;
         Ok(row.map(|r| row_to_tpl(&r)))
     }
 
-    async fn find_all(&self, filter: ServerPortTemplateFilter) -> Result<Vec<ServerPortTemplate>, sqlx::Error> {
+    async fn find_all(&self, filter: ServerPortTemplateFilter) -> Result<Vec<ServerPortTemplate>, RepositoryError> {
         let mut sql = String::from("SELECT * FROM cmdb_server_port_template WHERE 1=1");
         let mut binds: Vec<String> = Vec::new();
         let mut idx = 1;
@@ -59,11 +61,11 @@ impl ServerPortTemplateRepository for PgServerPortTemplateRepository {
         }
         let mut query = sqlx::query(&sql);
         for b in &binds { query = query.bind(b); }
-        let rows = query.fetch_all(&self.pool).await?;
+        let rows = query.fetch_all(&self.pool).await.repo()?;
         Ok(rows.iter().map(|r| row_to_tpl(r)).collect())
     }
 
-    async fn count(&self, filter: ServerPortTemplateFilter) -> Result<i64, sqlx::Error> {
+    async fn count(&self, filter: ServerPortTemplateFilter) -> Result<i64, RepositoryError> {
         let mut sql = String::from("SELECT COUNT(*) as count FROM cmdb_server_port_template WHERE 1=1");
         let mut binds: Vec<String> = Vec::new();
         let mut idx = 1;
@@ -73,11 +75,11 @@ impl ServerPortTemplateRepository for PgServerPortTemplateRepository {
         }
         let mut query = sqlx::query(&sql);
         for b in &binds { query = query.bind(b); }
-        let row = query.fetch_one(&self.pool).await?;
+        let row = query.fetch_one(&self.pool).await.repo()?;
         Ok(row.get::<i64, _>("count"))
     }
 
-    async fn create(&self, tpl: &ServerPortTemplate) -> Result<ServerPortTemplate, sqlx::Error> {
+    async fn create(&self, tpl: &ServerPortTemplate) -> Result<ServerPortTemplate, RepositoryError> {
         sqlx::query(
             r#"INSERT INTO cmdb_server_port_template
                (id, name, protocol, port, service_name, access_scope,
@@ -95,11 +97,11 @@ impl ServerPortTemplateRepository for PgServerPortTemplateRepository {
         .bind(tpl.created_at)
         .bind(tpl.updated_at)
         .execute(&self.pool)
-        .await?;
+        .await.repo()?;
         Ok(tpl.clone())
     }
 
-    async fn update(&self, id: Uuid, tpl: &ServerPortTemplate) -> Result<Option<ServerPortTemplate>, sqlx::Error> {
+    async fn update(&self, id: Uuid, tpl: &ServerPortTemplate) -> Result<Option<ServerPortTemplate>, RepositoryError> {
         let row = sqlx::query(
             r#"UPDATE cmdb_server_port_template SET
                 name = $2, protocol = $3, port = $4, service_name = $5,
@@ -116,18 +118,18 @@ impl ServerPortTemplateRepository for PgServerPortTemplateRepository {
         .bind(&tpl.description)
         .bind(tpl.updated_at)
         .execute(&self.pool)
-        .await?;
+        .await.repo()?;
         if row.rows_affected() == 0 {
             return Ok(None);
         }
         Ok(self.find_by_id(id).await?)
     }
 
-    async fn delete(&self, id: Uuid) -> Result<bool, sqlx::Error> {
+    async fn delete(&self, id: Uuid) -> Result<bool, RepositoryError> {
         let result = sqlx::query("DELETE FROM cmdb_server_port_template WHERE id = $1")
             .bind(id)
             .execute(&self.pool)
-            .await?;
+            .await.repo()?;
         Ok(result.rows_affected() > 0)
     }
 }

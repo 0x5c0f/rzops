@@ -18,10 +18,10 @@ pub struct DatabaseInstanceFilter {
 /// DatabaseInstance repository port.
 #[async_trait]
 pub trait DatabaseInstanceRepository: Send + Sync {
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<DatabaseInstance>, sqlx::Error>;
-    async fn find_all(&self, filter: DatabaseInstanceFilter) -> Result<Vec<DatabaseInstance>, sqlx::Error>;
-    async fn count(&self, filter: DatabaseInstanceFilter) -> Result<i64, sqlx::Error>;
-    async fn create(&self, db: &DatabaseInstance) -> Result<DatabaseInstance, sqlx::Error>;
-    async fn update(&self, id: Uuid, db: &DatabaseInstance) -> Result<Option<DatabaseInstance>, sqlx::Error>;
-    async fn delete(&self, id: Uuid) -> Result<bool, sqlx::Error>;
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<DatabaseInstance>, crate::errors::RepositoryError>;
+    async fn find_all(&self, filter: DatabaseInstanceFilter) -> Result<Vec<DatabaseInstance>, crate::errors::RepositoryError>;
+    async fn count(&self, filter: DatabaseInstanceFilter) -> Result<i64, crate::errors::RepositoryError>;
+    async fn create(&self, db: &DatabaseInstance) -> Result<DatabaseInstance, crate::errors::RepositoryError>;
+    async fn update(&self, id: Uuid, db: &DatabaseInstance) -> Result<Option<DatabaseInstance>, crate::errors::RepositoryError>;
+    async fn delete(&self, id: Uuid) -> Result<bool, crate::errors::RepositoryError>;
 }

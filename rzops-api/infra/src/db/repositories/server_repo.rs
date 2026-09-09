@@ -1,3 +1,5 @@
+use crate::db::IntoRepoResult;
+use rzops_domain::errors::RepositoryError;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
@@ -101,19 +103,19 @@ const SELECT_COLS: &str = r#"id, asset_code, name, primary_ip, location,
 
 #[async_trait]
 impl ServerRepository for PgServerRepository {
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<Server>, sqlx::Error> {
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<Server>, RepositoryError> {
         let row = sqlx::query(&format!(
             "SELECT {} FROM cmdb_server WHERE id = $1 AND deleted_at IS NULL",
             SELECT_COLS
         ))
         .bind(id)
         .fetch_optional(&self.pool)
-        .await?;
+        .await.repo()?;
 
         Ok(row.map(|r| row_to_server(&r)))
     }
 
-    async fn find_all(&self, filter: ServerFilter) -> Result<Vec<Server>, sqlx::Error> {
+    async fn find_all(&self, filter: ServerFilter) -> Result<Vec<Server>, RepositoryError> {
         let mut sql = format!("SELECT {} FROM cmdb_server WHERE deleted_at IS NULL", SELECT_COLS);
         let mut idx = 1;
 
@@ -150,11 +152,11 @@ impl ServerRepository for PgServerRepository {
         if let Some(is_db) = is_db_val { query = query.bind(is_db); }
         if let Some(q) = q_val { query = query.bind(format!("%{}%", q)); }
 
-        let rows = query.fetch_all(&self.pool).await?;
+        let rows = query.fetch_all(&self.pool).await.repo()?;
         Ok(rows.iter().map(|r| row_to_server(r)).collect())
     }
 
-    async fn count(&self, filter: ServerFilter) -> Result<i64, sqlx::Error> {
+    async fn count(&self, filter: ServerFilter) -> Result<i64, RepositoryError> {
         let mut sql = String::from("SELECT COUNT(*) as count FROM cmdb_server WHERE deleted_at IS NULL");
         let mut idx = 1;
 
@@ -182,11 +184,11 @@ impl ServerRepository for PgServerRepository {
         if let Some(is_db) = is_db_val { query = query.bind(is_db); }
         if let Some(q) = q_val { query = query.bind(format!("%{}%", q)); }
 
-        let row = query.fetch_one(&self.pool).await?;
+        let row = query.fetch_one(&self.pool).await.repo()?;
         Ok(row.get::<i64, _>("count"))
     }
 
-    async fn create(&self, server: &Server) -> Result<Server, sqlx::Error> {
+    async fn create(&self, server: &Server) -> Result<Server, RepositoryError> {
         let row = sqlx::query(&format!(
             r#"INSERT INTO cmdb_server
                (id, asset_code, name, primary_ip, location, isp_provider_id, data_center_id,
@@ -238,12 +240,12 @@ impl ServerRepository for PgServerRepository {
         .bind(server.created_at)
         .bind(server.updated_at)
         .fetch_one(&self.pool)
-        .await?;
+        .await.repo()?;
 
         Ok(row_to_server(&row))
     }
 
-    async fn update(&self, id: Uuid, server: &Server) -> Result<Option<Server>, sqlx::Error> {
+    async fn update(&self, id: Uuid, server: &Server) -> Result<Option<Server>, RepositoryError> {
         let row = sqlx::query(&format!(
             r#"UPDATE cmdb_server SET
                 asset_code = $2, name = $3, primary_ip = $4, location = $5,
@@ -297,16 +299,16 @@ impl ServerRepository for PgServerRepository {
         .bind(&server.remarks)
         .bind(server.updated_at)
         .fetch_optional(&self.pool)
-        .await?;
+        .await.repo()?;
 
         Ok(row.map(|r| row_to_server(&r)))
     }
 
-    async fn delete(&self, id: Uuid) -> Result<bool, sqlx::Error> {
+    async fn delete(&self, id: Uuid) -> Result<bool, RepositoryError> {
         let result = sqlx::query("UPDATE cmdb_server SET deleted_at = now() WHERE id = $1 AND deleted_at IS NULL")
             .bind(id)
             .execute(&self.pool)
-            .await?;
+            .await.repo()?;
 
         Ok(result.rows_affected() > 0)
     }
@@ -314,7 +316,7 @@ impl ServerRepository for PgServerRepository {
 
 impl PgServerRepository {
     /// Helper for find_all when data_center_id filter is present (mixed bind types).
-    async fn find_all_with_uuid_filter(&self, filter: ServerFilter) -> Result<Vec<Server>, sqlx::Error> {
+    async fn find_all_with_uuid_filter(&self, filter: ServerFilter) -> Result<Vec<Server>, RepositoryError> {
         let mut sql = format!("SELECT {} FROM cmdb_server WHERE deleted_at IS NULL", SELECT_COLS);
         let mut idx = 1;
 
@@ -351,7 +353,7 @@ impl PgServerRepository {
         if let Some(is_db) = is_db_val { query = query.bind(is_db); }
         if let Some(q) = q_val { query = query.bind(format!("%{}%", q)); }
 
-        let rows = query.fetch_all(&self.pool).await?;
+        let rows = query.fetch_all(&self.pool).await.repo()?;
         Ok(rows.iter().map(|r| row_to_server(r)).collect())
     }
 }

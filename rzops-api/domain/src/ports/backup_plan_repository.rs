@@ -14,10 +14,10 @@ pub struct BackupPlanFilter {
 
 #[async_trait]
 pub trait BackupPlanRepository: Send + Sync {
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<BackupPlan>, sqlx::Error>;
-    async fn find_all(&self, filter: BackupPlanFilter) -> Result<Vec<BackupPlan>, sqlx::Error>;
-    async fn count(&self, filter: BackupPlanFilter) -> Result<i64, sqlx::Error>;
-    async fn create(&self, item: &BackupPlan) -> Result<BackupPlan, sqlx::Error>;
-    async fn update(&self, id: Uuid, item: &BackupPlan) -> Result<Option<BackupPlan>, sqlx::Error>;
-    async fn delete(&self, id: Uuid) -> Result<bool, sqlx::Error>;
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<BackupPlan>, crate::errors::RepositoryError>;
+    async fn find_all(&self, filter: BackupPlanFilter) -> Result<Vec<BackupPlan>, crate::errors::RepositoryError>;
+    async fn count(&self, filter: BackupPlanFilter) -> Result<i64, crate::errors::RepositoryError>;
+    async fn create(&self, item: &BackupPlan) -> Result<BackupPlan, crate::errors::RepositoryError>;
+    async fn update(&self, id: Uuid, item: &BackupPlan) -> Result<Option<BackupPlan>, crate::errors::RepositoryError>;
+    async fn delete(&self, id: Uuid) -> Result<bool, crate::errors::RepositoryError>;
 }

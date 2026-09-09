@@ -17,8 +17,8 @@ pub struct AuditLogFilter {
 /// AuditLog is system-generated — only read operations are exposed.
 #[async_trait]
 pub trait AuditLogRepository: Send + Sync {
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<AuditLog>, sqlx::Error>;
-    async fn find_all(&self, filter: AuditLogFilter) -> Result<Vec<AuditLog>, sqlx::Error>;
-    async fn count(&self, filter: AuditLogFilter) -> Result<i64, sqlx::Error>;
-    async fn create(&self, item: &AuditLog) -> Result<AuditLog, sqlx::Error>;
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<AuditLog>, crate::errors::RepositoryError>;
+    async fn find_all(&self, filter: AuditLogFilter) -> Result<Vec<AuditLog>, crate::errors::RepositoryError>;
+    async fn count(&self, filter: AuditLogFilter) -> Result<i64, crate::errors::RepositoryError>;
+    async fn create(&self, item: &AuditLog) -> Result<AuditLog, crate::errors::RepositoryError>;
 }

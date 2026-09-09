@@ -1,3 +1,5 @@
+use crate::db::IntoRepoResult;
+use rzops_domain::errors::RepositoryError;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use sqlx::{Pool, Postgres, Row};
@@ -52,13 +54,13 @@ const SELECT_COLS: &str = r#"id, server_id, name, db_type::text, description, st
 
 #[async_trait]
 impl DatabaseInstanceRepository for PgDatabaseInstanceRepository {
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<DatabaseInstance>, sqlx::Error> {
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<DatabaseInstance>, RepositoryError> {
         let row = sqlx::query(&format!("SELECT {} FROM cmdb_database_instance WHERE id = $1 AND deleted_at IS NULL", SELECT_COLS))
-            .bind(id).fetch_optional(&self.pool).await?;
+            .bind(id).fetch_optional(&self.pool).await.repo()?;
         Ok(row.map(|r| row_to_database_instance(&r)))
     }
 
-    async fn find_all(&self, filter: DatabaseInstanceFilter) -> Result<Vec<DatabaseInstance>, sqlx::Error> {
+    async fn find_all(&self, filter: DatabaseInstanceFilter) -> Result<Vec<DatabaseInstance>, RepositoryError> {
         let mut sql = format!("SELECT {} FROM cmdb_database_instance WHERE deleted_at IS NULL", SELECT_COLS);
         let mut string_binds: Vec<String> = Vec::new();
         let mut uuid_binds: Vec<Uuid> = Vec::new();
@@ -74,11 +76,11 @@ impl DatabaseInstanceRepository for PgDatabaseInstanceRepository {
         let mut query = sqlx::query(&sql);
         for s in &string_binds { query = query.bind(s); }
         for u in &uuid_binds { query = query.bind(u); }
-        let rows = query.fetch_all(&self.pool).await?;
+        let rows = query.fetch_all(&self.pool).await.repo()?;
         Ok(rows.iter().map(|r| row_to_database_instance(r)).collect())
     }
 
-    async fn count(&self, filter: DatabaseInstanceFilter) -> Result<i64, sqlx::Error> {
+    async fn count(&self, filter: DatabaseInstanceFilter) -> Result<i64, RepositoryError> {
         let mut sql = String::from("SELECT COUNT(*) as count FROM cmdb_database_instance WHERE deleted_at IS NULL");
         let mut string_binds: Vec<String> = Vec::new();
         let mut uuid_binds: Vec<Uuid> = Vec::new();
@@ -91,11 +93,11 @@ impl DatabaseInstanceRepository for PgDatabaseInstanceRepository {
         let mut query = sqlx::query(&sql);
         for s in &string_binds { query = query.bind(s); }
         for u in &uuid_binds { query = query.bind(u); }
-        let row = query.fetch_one(&self.pool).await?;
+        let row = query.fetch_one(&self.pool).await.repo()?;
         Ok(row.get::<i64, _>("count"))
     }
 
-    async fn create(&self, db: &DatabaseInstance) -> Result<DatabaseInstance, sqlx::Error> {
+    async fn create(&self, db: &DatabaseInstance) -> Result<DatabaseInstance, RepositoryError> {
         let row = sqlx::query(&format!(
             r#"INSERT INTO cmdb_database_instance
                (id, server_id, name, db_type, description, status, environment, offline_time,
@@ -109,11 +111,11 @@ impl DatabaseInstanceRepository for PgDatabaseInstanceRepository {
         .bind(db.is_self_installed).bind(db.importance.clone())
         .bind(db.is_ops_managed).bind(db.port).bind(&db.instance_name)
         .bind(db.created_at).bind(db.updated_at)
-        .fetch_one(&self.pool).await?;
+        .fetch_one(&self.pool).await.repo()?;
         Ok(row_to_database_instance(&row))
     }
 
-    async fn update(&self, id: Uuid, db: &DatabaseInstance) -> Result<Option<DatabaseInstance>, sqlx::Error> {
+    async fn update(&self, id: Uuid, db: &DatabaseInstance) -> Result<Option<DatabaseInstance>, RepositoryError> {
         let row = sqlx::query(&format!(
             r#"UPDATE cmdb_database_instance SET
                 server_id=$2, name=$3, db_type=$4, description=$5, status=$6, environment=$7,
@@ -125,12 +127,12 @@ impl DatabaseInstanceRepository for PgDatabaseInstanceRepository {
         .bind(&db.description).bind(db.status.clone()).bind(&db.environment).bind(db.offline_time)
         .bind(db.is_self_installed).bind(db.importance.clone())
         .bind(db.is_ops_managed).bind(db.port).bind(&db.instance_name).bind(db.updated_at)
-        .fetch_optional(&self.pool).await?;
+        .fetch_optional(&self.pool).await.repo()?;
         Ok(row.map(|r| row_to_database_instance(&r)))
     }
 
-    async fn delete(&self, id: Uuid) -> Result<bool, sqlx::Error> {
-        let result = sqlx::query("UPDATE cmdb_database_instance SET deleted_at = now() WHERE id = $1 AND deleted_at IS NULL").bind(id).execute(&self.pool).await?;
+    async fn delete(&self, id: Uuid) -> Result<bool, RepositoryError> {
+        let result = sqlx::query("UPDATE cmdb_database_instance SET deleted_at = now() WHERE id = $1 AND deleted_at IS NULL").bind(id).execute(&self.pool).await.repo()?;
         Ok(result.rows_affected() > 0)
     }
 }

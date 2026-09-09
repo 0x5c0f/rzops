@@ -1706,7 +1706,6 @@ dependencies = [
  "rzops-domain",
  "serde",
  "serde_json",
- "sqlx",
  "thiserror",
  "tokio",
  "tracing",
@@ -1719,17 +1718,13 @@ name = "rzops-app"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "bcrypt",
- "chrono",
  "dotenvy",
  "rzops-common",
  "rzops-config",
  "rzops-server",
- "sqlx",
  "tokio",
  "tracing",
  "tracing-subscriber",
- "uuid",
 ]
 
 [[package]]
@@ -1761,7 +1756,6 @@ dependencies = [
  "rzops-common",
  "serde",
  "serde_json",
- "sqlx",
  "thiserror",
  "uuid",
 ]
@@ -1791,6 +1785,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "axum",
+ "bcrypt",
  "chrono",
  "rzops-api",
  "rzops-common",

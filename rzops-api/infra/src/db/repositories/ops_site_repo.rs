@@ -1,3 +1,5 @@
+use crate::db::IntoRepoResult;
+use rzops_domain::errors::RepositoryError;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use sqlx::{Pool, Postgres, Row};
@@ -50,13 +52,13 @@ const SELECT_COLS: &str = r#"id, name, url, service_target, importance, online_t
 
 #[async_trait]
 impl OpsSiteRepository for PgOpsSiteRepository {
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<OpsSite>, sqlx::Error> {
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<OpsSite>, RepositoryError> {
         let row = sqlx::query(&format!("SELECT {} FROM cmdb_ops_site WHERE id = $1 AND deleted_at IS NULL", SELECT_COLS))
-            .bind(id).fetch_optional(&self.pool).await?;
+            .bind(id).fetch_optional(&self.pool).await.repo()?;
         Ok(row.map(|r| row_to_ops_site(&r)))
     }
 
-    async fn find_all(&self, filter: OpsSiteFilter) -> Result<Vec<OpsSite>, sqlx::Error> {
+    async fn find_all(&self, filter: OpsSiteFilter) -> Result<Vec<OpsSite>, RepositoryError> {
         let mut sql = format!("SELECT {} FROM cmdb_ops_site WHERE deleted_at IS NULL", SELECT_COLS);
         let mut idx = 1;
         let s_status = filter.status.as_ref();
@@ -78,11 +80,11 @@ impl OpsSiteRepository for PgOpsSiteRepository {
         if let Some(i) = s_imp { query = query.bind(i); }
         if let Some(srv) = s_server { query = query.bind(srv); }
         if let Some(q) = s_q { query = query.bind(format!("%{}%", q)); }
-        let rows = query.fetch_all(&self.pool).await?;
+        let rows = query.fetch_all(&self.pool).await.repo()?;
         Ok(rows.iter().map(|r| row_to_ops_site(r)).collect())
     }
 
-    async fn count(&self, filter: OpsSiteFilter) -> Result<i64, sqlx::Error> {
+    async fn count(&self, filter: OpsSiteFilter) -> Result<i64, RepositoryError> {
         let mut sql = String::from("SELECT COUNT(*) as count FROM cmdb_ops_site WHERE deleted_at IS NULL");
         let mut idx = 1;
         let s_status = filter.status.as_ref();
@@ -101,11 +103,11 @@ impl OpsSiteRepository for PgOpsSiteRepository {
         if let Some(i) = s_imp { query = query.bind(i); }
         if let Some(srv) = s_server { query = query.bind(srv); }
         if let Some(q) = s_q { query = query.bind(format!("%{}%", q)); }
-        let row = query.fetch_one(&self.pool).await?;
+        let row = query.fetch_one(&self.pool).await.repo()?;
         Ok(row.get::<i64, _>("count"))
     }
 
-    async fn create(&self, s: &OpsSite) -> Result<OpsSite, sqlx::Error> {
+    async fn create(&self, s: &OpsSite) -> Result<OpsSite, RepositoryError> {
         let row = sqlx::query(&format!(
             r#"INSERT INTO cmdb_ops_site
                (id, name, url, service_target, importance, online_time, code_repo_type,
@@ -128,11 +130,11 @@ impl OpsSiteRepository for PgOpsSiteRepository {
         .bind(&s.environment)
         .bind(s.offline_time).bind(&s.offline_reason).bind(&s.function_summary).bind(&s.remarks)
         .bind(s.created_at).bind(s.updated_at)
-        .fetch_one(&self.pool).await?;
+        .fetch_one(&self.pool).await.repo()?;
         Ok(row_to_ops_site(&row))
     }
 
-    async fn update(&self, id: Uuid, s: &OpsSite) -> Result<Option<OpsSite>, sqlx::Error> {
+    async fn update(&self, id: Uuid, s: &OpsSite) -> Result<Option<OpsSite>, RepositoryError> {
         let row = sqlx::query(&format!(
             r#"UPDATE cmdb_ops_site SET
                 name=$2, url=$3, service_target=$4, importance=$5, online_time=$6,
@@ -154,13 +156,13 @@ impl OpsSiteRepository for PgOpsSiteRepository {
         .bind(s.status.clone())
         .bind(&s.environment)
         .bind(s.offline_time).bind(&s.offline_reason).bind(&s.function_summary).bind(&s.remarks)
-        .fetch_optional(&self.pool).await?;
+        .fetch_optional(&self.pool).await.repo()?;
         Ok(row.map(|r| row_to_ops_site(&r)))
     }
 
-    async fn delete(&self, id: Uuid) -> Result<bool, sqlx::Error> {
+    async fn delete(&self, id: Uuid) -> Result<bool, RepositoryError> {
         let result = sqlx::query("UPDATE cmdb_ops_site SET deleted_at = now() WHERE id = $1 AND deleted_at IS NULL")
-            .bind(id).execute(&self.pool).await?;
+            .bind(id).execute(&self.pool).await.repo()?;
         Ok(result.rows_affected() > 0)
     }
 }

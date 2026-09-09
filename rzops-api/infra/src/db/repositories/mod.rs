@@ -19,6 +19,8 @@ pub mod audit_log_repo;
 pub mod change_record_repo;
 pub mod site_relation_repo;
 pub mod dict_repo;
+pub mod resource_name_service;
+pub mod recycle_repo;
 
 pub use user_repo::PgUserRepository;
 pub use role_repo::PgRoleRepository;
@@ -41,3 +43,5 @@ pub use audit_log_repo::PgAuditLogRepository;
 pub use change_record_repo::PgChangeRecordRepository;
 pub use site_relation_repo::PgSiteRelationRepository;
 pub use dict_repo::PgDictRepository;
+pub use resource_name_service::PgResourceNameService;
+pub use recycle_repo::PgRecycleRepository;

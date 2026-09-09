@@ -18,10 +18,10 @@ pub struct OpsSiteFilter {
 /// OpsSite repository port.
 #[async_trait]
 pub trait OpsSiteRepository: Send + Sync {
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<OpsSite>, sqlx::Error>;
-    async fn find_all(&self, filter: OpsSiteFilter) -> Result<Vec<OpsSite>, sqlx::Error>;
-    async fn count(&self, filter: OpsSiteFilter) -> Result<i64, sqlx::Error>;
-    async fn create(&self, site: &OpsSite) -> Result<OpsSite, sqlx::Error>;
-    async fn update(&self, id: Uuid, site: &OpsSite) -> Result<Option<OpsSite>, sqlx::Error>;
-    async fn delete(&self, id: Uuid) -> Result<bool, sqlx::Error>;
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<OpsSite>, crate::errors::RepositoryError>;
+    async fn find_all(&self, filter: OpsSiteFilter) -> Result<Vec<OpsSite>, crate::errors::RepositoryError>;
+    async fn count(&self, filter: OpsSiteFilter) -> Result<i64, crate::errors::RepositoryError>;
+    async fn create(&self, site: &OpsSite) -> Result<OpsSite, crate::errors::RepositoryError>;
+    async fn update(&self, id: Uuid, site: &OpsSite) -> Result<Option<OpsSite>, crate::errors::RepositoryError>;
+    async fn delete(&self, id: Uuid) -> Result<bool, crate::errors::RepositoryError>;
 }

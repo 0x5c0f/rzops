@@ -1,3 +1,5 @@
+use crate::db::IntoRepoResult;
+use rzops_domain::errors::RepositoryError;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use sqlx::{Pool, Postgres, Row};
@@ -17,10 +19,10 @@ const COLS: &str = "id, name, target_type, target_id, schedule, retention_days, 
 
 #[async_trait]
 impl BackupPlanRepository for PgBackupPlanRepository {
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<BackupPlan>, sqlx::Error> {
-        Ok(sqlx::query(&format!("SELECT {} FROM cmdb_backup_plan WHERE id=$1", COLS)).bind(id).fetch_optional(&self.pool).await?.map(|r| row_to_entity(&r)))
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<BackupPlan>, RepositoryError> {
+        Ok(sqlx::query(&format!("SELECT {} FROM cmdb_backup_plan WHERE id=$1", COLS)).bind(id).fetch_optional(&self.pool).await.repo()?.map(|r| row_to_entity(&r)))
     }
-    async fn find_all(&self, f: BackupPlanFilter) -> Result<Vec<BackupPlan>, sqlx::Error> {
+    async fn find_all(&self, f: BackupPlanFilter) -> Result<Vec<BackupPlan>, RepositoryError> {
         let mut sql = format!("SELECT {} FROM cmdb_backup_plan WHERE 1=1", COLS);
         let mut idx = 1;
         let s_status = f.status.as_ref();
@@ -38,9 +40,9 @@ impl BackupPlanRepository for PgBackupPlanRepository {
         if let Some(t) = s_tt { query = query.bind(t); }
         if let Some(tid) = f.target_id { query = query.bind(tid); }
         if let Some(q) = s_q { query = query.bind(format!("%{}%", q)); }
-        Ok(query.fetch_all(&self.pool).await?.iter().map(|r| row_to_entity(r)).collect())
+        Ok(query.fetch_all(&self.pool).await.repo()?.iter().map(|r| row_to_entity(r)).collect())
     }
-    async fn count(&self, f: BackupPlanFilter) -> Result<i64, sqlx::Error> {
+    async fn count(&self, f: BackupPlanFilter) -> Result<i64, RepositoryError> {
         let mut sql = "SELECT COUNT(*) as count FROM cmdb_backup_plan WHERE 1=1".to_string();
         let mut idx = 1;
         let s_status = f.status.as_ref();
@@ -55,19 +57,19 @@ impl BackupPlanRepository for PgBackupPlanRepository {
         if let Some(t) = s_tt { query = query.bind(t); }
         if let Some(tid) = f.target_id { query = query.bind(tid); }
         if let Some(q) = s_q { query = query.bind(format!("%{}%", q)); }
-        Ok(query.fetch_one(&self.pool).await?.get::<i64, _>("count"))
+        Ok(query.fetch_one(&self.pool).await.repo()?.get::<i64, _>("count"))
     }
-    async fn create(&self, e: &BackupPlan) -> Result<BackupPlan, sqlx::Error> {
+    async fn create(&self, e: &BackupPlan) -> Result<BackupPlan, RepositoryError> {
         Ok(row_to_entity(&sqlx::query(&format!("INSERT INTO cmdb_backup_plan (id,name,target_type,target_id,schedule,retention_days,status,remarks,created_at,updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING {}", COLS))
             .bind(e.id).bind(&e.name).bind(&e.target_type).bind(e.target_id).bind(&e.schedule).bind(e.retention_days).bind(e.status.clone()).bind(&e.remarks).bind(e.created_at).bind(e.updated_at)
-            .fetch_one(&self.pool).await?))
+            .fetch_one(&self.pool).await.repo()?))
     }
-    async fn update(&self, id: Uuid, e: &BackupPlan) -> Result<Option<BackupPlan>, sqlx::Error> {
+    async fn update(&self, id: Uuid, e: &BackupPlan) -> Result<Option<BackupPlan>, RepositoryError> {
         Ok(sqlx::query(&format!("UPDATE cmdb_backup_plan SET name=$2,target_type=$3,target_id=$4,schedule=$5,retention_days=$6,status=$7,remarks=$8,updated_at=$9 WHERE id=$1 RETURNING {}", COLS))
             .bind(id).bind(&e.name).bind(&e.target_type).bind(e.target_id).bind(&e.schedule).bind(e.retention_days).bind(e.status.clone()).bind(&e.remarks).bind(e.updated_at)
-            .fetch_optional(&self.pool).await?.map(|r| row_to_entity(&r)))
+            .fetch_optional(&self.pool).await.repo()?.map(|r| row_to_entity(&r)))
     }
-    async fn delete(&self, id: Uuid) -> Result<bool, sqlx::Error> {
-        Ok(sqlx::query("DELETE FROM cmdb_backup_plan WHERE id=$1").bind(id).execute(&self.pool).await?.rows_affected() > 0)
+    async fn delete(&self, id: Uuid) -> Result<bool, RepositoryError> {
+        Ok(sqlx::query("DELETE FROM cmdb_backup_plan WHERE id=$1").bind(id).execute(&self.pool).await.repo()?.rows_affected() > 0)
     }
 }

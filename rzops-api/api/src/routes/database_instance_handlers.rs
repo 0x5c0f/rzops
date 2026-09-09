@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use axum::{extract::{Extension, Path, Query, State}, http::StatusCode, response::IntoResponse, Json};
 use chrono::Utc;
-use sqlx::PgPool;
+use rzops_domain::ports::resource_name_service::ResourceNameService;
 use uuid::Uuid;
 use rzops_domain::models::database_instance::DatabaseInstance;
 use rzops_domain::ports::database_instance_repository::{DatabaseInstanceFilter, DatabaseInstanceRepository};
@@ -9,17 +9,17 @@ use crate::auth_extractor::AuthUser;
 use crate::change_log::{record_change, ChangeLogState};
 use crate::dto::provider_dto::ErrorResponse;
 use crate::dto::database_instance_dto::*;
-use crate::resource_names::resolve_server_briefs;
+
 
 fn to_response(d: &DatabaseInstance, server_name: Option<String>, server_status: Option<String>) -> DatabaseInstanceResponse {
     DatabaseInstanceResponse { id: d.id, server_id: d.server_id, server_name, server_status, name: d.name.clone(), db_type: d.db_type.clone(), description: d.description.clone(), status: d.status.clone(), environment: d.environment.clone(), offline_time: d.offline_time, is_self_installed: d.is_self_installed, importance: d.importance.clone(), is_ops_managed: d.is_ops_managed, port: d.port, instance_name: d.instance_name.clone(), created_at: d.created_at, updated_at: d.updated_at, deleted_at: d.deleted_at }
 }
 
 #[utoipa::path(get, path = "/api/v1/database-instances/{id}", params(("id" = uuid::Uuid, Path)), responses((status = 200, body = DatabaseInstanceResponse), (status = 404, body = ErrorResponse)), tag = "DatabaseInstance", security(("bearer_auth" = [])))]
-pub async fn get_database_instance(_auth: AuthUser, State(repo): State<Arc<dyn DatabaseInstanceRepository>>, Extension(pool): Extension<PgPool>, Path(id): Path<Uuid>) -> impl IntoResponse {
+pub async fn get_database_instance(_auth: AuthUser, State(repo): State<Arc<dyn DatabaseInstanceRepository>>, Extension(ns): Extension<Arc<dyn ResourceNameService>>, Path(id): Path<Uuid>) -> impl IntoResponse {
     match repo.find_by_id(id).await {
         Ok(Some(d)) => {
-            let briefs = resolve_server_briefs(&pool, &[d.server_id]).await;
+            let briefs = ns.resolve_server_briefs(&[d.server_id]).await;
             let (sname, sstatus) = d.server_id.as_ref()
                 .and_then(|sid| briefs.get(sid))
                 .cloned()
@@ -32,13 +32,13 @@ pub async fn get_database_instance(_auth: AuthUser, State(repo): State<Arc<dyn D
     }
 }
 #[utoipa::path(get, path = "/api/v1/database-instances", params(ListDatabaseInstancesQuery), responses((status = 200, body = DatabaseInstanceListResponse)), tag = "DatabaseInstance", security(("bearer_auth" = [])))]
-pub async fn list_database_instances(_auth: AuthUser, State(repo): State<Arc<dyn DatabaseInstanceRepository>>, Extension(pool): Extension<PgPool>, Query(q): Query<ListDatabaseInstancesQuery>) -> impl IntoResponse {
+pub async fn list_database_instances(_auth: AuthUser, State(repo): State<Arc<dyn DatabaseInstanceRepository>>, Extension(ns): Extension<Arc<dyn ResourceNameService>>, Query(q): Query<ListDatabaseInstancesQuery>) -> impl IntoResponse {
     let page = q.page.unwrap_or(1).max(1); let per_page = q.per_page.unwrap_or(20).min(100);
     let filter = DatabaseInstanceFilter { status: q.status, environment: q.environment, db_type: q.db_type, server_id: q.server_id, q: q.q, limit: Some(per_page), offset: Some((page - 1) * per_page) };
     match repo.find_all(filter.clone()).await {
         Ok(ds) => {
             let count = repo.count(filter).await.unwrap_or(0);
-            let briefs = resolve_server_briefs(&pool, &ds.iter().map(|d| d.server_id).collect::<Vec<_>>()).await;
+            let briefs = ns.resolve_server_briefs(&ds.iter().map(|d| d.server_id).collect::<Vec<_>>()).await;
             let data = ds.iter().map(|d| {
                 let (sname, sstatus) = d.server_id.as_ref()
                     .and_then(|sid| briefs.get(sid))

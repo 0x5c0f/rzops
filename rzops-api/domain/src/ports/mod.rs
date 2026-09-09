@@ -20,6 +20,8 @@ pub mod audit_log_repository;
 pub mod change_record_repository;
 pub mod site_relation_repository;
 pub mod dict_repository;
+pub mod resource_name_service;
+pub mod recycle_repository;
 
 pub use user_repository::UserRepository;
 pub use role_repository::RoleRepository;
@@ -43,3 +45,5 @@ pub use audit_log_repository::AuditLogRepository;
 pub use change_record_repository::ChangeRecordRepository;
 pub use site_relation_repository::*;
 pub use dict_repository::DictRepository;
+pub use resource_name_service::ResourceNameService;
+pub use recycle_repository::RecycleRepository;

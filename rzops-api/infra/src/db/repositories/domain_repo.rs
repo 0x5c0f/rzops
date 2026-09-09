@@ -1,3 +1,5 @@
+use crate::db::IntoRepoResult;
+use rzops_domain::errors::RepositoryError;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
@@ -47,15 +49,15 @@ const SELECT_COLS: &str = r#"id, domain_name, registered_date, expiry_date,
 
 #[async_trait]
 impl DomainRepository for PgDomainRepository {
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<DomainAsset>, sqlx::Error> {
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<DomainAsset>, RepositoryError> {
         let row = sqlx::query(&format!("SELECT {} FROM cmdb_domain WHERE id = $1 AND deleted_at IS NULL", SELECT_COLS))
             .bind(id)
             .fetch_optional(&self.pool)
-            .await?;
+            .await.repo()?;
         Ok(row.map(|r| row_to_domain(&r)))
     }
 
-    async fn find_all(&self, filter: DomainFilter) -> Result<Vec<DomainAsset>, sqlx::Error> {
+    async fn find_all(&self, filter: DomainFilter) -> Result<Vec<DomainAsset>, RepositoryError> {
         let mut sql = format!("SELECT {} FROM cmdb_domain WHERE deleted_at IS NULL", SELECT_COLS);
         let mut binds: Vec<String> = Vec::new();
         let mut bind_idx = 1;
@@ -76,11 +78,11 @@ impl DomainRepository for PgDomainRepository {
         if let Some(offset) = filter.offset { sql.push_str(&format!(" OFFSET {}", offset)); }
         let mut query = sqlx::query(&sql);
         for bind in &binds { query = query.bind(bind); }
-        let rows = query.fetch_all(&self.pool).await?;
+        let rows = query.fetch_all(&self.pool).await.repo()?;
         Ok(rows.iter().map(|r| row_to_domain(r)).collect())
     }
 
-    async fn count(&self, filter: DomainFilter) -> Result<i64, sqlx::Error> {
+    async fn count(&self, filter: DomainFilter) -> Result<i64, RepositoryError> {
         let mut sql = String::from("SELECT COUNT(*) as count FROM cmdb_domain WHERE deleted_at IS NULL");
         let mut binds: Vec<String> = Vec::new();
         let mut bind_idx = 1;
@@ -98,11 +100,11 @@ impl DomainRepository for PgDomainRepository {
         }
         let mut query = sqlx::query(&sql);
         for bind in &binds { query = query.bind(bind); }
-        let row = query.fetch_one(&self.pool).await?;
+        let row = query.fetch_one(&self.pool).await.repo()?;
         Ok(row.get::<i64, _>("count"))
     }
 
-    async fn create(&self, d: &DomainAsset) -> Result<DomainAsset, sqlx::Error> {
+    async fn create(&self, d: &DomainAsset) -> Result<DomainAsset, RepositoryError> {
         let row = sqlx::query(&format!(
             r#"INSERT INTO cmdb_domain
                (id, domain_name, registered_date, expiry_date, renewal_amount,
@@ -117,11 +119,11 @@ impl DomainRepository for PgDomainRepository {
         .bind(&d.domain_email)
         .bind(d.privacy_status.clone())
         .bind(d.is_enabled).bind(&d.remarks).bind(d.created_at).bind(d.updated_at)
-        .fetch_one(&self.pool).await?;
+        .fetch_one(&self.pool).await.repo()?;
         Ok(row_to_domain(&row))
     }
 
-    async fn update(&self, id: Uuid, d: &DomainAsset) -> Result<Option<DomainAsset>, sqlx::Error> {
+    async fn update(&self, id: Uuid, d: &DomainAsset) -> Result<Option<DomainAsset>, RepositoryError> {
         let row = sqlx::query(&format!(
             r#"UPDATE cmdb_domain SET
                 domain_name=$2, registered_date=$3, expiry_date=$4,
@@ -136,12 +138,12 @@ impl DomainRepository for PgDomainRepository {
         .bind(&d.domain_email)
         .bind(d.privacy_status.clone())
         .bind(d.is_enabled).bind(&d.remarks).bind(d.updated_at)
-        .fetch_optional(&self.pool).await?;
+        .fetch_optional(&self.pool).await.repo()?;
         Ok(row.map(|r| row_to_domain(&r)))
     }
 
-    async fn delete(&self, id: Uuid) -> Result<bool, sqlx::Error> {
-        let result = sqlx::query("UPDATE cmdb_domain SET deleted_at = now() WHERE id = $1 AND deleted_at IS NULL").bind(id).execute(&self.pool).await?;
+    async fn delete(&self, id: Uuid) -> Result<bool, RepositoryError> {
+        let result = sqlx::query("UPDATE cmdb_domain SET deleted_at = now() WHERE id = $1 AND deleted_at IS NULL").bind(id).execute(&self.pool).await.repo()?;
         Ok(result.rows_affected() > 0)
     }
 }

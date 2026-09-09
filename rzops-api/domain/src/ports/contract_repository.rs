@@ -12,10 +12,10 @@ pub struct ContractFilter {
 
 #[async_trait]
 pub trait ContractRepository: Send + Sync {
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<Contract>, sqlx::Error>;
-    async fn find_all(&self, filter: ContractFilter) -> Result<Vec<Contract>, sqlx::Error>;
-    async fn count(&self, filter: ContractFilter) -> Result<i64, sqlx::Error>;
-    async fn create(&self, item: &Contract) -> Result<Contract, sqlx::Error>;
-    async fn update(&self, id: Uuid, item: &Contract) -> Result<Option<Contract>, sqlx::Error>;
-    async fn delete(&self, id: Uuid) -> Result<bool, sqlx::Error>;
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<Contract>, crate::errors::RepositoryError>;
+    async fn find_all(&self, filter: ContractFilter) -> Result<Vec<Contract>, crate::errors::RepositoryError>;
+    async fn count(&self, filter: ContractFilter) -> Result<i64, crate::errors::RepositoryError>;
+    async fn create(&self, item: &Contract) -> Result<Contract, crate::errors::RepositoryError>;
+    async fn update(&self, id: Uuid, item: &Contract) -> Result<Option<Contract>, crate::errors::RepositoryError>;
+    async fn delete(&self, id: Uuid) -> Result<bool, crate::errors::RepositoryError>;
 }

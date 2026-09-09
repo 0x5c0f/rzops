@@ -97,9 +97,9 @@ pub fn server_routes(repo: Arc<dyn server_repository::ServerRepository>) -> Rout
     Router::new().route("/", axum::routing::get(list_servers).post(create_server))
         .route("/{id}", axum::routing::get(get_server).put(update_server).delete(delete_server)).with_state(repo)
 }
-pub fn server_ip_routes(repo: Arc<dyn server_ip_repository::ServerIpRepository>, pool: sqlx::PgPool) -> Router {
+pub fn server_ip_routes(repo: Arc<dyn server_ip_repository::ServerIpRepository>, ns: Arc<dyn resource_name_service::ResourceNameService>) -> Router {
     Router::new().route("/", axum::routing::get(list_server_ips).post(create_server_ip))
-        .route("/{id}", axum::routing::get(get_server_ip).put(update_server_ip).delete(delete_server_ip)).with_state(repo).layer(axum::Extension(pool))
+        .route("/{id}", axum::routing::get(get_server_ip).put(update_server_ip).delete(delete_server_ip)).with_state(repo).layer(axum::Extension(ns))
 }
 pub fn server_port_routes(repo: Arc<dyn server_port_repository::ServerPortRepository>, tpl_repo: Arc<dyn server_port_template_repository::ServerPortTemplateRepository>) -> Router {
     // apply-template 需要同时访问端口与模板两个 repo，用闭包捕获绕开单一 state 类型限制
@@ -130,42 +130,43 @@ pub fn certificate_routes(repo: Arc<dyn certificate_repository::CertificateRepos
     Router::new().route("/", axum::routing::get(list_certificates).post(create_certificate))
         .route("/{id}", axum::routing::get(get_certificate).put(update_certificate).delete(delete_certificate)).with_state(repo)
 }
-pub fn database_instance_routes(repo: Arc<dyn database_instance_repository::DatabaseInstanceRepository>, pool: sqlx::PgPool) -> Router {
+pub fn database_instance_routes(repo: Arc<dyn database_instance_repository::DatabaseInstanceRepository>, ns: Arc<dyn resource_name_service::ResourceNameService>) -> Router {
     Router::new().route("/", axum::routing::get(list_database_instances).post(create_database_instance))
-        .route("/{id}", axum::routing::get(get_database_instance).put(update_database_instance).delete(delete_database_instance)).with_state(repo).layer(axum::Extension(pool))
+        .route("/{id}", axum::routing::get(get_database_instance).put(update_database_instance).delete(delete_database_instance)).with_state(repo).layer(axum::Extension(ns))
 }
 pub fn ops_site_routes(repo: Arc<dyn ops_site_repository::OpsSiteRepository>) -> Router {
     Router::new().route("/", axum::routing::get(list_ops_sites).post(create_ops_site))
         .route("/{id}", axum::routing::get(get_ops_site).put(update_ops_site).delete(delete_ops_site)).with_state(repo)
 }
-pub fn backup_plan_routes(repo: Arc<dyn backup_plan_repository::BackupPlanRepository>, pool: sqlx::PgPool) -> Router {
+pub fn backup_plan_routes(repo: Arc<dyn backup_plan_repository::BackupPlanRepository>, ns: Arc<dyn resource_name_service::ResourceNameService>) -> Router {
     Router::new().route("/", axum::routing::get(list_backup_plans).post(create_backup_plan))
-        .route("/{id}", axum::routing::get(get_backup_plan).put(update_backup_plan).delete(delete_backup_plan)).with_state(repo).layer(axum::Extension(pool))
+        .route("/{id}", axum::routing::get(get_backup_plan).put(update_backup_plan).delete(delete_backup_plan)).with_state(repo).layer(axum::Extension(ns))
 }
-pub fn monitor_target_routes(repo: Arc<dyn monitor_target_repository::MonitorTargetRepository>, pool: sqlx::PgPool) -> Router {
+pub fn monitor_target_routes(repo: Arc<dyn monitor_target_repository::MonitorTargetRepository>, ns: Arc<dyn resource_name_service::ResourceNameService>) -> Router {
     Router::new().route("/", axum::routing::get(list_monitor_targets).post(create_monitor_target))
-        .route("/{id}", axum::routing::get(get_monitor_target).put(update_monitor_target).delete(delete_monitor_target)).with_state(repo).layer(axum::Extension(pool))
+        .route("/{id}", axum::routing::get(get_monitor_target).put(update_monitor_target).delete(delete_monitor_target)).with_state(repo).layer(axum::Extension(ns))
 }
 pub fn contract_routes(repo: Arc<dyn contract_repository::ContractRepository>) -> Router {
     Router::new().route("/", axum::routing::get(list_contracts).post(create_contract))
         .route("/{id}", axum::routing::get(get_contract).put(update_contract).delete(delete_contract)).with_state(repo)
 }
-pub fn attachment_routes(repo: Arc<dyn attachment_repository::AttachmentRepository>, pool: sqlx::PgPool, upload_dir: String) -> Router {
+pub fn attachment_routes(repo: Arc<dyn attachment_repository::AttachmentRepository>, ns: Arc<dyn resource_name_service::ResourceNameService>, upload_dir: String) -> Router {
     Router::new().route("/", axum::routing::get(list_attachments).post(create_attachment))
         .route("/upload", axum::routing::post(upload_attachment))
         .route("/{id}/download", axum::routing::get(download_attachment))
         .route("/{id}", axum::routing::get(get_attachment).put(update_attachment).delete(delete_attachment))
         .with_state(repo)
-        .layer(axum::Extension(pool))
+        
+        .layer(axum::Extension(ns))
         .layer(axum::Extension(upload_dir))
 }
-pub fn audit_log_routes(repo: Arc<dyn audit_log_repository::AuditLogRepository>, pool: sqlx::PgPool) -> Router {
+pub fn audit_log_routes(repo: Arc<dyn audit_log_repository::AuditLogRepository>, ns: Arc<dyn resource_name_service::ResourceNameService>) -> Router {
     Router::new().route("/", axum::routing::get(list_audit_logs))
-        .route("/{id}", axum::routing::get(get_audit_log)).with_state(repo).layer(axum::Extension(pool))
+        .route("/{id}", axum::routing::get(get_audit_log)).with_state(repo).layer(axum::Extension(ns))
 }
-pub fn change_record_routes(repo: Arc<dyn change_record_repository::ChangeRecordRepository>, pool: sqlx::PgPool) -> Router {
+pub fn change_record_routes(repo: Arc<dyn change_record_repository::ChangeRecordRepository>, ns: Arc<dyn resource_name_service::ResourceNameService>) -> Router {
     Router::new().route("/", axum::routing::get(list_change_records))
-        .route("/{id}", axum::routing::get(get_change_record)).with_state(repo).layer(axum::Extension(pool))
+        .route("/{id}", axum::routing::get(get_change_record)).with_state(repo).layer(axum::Extension(ns))
 }
 pub fn dict_routes(repo: Arc<dyn dict_repository::DictRepository>, cache: Arc<crate::dict_cache::DictCache>) -> Router {
     Router::new().route("/", axum::routing::get(list_dicts).post(create_dict))

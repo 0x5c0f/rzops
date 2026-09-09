@@ -14,10 +14,10 @@ pub struct MonitorTargetFilter {
 
 #[async_trait]
 pub trait MonitorTargetRepository: Send + Sync {
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<MonitorTarget>, sqlx::Error>;
-    async fn find_all(&self, filter: MonitorTargetFilter) -> Result<Vec<MonitorTarget>, sqlx::Error>;
-    async fn count(&self, filter: MonitorTargetFilter) -> Result<i64, sqlx::Error>;
-    async fn create(&self, item: &MonitorTarget) -> Result<MonitorTarget, sqlx::Error>;
-    async fn update(&self, id: Uuid, item: &MonitorTarget) -> Result<Option<MonitorTarget>, sqlx::Error>;
-    async fn delete(&self, id: Uuid) -> Result<bool, sqlx::Error>;
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<MonitorTarget>, crate::errors::RepositoryError>;
+    async fn find_all(&self, filter: MonitorTargetFilter) -> Result<Vec<MonitorTarget>, crate::errors::RepositoryError>;
+    async fn count(&self, filter: MonitorTargetFilter) -> Result<i64, crate::errors::RepositoryError>;
+    async fn create(&self, item: &MonitorTarget) -> Result<MonitorTarget, crate::errors::RepositoryError>;
+    async fn update(&self, id: Uuid, item: &MonitorTarget) -> Result<Option<MonitorTarget>, crate::errors::RepositoryError>;
+    async fn delete(&self, id: Uuid) -> Result<bool, crate::errors::RepositoryError>;
 }

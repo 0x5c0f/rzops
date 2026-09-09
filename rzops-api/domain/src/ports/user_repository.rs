@@ -5,9 +5,9 @@ use crate::models::user::User;
 /// User repository port.
 #[async_trait]
 pub trait UserRepository: Send + Sync {
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<User>, sqlx::Error>;
-    async fn find_by_email(&self, email: &str) -> Result<Option<User>, sqlx::Error>;
-    async fn create(&self, user: &User) -> Result<User, sqlx::Error>;
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<User>, crate::errors::RepositoryError>;
+    async fn find_by_email(&self, email: &str) -> Result<Option<User>, crate::errors::RepositoryError>;
+    async fn create(&self, user: &User) -> Result<User, crate::errors::RepositoryError>;
 
     /// 分页查询用户列表（排除软删除，按创建时间倒序）。
     /// 返回 (data, total)。
@@ -16,7 +16,7 @@ pub trait UserRepository: Send + Sync {
         q: Option<&str>,
         page: i64,
         per_page: i64,
-    ) -> Result<(Vec<User>, i64), sqlx::Error>;
+    ) -> Result<(Vec<User>, i64), crate::errors::RepositoryError>;
 
     /// 更新用户基础信息（email / full_name / is_active），不涉及密码。
     async fn update_profile(
@@ -26,11 +26,11 @@ pub trait UserRepository: Send + Sync {
         full_name: Option<&str>,
         is_active: bool,
         is_superuser: bool,
-    ) -> Result<Option<User>, sqlx::Error>;
+    ) -> Result<Option<User>, crate::errors::RepositoryError>;
 
     /// 更新用户密码（hashed_password）。
-    async fn update_password(&self, id: Uuid, hashed_password: &str) -> Result<bool, sqlx::Error>;
+    async fn update_password(&self, id: Uuid, hashed_password: &str) -> Result<bool, crate::errors::RepositoryError>;
 
     /// 软删除用户。
-    async fn soft_delete(&self, id: Uuid) -> Result<bool, sqlx::Error>;
+    async fn soft_delete(&self, id: Uuid) -> Result<bool, crate::errors::RepositoryError>;
 }

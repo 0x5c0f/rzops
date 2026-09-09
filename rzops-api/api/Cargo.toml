@@ -18,4 +18,3 @@ tracing = { workspace = true }
 async-trait = { workspace = true }
 bcrypt = { workspace = true }
 utoipa = { workspace = true }
-sqlx = { workspace = true }

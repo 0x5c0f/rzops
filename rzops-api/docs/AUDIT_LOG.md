@@ -111,3 +111,45 @@ This file records audit history for organizational memory. Each entry enables cr
 | ID | Issue | Notes |
 |---|---|---|
 | C8 | No tests | Deferred to next sprint |
+
+---
+
+## 2026-09-09 — Third Audit
+
+| Field | Value |
+|---|---|
+| **Project** | rzops-api |
+| **Mode** | Multi-Crate Workspace |
+| **Health** | 🔴 Significant Issues |
+| **Critical** | 1（B1 domain→sqlx） |
+| **High** | 4（S3×2、B1 api→sqlx、C8 升级） |
+| **Medium** | 2（C5、B1 app→sqlx） |
+| **Low** | 1（C2 expect） |
+| **Notes** | 用户要求按 ai-dev-discipline + ai-dev-audit 复核。历史 S3 清零后被新增代码回退。 |
+
+### Findings
+
+| ID | Severity | Summary | File(s) | Status |
+|---|---|---|---|---|
+| B1 | 🔴 Critical | domain 端口 trait 直接使用 sqlx::Error（10+ 端口） | domain/src/ports/*.rs | New（历史漏检） |
+| S3 | 🟠 High | recycle 搜索词手工转义拼接 ILIKE | pi/src/routes/recycle_handlers.rs:104 | Recurring（新文件引入） |
+| S3 | 🟠 High | user_repo 搜索词手工转义拼接 ILIKE | infra/src/db/repositories/user_repo.rs:84 | Recurring（新文件引入） |
+| B1 | 🟠 High | api 层 10 文件直连 sqlx 内联 SQL，绕过 domain 端口 | pi/src/routes/*_handlers.rs | New |
+| C8 | 🟠 High | 全仓无测试（3 连复发，按 gotchas 从 Medium 升级） | Project-wide | Recurring（升级） |
+| C5 | 🟡 Medium | main.rs 35 行 + seeder.rs 业务逻辑驻留 app | pp/src/main.rs, pp/src/seeder.rs | New |
+| B1 | 🟡 Medium | app 依赖 sqlx（pool/migrate/seeder 在 app） | pp/Cargo.toml | New |
+| C2 | 🔵 Low | 常量表模式匹配 expect | pi/src/resource_names.rs:55 | New（Low） |
+
+### Resolved / Passed from Previous Audit
+
+| ID | Previous Severity | Status |
+|---|---|---|
+| S3（12/13 repo 旧点） | 🔴 Critical | ✅ 仍修复（本次为新增文件复发，非旧点回退） |
+| B1（app→infra、api→infra 旧点） | 🟠 High | ✅ 未回退（本次新发现为 domain→sqlx 与 api→sqlx 直连，属不同违反面） |
+| S4（auth 覆盖） | 🟠 High | ✅ 保持（authz 中间件存在） |
+| C8 | 🟡 Medium | ⚠️ Recurring 且升级 High |
+
+### Gotcha Validation
+
+- **S3 模式区分再次验证**：quality-scan 报 40 处 S3，仅 2 处为真实用户输入插值；其余 38 处为 COLS/SELECT_COLS/RESOURCE_TABLE 常量白名单 +  绑定 —— 按 gotchas 判为可接受（false positive）。
+- **C4 判误报**：claims.rs（JWT 载荷）与 change_type.rs（存储枚举）的 Deserialize 非 HTTP 请求体解析，符合 gotchas

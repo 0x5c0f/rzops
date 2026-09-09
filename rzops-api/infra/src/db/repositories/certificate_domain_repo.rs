@@ -1,3 +1,5 @@
+use crate::db::IntoRepoResult;
+use rzops_domain::errors::RepositoryError;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use sqlx::{Pool, Postgres, Row};
@@ -31,18 +33,18 @@ fn row_to_certificate_domain(row: &sqlx::postgres::PgRow) -> CertificateDomain {
 
 #[async_trait]
 impl CertificateDomainRepository for PgCertificateDomainRepository {
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<CertificateDomain>, sqlx::Error> {
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<CertificateDomain>, RepositoryError> {
         let row = sqlx::query(
             r#"SELECT id, certificate_id, domain_id, domain_pattern, is_primary, created_at
                FROM cmdb_certificate_domain WHERE id = $1"#,
         )
         .bind(id)
         .fetch_optional(&self.pool)
-        .await?;
+        .await.repo()?;
         Ok(row.map(|r| row_to_certificate_domain(&r)))
     }
 
-    async fn find_all(&self, filter: CertificateDomainFilter) -> Result<Vec<CertificateDomain>, sqlx::Error> {
+    async fn find_all(&self, filter: CertificateDomainFilter) -> Result<Vec<CertificateDomain>, RepositoryError> {
         let mut sql = String::from(
             r#"SELECT id, certificate_id, domain_id, domain_pattern, is_primary, created_at
                FROM cmdb_certificate_domain WHERE 1=1"#,
@@ -81,11 +83,11 @@ impl CertificateDomainRepository for PgCertificateDomainRepository {
         for s in &string_binds {
             query = query.bind(s);
         }
-        let rows = query.fetch_all(&self.pool).await?;
+        let rows = query.fetch_all(&self.pool).await.repo()?;
         Ok(rows.iter().map(|r| row_to_certificate_domain(r)).collect())
     }
 
-    async fn count(&self, filter: CertificateDomainFilter) -> Result<i64, sqlx::Error> {
+    async fn count(&self, filter: CertificateDomainFilter) -> Result<i64, RepositoryError> {
         let mut sql = String::from("SELECT COUNT(*) as count FROM cmdb_certificate_domain WHERE 1=1");
 
         let mut string_binds: Vec<String> = Vec::new();
@@ -113,11 +115,11 @@ impl CertificateDomainRepository for PgCertificateDomainRepository {
         for s in &string_binds {
             query = query.bind(s);
         }
-        let row = query.fetch_one(&self.pool).await?;
+        let row = query.fetch_one(&self.pool).await.repo()?;
         Ok(row.get::<i64, _>("count"))
     }
 
-    async fn create(&self, cd: &CertificateDomain) -> Result<CertificateDomain, sqlx::Error> {
+    async fn create(&self, cd: &CertificateDomain) -> Result<CertificateDomain, RepositoryError> {
         let row = sqlx::query(
             r#"INSERT INTO cmdb_certificate_domain
                (id, certificate_id, domain_id, domain_pattern, is_primary, created_at)
@@ -131,11 +133,11 @@ impl CertificateDomainRepository for PgCertificateDomainRepository {
         .bind(cd.is_primary)
         .bind(cd.created_at)
         .fetch_one(&self.pool)
-        .await?;
+        .await.repo()?;
         Ok(row_to_certificate_domain(&row))
     }
 
-    async fn update(&self, id: Uuid, cd: &CertificateDomain) -> Result<Option<CertificateDomain>, sqlx::Error> {
+    async fn update(&self, id: Uuid, cd: &CertificateDomain) -> Result<Option<CertificateDomain>, RepositoryError> {
         let row = sqlx::query(
             r#"UPDATE cmdb_certificate_domain SET
                 certificate_id = $2, domain_id = $3, domain_pattern = $4, is_primary = $5
@@ -148,15 +150,15 @@ impl CertificateDomainRepository for PgCertificateDomainRepository {
         .bind(&cd.domain_pattern)
         .bind(cd.is_primary)
         .fetch_optional(&self.pool)
-        .await?;
+        .await.repo()?;
         Ok(row.map(|r| row_to_certificate_domain(&r)))
     }
 
-    async fn delete(&self, id: Uuid) -> Result<bool, sqlx::Error> {
+    async fn delete(&self, id: Uuid) -> Result<bool, RepositoryError> {
         let result = sqlx::query("DELETE FROM cmdb_certificate_domain WHERE id = $1")
             .bind(id)
             .execute(&self.pool)
-            .await?;
+            .await.repo()?;
         Ok(result.rows_affected() > 0)
     }
 }

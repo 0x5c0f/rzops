@@ -1,3 +1,5 @@
+use crate::db::IntoRepoResult;
+use rzops_domain::errors::RepositoryError;
 use async_trait::async_trait;
 use chrono::Utc;
 use sqlx::{postgres::PgRow, Pool, Postgres, Row};
@@ -18,7 +20,7 @@ impl PgProviderRepository {
 }
 
 /// Helper: parse a PgRow into a Provider domain model.
-fn row_to_provider(row: &PgRow) -> Result<Provider, sqlx::Error> {
+fn row_to_provider(row: &PgRow) -> Result<Provider, RepositoryError> {
     let status_str: String = row.get("status");
     let status = status_str;
 
@@ -51,7 +53,7 @@ fn row_to_provider(row: &PgRow) -> Result<Provider, sqlx::Error> {
 
 #[async_trait]
 impl ProviderRepository for PgProviderRepository {
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<Provider>, sqlx::Error> {
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<Provider>, RepositoryError> {
         let row = sqlx::query(
             r#"
             SELECT id, name, provider_types, contact_name, contact_phone, contact_qq,
@@ -63,7 +65,7 @@ impl ProviderRepository for PgProviderRepository {
         )
         .bind(id)
         .fetch_optional(&self.pool)
-        .await?;
+        .await.repo()?;
 
         match row {
             Some(r) => Ok(Some(row_to_provider(&r)?)),
@@ -71,7 +73,7 @@ impl ProviderRepository for PgProviderRepository {
         }
     }
 
-    async fn find_all(&self, filter: ProviderFilter) -> Result<Vec<Provider>, sqlx::Error> {
+    async fn find_all(&self, filter: ProviderFilter) -> Result<Vec<Provider>, RepositoryError> {
         let mut sql = String::from(
             r#"
             SELECT id, name, provider_types, contact_name, contact_phone, contact_qq,
@@ -114,7 +116,7 @@ impl ProviderRepository for PgProviderRepository {
             query = query.bind(bind);
         }
 
-        let rows = query.fetch_all(&self.pool).await?;
+        let rows = query.fetch_all(&self.pool).await.repo()?;
         let mut providers = Vec::new();
         for row in &rows {
             providers.push(row_to_provider(row)?);
@@ -122,7 +124,7 @@ impl ProviderRepository for PgProviderRepository {
         Ok(providers)
     }
 
-    async fn count(&self, filter: ProviderFilter) -> Result<i64, sqlx::Error> {
+    async fn count(&self, filter: ProviderFilter) -> Result<i64, RepositoryError> {
         let mut sql = String::from("SELECT COUNT(*) as count FROM cmdb_provider WHERE 1=1");
 
         let mut binds: Vec<String> = Vec::new();
@@ -148,12 +150,12 @@ impl ProviderRepository for PgProviderRepository {
             query = query.bind(bind);
         }
 
-        let row = query.fetch_one(&self.pool).await?;
+        let row = query.fetch_one(&self.pool).await.repo()?;
         let count: i64 = row.get("count");
         Ok(count)
     }
 
-    async fn create(&self, provider: &Provider) -> Result<Provider, sqlx::Error> {
+    async fn create(&self, provider: &Provider) -> Result<Provider, RepositoryError> {
         let status_str = provider.status.clone();
 
         let row = sqlx::query(
@@ -182,12 +184,12 @@ impl ProviderRepository for PgProviderRepository {
         .bind(provider.created_at)
         .bind(provider.updated_at)
         .fetch_one(&self.pool)
-        .await?;
+        .await.repo()?;
 
         row_to_provider(&row)
     }
 
-    async fn update(&self, id: Uuid, provider: &Provider) -> Result<Option<Provider>, sqlx::Error> {
+    async fn update(&self, id: Uuid, provider: &Provider) -> Result<Option<Provider>, RepositoryError> {
         let status_str = provider.status.clone();
 
         let row = sqlx::query(
@@ -223,7 +225,7 @@ impl ProviderRepository for PgProviderRepository {
         .bind(status_str)
         .bind(Utc::now())
         .fetch_optional(&self.pool)
-        .await?;
+        .await.repo()?;
 
         match row {
             Some(r) => Ok(Some(row_to_provider(&r)?)),
@@ -231,11 +233,11 @@ impl ProviderRepository for PgProviderRepository {
         }
     }
 
-    async fn delete(&self, id: Uuid) -> Result<bool, sqlx::Error> {
+    async fn delete(&self, id: Uuid) -> Result<bool, RepositoryError> {
         let result = sqlx::query("DELETE FROM cmdb_provider WHERE id = $1")
             .bind(id)
             .execute(&self.pool)
-            .await?;
+            .await.repo()?;
 
         Ok(result.rows_affected() > 0)
     }
