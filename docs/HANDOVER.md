@@ -183,6 +183,13 @@ erDiagram
 - `sqlx::migrate!` 启动自动应用；`database/schema.sql` 是当前结构快照（pg_dump），供快速初始化（含迁移记录，API 启动自动跳过）。
 - 命名规范：`NNN_简短描述.sql`（如 `009_rbac.sql`、`010_system_soft_delete.sql`）。
 
+### 4.4 数据库兼容性说明（决策记录）
+
+- **现状**：项目从首个提交起就**只支持 PostgreSQL**——`sqlx` 仅启用 `postgres` feature；10 个迁移全为 PG 方言（`jsonb` / `timestamptz` / plpgsql 触发器 / `ON CONFLICT`）；infra 层 SQL 使用 PG `$1` 占位符体系。**SQLite / MySQL 从未实现过**（早期"支持多库"仅停留在口头设想）。
+- **决策（2026-09）**：保持 Postgres 为主数据库（CMDB 多用户、并发、JSON 查询场景下最合适）；`database/` 快照明确为 PG 方言。
+- **演进通道（已就绪）**：`domain` 层服务 trait 隔离 + `infra` 是唯一 SQL 层。未来支持 MySQL 的路径：仅需在 `infra` 新增 MySQL 方言仓储实现 + `server/migrations/` 提供 `NNN_xxx.mysql.sql` 方言迁移（sqlx 支持同版本多方言文件），`domain`/`api`/`server` 上层零改动。
+- **代价提示**（若未来立项）：迁移双写 + 全部仓储 SQL 双写（占位符体系不同）+ 类型降级（jsonb 函数、触发器、timestamptz 语义）+ 双库测试矩阵，估算数周级；SQLite 因全局写锁/弱类型不推荐用于多用户 CMDB。
+
 ---
 
 ## 5. 功能全景（按菜单）
@@ -468,7 +475,8 @@ user ──< user_role >── role ──< role_permission >── 权限点
 
 1. **构建静态前端**：`cd rzops-web && npm ci && npm run build` → `build/`。
 2. **托管**：任意静态服务器（nginx 参考 `rzops-web/nginx.conf`：SPA fallback + `/api` 反代 + 静态资源缓存）。
-3. **后端**：`cargo build --release --workspace` → `target/release/app` + 环境变量（`RZOPS_JWT__SECRET` **必须更换**）。
+3. **后端**：`cargo build --release --workspace` → `target/release/rzops-app` + 环境变量（`RZOPS_JWT__SECRET` **必须更换**）。
+   - **静态链接（推荐）**：`cargo build --release --target x86_64-unknown-linux-musl --workspace` 产出纯静态二进制（无 glibc 依赖），任意 Linux 直接运行；Dockerfile 已采用此方案（rust:1-alpine 构建 → alpine 运行）。
 4. **数据库**：initdb 初始化（`database/schema.sql` + `seed-data.sql`）或空库由 API 自动迁移。
 5. **公网注意**：勿直接暴露 Vite dev；WAF 需放行 PUT（OWASP CRS 默认拦截，见 §6.6）。
 
@@ -504,6 +512,7 @@ user ──< user_role >── role ──< role_permission >── 权限点
 6. **查询性能深化**：深度分页/游标、索引评审、监控大表归档。
 7. **移动端体验**：已做响应式基础适配；复杂表单（服务器新建）在窄屏的进一步优化。
 8. **多实例部署**：如多租户/多环境隔离（未评估）。
+9. **多数据库支持**：当前 Postgres 深度绑定（见 §4.4）；架构通道已就绪，若需 MySQL 支持按 §4.4 路径立项。
 
 ---
 

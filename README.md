@@ -72,6 +72,8 @@ docker compose up -d --build
 | API | http://localhost:8000/api/v1 | 可直接调试 |
 | Postgres | localhost:5432 | 库名 `rzopsdb` |
 
+> **端口冲突**：若本机 8000/5432/8080 已被占用（如已有开发服务），可在 `.env` 中覆盖 `API_PORT` / `POSTGRES_PORT` / `WEB_PORT` 后重启：`docker compose up -d`（`.env` 不入库，`.env.example` 为模板）。
+
 **默认账号**：`admin@rzops.local` / `admin123`（超级管理员，由后端 seeder 首次启动自动创建，可通过环境变量 `RZOPS_SEED_ADMIN_EMAIL` / `RZOPS_SEED_ADMIN_PASSWORD` 修改）。
 
 数据库初始化由 `database/` 目录自动完成：`schema.sql`（完整表结构）+ `seed-data.sql`（字典、账号、示例业务数据，含迁移记录，API 启动自动跳过迁移）。
@@ -97,10 +99,19 @@ docker exec -i rzops-postgres psql -U rzops -d rzopsdb < database/seed-data.sql
 cd rzops-api
 export RZOPS_DATABASE__HOST=localhost RZOPS_DATABASE__USER=rzops RZOPS_DATABASE__PASSWORD=rzops \
        RZOPS_DATABASE__NAME=rzopsdb RZOPS_JWT__SECRET=your-random-secret
-cargo run --release -p rzops-app   # 或 cargo build --release --workspace 后运行 target/release/app
+cargo run --release -p rzops-app   # 或 cargo build --release --workspace 后运行 target/release/rzops-app
 ```
 
 > 启动时 `sqlx::migrate!` 会自动校验/应用 `server/migrations/` 下的迁移（已用 seed-data.sql 初始化时自动跳过）。
+
+**跨平台静态构建**（可选）：产物为纯静态二进制（musl，无 glibc 依赖），可在任意 Linux 发行版直接运行：
+
+```bash
+rustup target add x86_64-unknown-linux-musl
+sudo apt install musl-tools          # Debian/Ubuntu；其他系统装对应 musl 工具链
+cargo build --release --target x86_64-unknown-linux-musl --workspace
+# 产物：target/x86_64-unknown-linux-musl/release/rzops-app（ldd 显示 statically linked）
+```
 
 ### 3. 前端（开发模式）
 

@@ -183,6 +183,13 @@ Design principles:
 - `sqlx::migrate!` applies on startup; `database/schema.sql` is the current-structure snapshot (pg_dump) for fast init (it includes migration records so the API skips).
 - Naming: `NNN_short-description.sql` (e.g. `009_rbac.sql`).
 
+### 4.4 Database compatibility note (decision record)
+
+- **Today**: the project has been **PostgreSQL-only since its first commit** — `sqlx` enables only the `postgres` feature; all 10 migrations are PG dialect (`jsonb` / `timestamptz` / plpgsql triggers / `ON CONFLICT`); infra SQL uses PG `$1` placeholders. **SQLite / MySQL were never implemented** (early "multi-DB" talk never made it into code).
+- **Decision (2026-09)**: keep PostgreSQL as the primary database (best fit for multi-user CMDB with concurrency & JSON queries); the `database/` snapshot is explicitly PG-dialect.
+- **Evolution path (already in place)**: `domain` service traits + `infra` as the only SQL layer. To support MySQL later: add MySQL-dialect repository implementations under `infra` plus `NNN_xxx.mysql.sql` dialect migrations under `server/migrations/` (sqlx supports per-dialect migration files of the same version); `domain`/`api`/`server` stay untouched.
+- **Cost if staffed later**: dual-dialect migrations + all repository SQL rewritten (different placeholder systems) + type downgrades (jsonb functions, triggers, timestamptz semantics) + a multi-DB test matrix; estimate weeks. SQLite is not recommended for a multi-user CMDB (global write lock, weak typing).
+
 ---
 
 ## 5. Feature Overview (by menu)
@@ -468,7 +475,8 @@ superuser (user.is_superuser=true) bypasses all checks
 
 1. **Build static frontend**: `cd rzops-web && npm ci && npm run build` → `build/`.
 2. **Host**: any static server (nginx reference `rzops-web/nginx.conf`: SPA fallback + `/api` proxy + asset caching).
-3. **Backend**: `cargo build --release --workspace` → `target/release/app` + env vars (`RZOPS_JWT__SECRET` **must be changed**).
+3. **Backend**: `cargo build --release --workspace` → `target/release/rzops-app` + env vars (`RZOPS_JWT__SECRET` **must be changed**).
+   - **Static link (recommended)**: `cargo build --release --target x86_64-unknown-linux-musl --workspace` produces a pure static binary (no glibc dependency) runnable on any Linux; the Dockerfile already uses this (rust:1-alpine build → alpine runtime).
 4. **Database**: init via `database/schema.sql` + `database/seed-data.sql`, or an empty DB migrated automatically by the API.
 5. **Public access**: never expose Vite dev directly; WAFs must allow PUT (OWASP CRS blocks it by default, §6.6).
 
@@ -504,6 +512,7 @@ superuser (user.is_superuser=true) bypasses all checks
 6. **Query performance deep dive**: keyset pagination, index review, large-log archiving.
 7. **Mobile UX**: responsive base done; complex forms (server create) on narrow screens to improve.
 8. **Multi-instance / multi-tenant** deployment (not evaluated).
+9. **Multi-database support**: currently Postgres-bound (see §4.4); the architecture path is ready — staff MySQL support along §4.4 if needed.
 
 ---
 

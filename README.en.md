@@ -70,6 +70,8 @@ docker compose up -d --build
 | API | http://localhost:8000/api/v1 | directly testable |
 | Postgres | localhost:5432 | database `rzopsdb` |
 
+> **Port conflicts**: if 8000/5432/8080 are already taken on your machine, override `API_PORT` / `POSTGRES_PORT` / `WEB_PORT` in `.env` and restart with `docker compose up -d` (`.env` is not committed; `.env.example` is the template).
+
 **Default account**: `admin@rzops.local` / `admin123` (superuser, auto-created by the backend seeder on first boot; override via `RZOPS_SEED_ADMIN_EMAIL` / `RZOPS_SEED_ADMIN_PASSWORD`).
 
 Database init is automated from the `database/` directory: `schema.sql` (full DDL) + `seed-data.sql` (dicts, accounts, sample data, incl. migration records so the API skips migrations automatically).
@@ -98,6 +100,15 @@ cargo run --release -p rzops-app
 ```
 
 > `sqlx::migrate!` validates/applies `server/migrations/` on startup (skipped when seed-data.sql already initialized it).
+
+**Cross-platform static build** (optional): produces a pure static binary (musl, no glibc dependency) runnable on any Linux distribution:
+
+```bash
+rustup target add x86_64-unknown-linux-musl
+sudo apt install musl-tools          # Debian/Ubuntu; install the equivalent musl toolchain elsewhere
+cargo build --release --target x86_64-unknown-linux-musl --workspace
+# artifact: target/x86_64-unknown-linux-musl/release/rzops-app (ldd: statically linked)
+```
 
 ### 3. Frontend (dev mode)
 

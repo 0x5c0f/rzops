@@ -10,7 +10,8 @@ RzOps 是运维 CMDB：Rust(axum) 后端 + Svelte5/SvelteKit 前端 + Postgres16
 
 ```bash
 # 后端（WSL 内，项目在 /mnt/c/workspace/RzOps）
-cd rzops-api && cargo build --release --workspace    # 构建
+cd rzops-api && cargo build --release --workspace    # 构建（glibc 动态）
+cargo build --release --target x86_64-unknown-linux-musl --workspace  # 静态构建（无 glibc 依赖，Dockerfile 用此方案）
 cargo run -p rzops-app                                # 运行（需 DATABASE_URL 相关 RZOPS_* 环境变量）
 cargo clippy --workspace -- -D warnings               # lint
 
