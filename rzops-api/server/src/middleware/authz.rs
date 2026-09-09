@@ -77,6 +77,7 @@ fn resource_from_segment(seg: &str) -> Option<&'static str> {
         "monitor-targets" => Some("monitor_target"),
         "contracts" => Some("contract"),
         "attachments" => Some("attachment"),
+        "dicts" => Some("dict"),
         "site-relations" => Some("ops_site"),
         "audit-logs" => Some("audit"),
         "change-records" => Some("change"),

@@ -2,7 +2,7 @@
   import { goto } from '$app/navigation';
   import { rolesApi } from '$lib/api/roles';
   import type { RoleResponse } from '$lib/types/role';
-  import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
+  import { canSystem } from '$lib/utils/permissions';
   import { Button } from '$lib/ui/button';
   import DataTable from '$lib/components/shared/DataTable.svelte';
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
@@ -60,7 +60,7 @@
 
   <div class="flex items-center justify-between">
     <h1 class="text-2xl font-semibold">角色管理</h1>
-    {#if canCreate('role')}
+    {#if canSystem('role')}
       <Button onclick={openCreate}>新建角色</Button>
     {/if}
   </div>
@@ -69,8 +69,8 @@
     {columns}
     {data}
     {loading}
-    onEdit={canUpdate('role') ? openEdit : undefined}
-    onDelete={canDelete('role') ? handleDelete : undefined}
+    onEdit={canSystem('role') ? openEdit : undefined}
+    onDelete={canSystem('role') ? handleDelete : undefined}
     getDeleteLabel={getDeleteLabel}
     storageKey="roles"
   />

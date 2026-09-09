@@ -170,7 +170,9 @@ import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
 
   <div class="flex items-center justify-between">
     <h1 class="text-2xl font-semibold">字典管理</h1>
-    <Button onclick={openCreate}>新建字典项</Button>
+    {#if canCreate('dict')}
+      <Button onclick={openCreate}>新建字典项</Button>
+    {/if}
   </div>
 
   <div class="flex gap-2">

@@ -29,19 +29,23 @@
   let saving = $state(false);
   let formError = $state<string | null>(null);
 
-  let form = $state<CreateServerPortRequest>(createInitial(initial));
+  /** 内部表单：服务器选择用数组承载（TableSelectModal 单选/多选统一返回数组），
+   *  提交时映射回 CreateServerPortRequest.server_id（单选取第一个）。 */
+  type PortFormState = Omit<CreateServerPortRequest, 'server_id'> & { server_ids: string[] };
+  let form = $state<PortFormState>(createInitial(initial));
 
-  function createInitial(initial?: CreateServerPortRequest): CreateServerPortRequest {
+  function createInitial(initial?: CreateServerPortRequest): PortFormState {
     // 注意：不能用 structuredClone(initial) —— Svelte 5 的 $state 会对含数组字段做 deep proxy，
     // structuredClone 无法克隆 proxy 数组，会抛 DataCloneError。用 JSON 深拷贝解包 proxy。
+    const base = JSON.parse(JSON.stringify(initial ?? {})) as CreateServerPortRequest;
     return {
-      server_id: '',
       protocol: '',
       port: 0,
       service_name: '',
       access_scope: '',
       is_enabled: true,
-      ...JSON.parse(JSON.stringify(initial ?? {})),
+      ...base,
+      server_ids: base.server_id ? [base.server_id] : [],
     };
   }
 
@@ -51,7 +55,7 @@
 
   async function handleSave() {
     formError = validate([
-      { value: form.server_id, label: '服务器', required: true },
+      { value: form.server_ids, label: '服务器', required: true },
       { value: form.protocol, label: '协议', required: true },
       { value: form.port, label: '端口号', required: true, format: 'port' },
       { value: form.service_name, label: '服务名称', required: true, maxLength: 100 },
@@ -59,7 +63,8 @@
     if (formError) return;
     saving = true;
     try {
-      await onSubmit(form);
+      const { server_ids, ...rest } = form;
+      await onSubmit({ ...rest, server_id: server_ids[0] ?? '' } as CreateServerPortRequest);
     } catch (err) {
       console.error('Failed to save server port:', err);
       formError = '保存失败，请重试';
@@ -95,7 +100,7 @@
         <TableSelectModal
           label="服务器 *"
           multiple={false}
-          bind:value={form.server_id}
+          bind:value={form.server_ids}
           searchFn={searchServerPaginated}
           displayOptions={displayServerOptions}
           placeholder="选择服务器"

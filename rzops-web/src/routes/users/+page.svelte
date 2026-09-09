@@ -3,7 +3,7 @@
   import { rolesApi } from '$lib/api/roles';
   import type { UserResponse, CreateUserRequest, UpdateUserRequest } from '$lib/types/user';
   import type { RoleResponse } from '$lib/types/role';
-  import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
+  import { canSystem } from '$lib/utils/permissions';
   import { formatDate } from '$lib/utils/format';
   import { validate } from '$lib/utils/validation';
   import { Button } from '$lib/ui/button';
@@ -198,7 +198,7 @@
 
   <div class="flex items-center justify-between">
     <h1 class="text-2xl font-semibold">用户管理</h1>
-    {#if canCreate('user')}
+    {#if canSystem('user')}
       <Button onclick={openCreate}>新建用户</Button>
     {/if}
   </div>
@@ -216,8 +216,8 @@
     {columns}
     {data}
     {loading}
-    onEdit={canUpdate('user') ? openEdit : undefined}
-    onDelete={canDelete('user') ? handleDelete : undefined}
+    onEdit={canSystem('user') ? openEdit : undefined}
+    onDelete={canSystem('user') ? handleDelete : undefined}
     getDeleteLabel={getDeleteLabel}
     storageKey="users"
   >

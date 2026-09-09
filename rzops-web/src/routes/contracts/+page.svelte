@@ -13,6 +13,7 @@
   import { contractStatusOptions, getOptionColor } from '$lib/utils/enum-options';
   import { getProviderOptions } from '$lib/utils/entity-options';
   import { formatResourceWithStatus } from '$lib/utils/resource-status';
+  import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
 
   let data = $state<ContractResponse[]>([]);
   let total = $state(0);
@@ -109,7 +110,9 @@
 
   <div class="flex items-center justify-between">
     <h1 class="text-2xl font-semibold">合同管理</h1>
-    <Button onclick={() => goto('/contracts/new')}>新建合同</Button>
+    {#if canCreate('contract')}
+      <Button onclick={() => goto('/contracts/new')}>新建合同</Button>
+    {/if}
   </div>
 
   <div class="flex gap-2">
@@ -124,8 +127,8 @@
     {columns}
     {data}
     {loading}
-    onEdit={handleEdit}
-    onDelete={handleDelete}
+    onEdit={canUpdate('contract') ? handleEdit : undefined}
+    onDelete={canDelete('contract') ? handleDelete : undefined}
     {getRowClass}
     storageKey="contracts" />
 

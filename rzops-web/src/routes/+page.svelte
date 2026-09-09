@@ -7,6 +7,7 @@
   import { providersApi } from '$lib/api/providers';
   import { opsSitesApi } from '$lib/api/ops-sites';
   import { databaseInstancesApi } from '$lib/api/database-instances';
+  import { canRead, canSystem } from '$lib/utils/permissions';
   import { onMount } from 'svelte';
   import { formatDate } from '$lib/utils/format';
 
@@ -406,14 +407,18 @@
           <div class="font-medium">服务器管理</div>
           <div class="text-sm text-muted-foreground">查看和管理所有服务器</div>
         </a>
+        {#if canRead('ops_site')}
         <a href="/ops-sites" class="rounded-md border p-4 hover:bg-accent">
           <div class="font-medium">站点管理</div>
           <div class="text-sm text-muted-foreground">运维站点配置</div>
         </a>
+        {/if}
+        {#if canSystem('audit')}
         <a href="/audit-logs" class="rounded-md border p-4 hover:bg-accent">
           <div class="font-medium">审计日志</div>
           <div class="text-sm text-muted-foreground">查看操作记录</div>
         </a>
+        {/if}
       </div>
     </CardContent>
   </Card>
