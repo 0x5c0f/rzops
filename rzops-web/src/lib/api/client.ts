@@ -1,5 +1,7 @@
 const BASE_URL = '';
 
+import { showToast } from '$lib/stores/toast.svelte';
+
 export class ApiError extends Error {
   constructor(
     public status: number,
@@ -39,9 +41,13 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   if (res.status === 401) {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('token');
-      // 已在登录页时不重复跳转，避免 401 触发的整页跳转造成 reload 死循环
-      if (window.location.pathname !== '/login') {
-        window.location.href = '/login';
+      // 登录接口失败由登录页自行展示错误，不弹全局 toast（避免双重提示）
+      if (!path.includes('/auth/login')) {
+        showToast('登录已过期，请重新登录', 'error', 3000);
+        // 已在登录页时不重复跳转，避免 401 触发的整页跳转造成 reload 死循环
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login';
+        }
       }
     }
     throw new ApiError(401, '未授权，请重新登录');
@@ -53,7 +59,11 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: '未知错误' }));
-    throw new ApiError(res.status, err.error ?? `HTTP ${res.status}`);
+    const msg = err.error ?? `HTTP ${res.status}`;
+    if (typeof window !== 'undefined') {
+      showToast(msg, 'error', 4000);
+    }
+    throw new ApiError(res.status, msg);
   }
 
   return res.json() as Promise<T>;

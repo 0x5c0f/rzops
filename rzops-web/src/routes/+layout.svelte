@@ -8,6 +8,7 @@
   import { routeGuard } from '$lib/utils/route-guard';
   import Sidebar from '$lib/components/layout/Sidebar.svelte';
   import Header from '$lib/components/layout/Header.svelte';
+  import Toast from '$lib/components/shared/Toast.svelte';
   import '../app.css';
 
   let { children } = $props();
@@ -97,3 +98,5 @@
     </div>
   </div>
 {/if}
+
+<Toast />
