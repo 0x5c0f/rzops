@@ -1,4 +1,4 @@
-import adapter from '@sveltejs/adapter-auto';
+import adapterStatic from '@sveltejs/adapter-static';
 import { sveltekit } from '@sveltejs/kit/vite';
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig, loadEnv } from 'vite';
@@ -20,7 +20,9 @@ export default defineConfig(({ mode }) => {
 					runes: ({ filename }) =>
 						filename.split(/[/\\]/).includes('node_modules') ? undefined : true
 				},
-				adapter: adapter()
+				// 静态导出（SPA 模式）：所有路由回退到 index.html，由前端路由接管。
+			// 产物在 build/ 目录，可部署到任意静态服务器（nginx / OSS / CDN）。
+			adapter: adapterStatic({ fallback: 'index.html' })
 			})
 		],
 		server: {
