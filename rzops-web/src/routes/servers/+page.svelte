@@ -207,8 +207,8 @@ import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
     {#if showAdvancedFilter}
       <div class="grid gap-3 rounded-lg border p-4 md:grid-cols-3 lg:grid-cols-5">
         <div class="space-y-1">
-          <label class="text-xs font-medium text-muted-foreground">服务器类型</label>
-          <select
+          <label for="f-1" class="text-xs font-medium text-muted-foreground">服务器类型</label>
+          <select id="f-1"
             class="w-full rounded-md border px-3 py-2 text-sm"
             value={query.server_type ?? ''}
             onchange={(e) => {
@@ -224,8 +224,8 @@ import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
           </select>
         </div>
         <div class="space-y-1">
-          <label class="text-xs font-medium text-muted-foreground">环境</label>
-          <select
+          <label for="f-2" class="text-xs font-medium text-muted-foreground">环境</label>
+          <select id="f-2"
             class="w-full rounded-md border px-3 py-2 text-sm"
             value={query.environment ?? ''}
             onchange={(e) => {
@@ -241,8 +241,8 @@ import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
           </select>
         </div>
         <div class="space-y-1">
-          <label class="text-xs font-medium text-muted-foreground">状态</label>
-          <select
+          <label for="f-3" class="text-xs font-medium text-muted-foreground">状态</label>
+          <select id="f-3"
             class="w-full rounded-md border px-3 py-2 text-sm"
             value={query.status ?? ''}
             onchange={(e) => {
@@ -258,8 +258,8 @@ import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
           </select>
         </div>
         <div class="space-y-1">
-          <label class="text-xs font-medium text-muted-foreground">数据库服务器</label>
-          <select
+          <label for="f-4" class="text-xs font-medium text-muted-foreground">数据库服务器</label>
+          <select id="f-4"
             class="w-full rounded-md border px-3 py-2 text-sm"
             value={query.is_database_server === undefined ? '' : String(query.is_database_server)}
             onchange={(e) => {
@@ -274,8 +274,8 @@ import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
           </select>
         </div>
         <div class="space-y-1">
-          <label class="text-xs font-medium text-muted-foreground">数据中心</label>
-          <select
+          <label for="f-5" class="text-xs font-medium text-muted-foreground">数据中心</label>
+          <select id="f-5"
             class="w-full rounded-md border px-3 py-2 text-sm"
             value={query.data_center_id ?? ''}
             onchange={(e) => {

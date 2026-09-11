@@ -27,15 +27,20 @@
     onSubmit: (data: CreateServerIpRequest) => Promise<void>;
   } = $props();
 
+  // svelte-ignore state_referenced_locally —— 仅初始化用一次，有意读取初始值
+  const initialSnapshot = $state.snapshot(initial);
+  // svelte-ignore state_referenced_locally —— 仅初始化用一次，有意读取初始值
+  const initialServerNameSnapshot = $state.snapshot(initialServerName);
+
   let saving = $state(false);
   let formError = $state<string | null>(null);
   let providerOptions = $state<{ label: string; value: string }[]>([]);
 
-  let form = $state<CreateServerIpRequest>(createInitial(initial));
+  let form = $state<CreateServerIpRequest>(createInitial(initialSnapshot));
   // 同步初始化服务器回显选项：编辑时直接使用传入的 server_name，
   // 避免异步搜索期间 RemoteSearchSelect 回退显示原始 id（先闪 id 再变名字）
   let serverDisplayOptions = $state<{ label: string; value: string }[]>(
-    form.server_id && initialServerName ? [{ label: initialServerName, value: form.server_id }] : []
+    form.server_id && initialServerNameSnapshot ? [{ label: initialServerNameSnapshot, value: form.server_id }] : []
   );
 
   function createInitial(initial?: CreateServerIpRequest): CreateServerIpRequest {

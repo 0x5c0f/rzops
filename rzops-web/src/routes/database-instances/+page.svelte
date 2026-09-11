@@ -82,7 +82,9 @@ import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
   }
 
   // 监听服务器筛选变化（RemoteSearchSelect 双向绑定，不触发 onchange）
-  let prevServerId = $state(query.server_id);
+  // svelte-ignore state_referenced_locally —— 仅初始化用一次，有意读取初始值
+  const querySnapshot = $state.snapshot(query);
+  let prevServerId = $state(querySnapshot.server_id);
   $effect(() => {
     if (query.server_id !== prevServerId) {
       prevServerId = query.server_id;
@@ -215,8 +217,8 @@ import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
     {#if showAdvancedFilter}
       <div class="grid gap-3 rounded-lg border p-4 md:grid-cols-2 lg:grid-cols-4">
         <div class="space-y-1">
-          <label class="text-xs font-medium text-muted-foreground">状态</label>
-          <select
+          <label for="f-1" class="text-xs font-medium text-muted-foreground">状态</label>
+          <select id="f-1"
             class="w-full rounded-md border px-3 py-2 text-sm"
             value={query.status ?? ''}
             onchange={(e) => {
@@ -232,8 +234,8 @@ import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
           </select>
         </div>
         <div class="space-y-1">
-          <label class="text-xs font-medium text-muted-foreground">环境</label>
-          <select
+          <label for="f-2" class="text-xs font-medium text-muted-foreground">环境</label>
+          <select id="f-2"
             class="w-full rounded-md border px-3 py-2 text-sm"
             value={query.environment ?? ''}
             onchange={(e) => {
@@ -249,8 +251,8 @@ import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
           </select>
         </div>
         <div class="space-y-1">
-          <label class="text-xs font-medium text-muted-foreground">数据库类型</label>
-          <select
+          <label for="f-3" class="text-xs font-medium text-muted-foreground">数据库类型</label>
+          <select id="f-3"
             class="w-full rounded-md border px-3 py-2 text-sm"
             value={query.db_type ?? ''}
             onchange={(e) => {
@@ -266,8 +268,8 @@ import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
           </select>
         </div>
         <div class="space-y-1">
-          <label class="text-xs font-medium text-muted-foreground">服务器</label>
-          <RemoteSearchSelect
+          <label for="f-4" class="text-xs font-medium text-muted-foreground">服务器</label>
+          <RemoteSearchSelect id="f-4"
             bind:value={query.server_id}
             searchFn={searchServerOptions}
             displayOptions={serverFilterDisplayOptions}

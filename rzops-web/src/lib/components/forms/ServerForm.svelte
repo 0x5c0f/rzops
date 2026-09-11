@@ -92,6 +92,15 @@
     onSubmit: (data: CreateServerRequest) => Promise<string | void>;
   } = $props();
 
+  // svelte-ignore state_referenced_locally —— 仅初始化用一次，有意读取初始值
+  const initialSnapshot = $state.snapshot(initial);
+  // svelte-ignore state_referenced_locally —— 仅初始化用一次，有意读取初始值
+  const initialIpsSnapshot = $state.snapshot(initialIps);
+  // svelte-ignore state_referenced_locally —— 仅初始化用一次，有意读取初始值
+  const initialPortsSnapshot = $state.snapshot(initialPorts);
+  // svelte-ignore state_referenced_locally —— 仅初始化用一次，有意读取初始值
+  const initialDbInstancesSnapshot = $state.snapshot(initialDbInstances);
+
   let saving = $state(false);
   let formError = $state<string | null>(null);
   let providerOptions = $state<{ label: string; value: string }[]>([]);
@@ -100,11 +109,11 @@
   let attachmentRef = $state<{ uploadAll: (id: string) => Promise<void> } | null>(null);
 
   // 默认值为空字符串，确保编辑时清空字段能正确提交（后端部分更新语义）
-  let form = $state<CreateServerRequest>(createInitial(initial));
-  let ips = $state<IpDraft[]>(initialIps.length ? JSON.parse(JSON.stringify(initialIps)) : []);
-  let ports = $state<PortDraft[]>(initialPorts.length ? JSON.parse(JSON.stringify(initialPorts)) : []);
+  let form = $state<CreateServerRequest>(createInitial(initialSnapshot));
+  let ips = $state<IpDraft[]>(initialIpsSnapshot.length ? JSON.parse(JSON.stringify(initialIpsSnapshot)) : []);
+  let ports = $state<PortDraft[]>(initialPortsSnapshot.length ? JSON.parse(JSON.stringify(initialPortsSnapshot)) : []);
   let dbInstances = $state<DbDraft[]>(
-    initialDbInstances.length ? JSON.parse(JSON.stringify(initialDbInstances)) : [],
+    initialDbInstancesSnapshot.length ? JSON.parse(JSON.stringify(initialDbInstancesSnapshot)) : [],
   );
   let siteRels = $state<SiteDraft[]>([]);
   let initialSiteRels = $state<SiteDraft[]>([]);

@@ -193,8 +193,8 @@ import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
     {#if showAdvancedFilter}
       <div class="grid gap-3 rounded-lg border p-4 md:grid-cols-2">
         <div class="space-y-1">
-          <label class="text-xs font-medium text-muted-foreground">目标类型</label>
-          <select
+          <label for="f-1" class="text-xs font-medium text-muted-foreground">目标类型</label>
+          <select id="f-1"
             class="w-full rounded-md border px-3 py-2 text-sm"
             value={query.target_type ?? ''}
             onchange={(e) => {

@@ -153,7 +153,7 @@ impl ServerRepository for PgServerRepository {
         if let Some(q) = q_val { query = query.bind(format!("%{}%", q)); }
 
         let rows = query.fetch_all(&self.pool).await.repo()?;
-        Ok(rows.iter().map(|r| row_to_server(r)).collect())
+        Ok(rows.iter().map(row_to_server).collect())
     }
 
     async fn count(&self, filter: ServerFilter) -> Result<i64, RepositoryError> {
@@ -313,47 +313,4 @@ impl ServerRepository for PgServerRepository {
         Ok(result.rows_affected() > 0)
     }
 }
-
-impl PgServerRepository {
-    /// Helper for find_all when data_center_id filter is present (mixed bind types).
-    async fn find_all_with_uuid_filter(&self, filter: ServerFilter) -> Result<Vec<Server>, RepositoryError> {
-        let mut sql = format!("SELECT {} FROM cmdb_server WHERE deleted_at IS NULL", SELECT_COLS);
-        let mut idx = 1;
-
-        // Store filter values to bind in the same order as $N placeholders
-        let status_val = filter.status.as_ref();
-        let environment_val = filter.environment.as_ref();
-        let dc_id_val = filter.data_center_id;
-        let server_type_val = filter.server_type.as_ref();
-        let is_db_val = filter.is_database_server;
-        let q_val = filter.q.as_ref();
-
-        if status_val.is_some() { sql.push_str(&format!(" AND status::text = ${}", idx)); idx += 1; }
-        if environment_val.is_some() { sql.push_str(&format!(" AND environment = ${}", idx)); idx += 1; }
-        if dc_id_val.is_some() { sql.push_str(&format!(" AND data_center_id = ${}", idx)); idx += 1; }
-        if server_type_val.is_some() { sql.push_str(&format!(" AND server_type::text = ${}", idx)); idx += 1; }
-        if is_db_val.is_some() { sql.push_str(&format!(" AND is_database_server = ${}", idx)); idx += 1; }
-        if q_val.is_some() { sql.push_str(&format!(" AND (name ILIKE ${idx} OR primary_ip ILIKE ${idx} OR asset_code ILIKE ${idx})", idx = idx)); }
-
-        sql.push_str(" ORDER BY CASE WHEN status::text = 'retired' THEN 1 ELSE 0 END, created_at DESC");
-
-        if let Some(limit) = filter.limit {
-            sql.push_str(&format!(" LIMIT {}", limit));
-        }
-        if let Some(offset) = filter.offset {
-            sql.push_str(&format!(" OFFSET {}", offset));
-        }
-
-        // Bind in the same order as $N placeholders
-        let mut query = sqlx::query(&sql);
-        if let Some(s) = status_val { query = query.bind(s); }
-        if let Some(e) = environment_val { query = query.bind(e); }
-        if let Some(dc) = dc_id_val { query = query.bind(dc); }
-        if let Some(st) = server_type_val { query = query.bind(st); }
-        if let Some(is_db) = is_db_val { query = query.bind(is_db); }
-        if let Some(q) = q_val { query = query.bind(format!("%{}%", q)); }
-
-        let rows = query.fetch_all(&self.pool).await.repo()?;
-        Ok(rows.iter().map(|r| row_to_server(r)).collect())
-    }
-}
+

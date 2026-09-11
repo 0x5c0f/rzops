@@ -77,7 +77,7 @@ impl DatabaseInstanceRepository for PgDatabaseInstanceRepository {
         for s in &string_binds { query = query.bind(s); }
         for u in &uuid_binds { query = query.bind(u); }
         let rows = query.fetch_all(&self.pool).await.repo()?;
-        Ok(rows.iter().map(|r| row_to_database_instance(r)).collect())
+        Ok(rows.iter().map(row_to_database_instance).collect())
     }
 
     async fn count(&self, filter: DatabaseInstanceFilter) -> Result<i64, RepositoryError> {

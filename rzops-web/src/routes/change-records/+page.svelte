@@ -48,7 +48,7 @@
   let changeTypeMap = $derived(Object.fromEntries(changeTypeOptions.map(o => [o.value, o.label])));
   let changeTypeLabel = $derived(changeTypeMap[changeType] || '变更类型');
 
-  const columns = [
+  const columns = $derived([
     { key: 'change_type', label: '变更类型', valueMap: changeTypeMap },
     {
       key: 'resource_type',
@@ -73,7 +73,7 @@
       label: '创建时间',
       display: (item: ChangeRecordResponse) => formatDate(item.created_at),
     },
-  ];
+  ]);
 
   async function loadData() {
     loading = true;

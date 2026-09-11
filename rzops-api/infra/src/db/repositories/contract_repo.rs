@@ -36,7 +36,7 @@ impl ContractRepository for PgContractRepository {
         let mut query = sqlx::query(&sql);
         if let Some(s) = s_status { query = query.bind(s); }
         if let Some(q) = s_q { query = query.bind(format!("%{}%", q)); }
-        Ok(query.fetch_all(&self.pool).await.repo()?.iter().map(|r| row_to_entity(r)).collect())
+        Ok(query.fetch_all(&self.pool).await.repo()?.iter().map(row_to_entity).collect())
     }
     async fn count(&self, f: ContractFilter) -> Result<i64, RepositoryError> {
         let mut sql = "SELECT COUNT(*) as count FROM cmdb_contract WHERE 1=1".to_string();

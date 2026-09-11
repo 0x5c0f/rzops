@@ -90,7 +90,7 @@ impl ServerPortRepository for PgServerPortRepository {
         for u in &uuid_binds { query = query.bind(u); }
         for s in &string_binds { query = query.bind(s); }
         let rows = query.fetch_all(&self.pool).await.repo()?;
-        Ok(rows.iter().map(|r| row_to_server_port(r)).collect())
+        Ok(rows.iter().map(row_to_server_port).collect())
     }
 
     async fn count(&self, filter: ServerPortFilter) -> Result<i64, RepositoryError> {

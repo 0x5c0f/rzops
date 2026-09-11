@@ -74,10 +74,7 @@ pub async fn list_users(
         Ok((users, total)) => {
             let mut data = Vec::with_capacity(users.len());
             for u in &users {
-                let roles = match state.role_repo.get_user_roles(u.id).await {
-                    Ok(r) => r,
-                    Err(_) => vec![],
-                };
+                let roles = state.role_repo.get_user_roles(u.id).await.unwrap_or_default();
                 data.push(user_to_response(u, roles));
             }
             (StatusCode::OK, Json(UserListResponse { data, count: total })).into_response()
@@ -177,10 +174,8 @@ pub async fn update_user(
     Json(body): Json<UpdateUserRequest>,
 ) -> impl IntoResponse {
     // 超管不允许自己停用或降级（防止锁死）
-    if id == auth.user_id {
-        if body.is_active == Some(false) || body.is_superuser == Some(false) {
-            return (StatusCode::BAD_REQUEST, Json(ErrorResponse { error: "cannot disable or demote yourself".to_string() })).into_response();
-        }
+    if id == auth.user_id && (body.is_active == Some(false) || body.is_superuser == Some(false)) {
+        return (StatusCode::BAD_REQUEST, Json(ErrorResponse { error: "cannot disable or demote yourself".to_string() })).into_response();
     }
     // 目标用户必须存在
     let target = match state.user_repo.find_by_id(id).await {
@@ -261,3 +256,4 @@ pub async fn delete_user(
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: format!("database error: {}", e) })).into_response(),
     }
 }
+

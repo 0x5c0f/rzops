@@ -34,8 +34,8 @@ impl ChangeRecordRepository for PgChangeRecordRepository {
         if let Some(aid) = f.actor_id { sql.push_str(&format!(" AND actor_id = ${}", idx)); uuid_binds.push(aid); idx += 1; }
         if let Some(ref rt) = f.resource_type { sql.push_str(&format!(" AND resource_type = ${}", idx)); string_binds.push(rt.clone()); idx += 1; }
         if let Some(ref ct) = f.change_type { sql.push_str(&format!(" AND change_type = ${}", idx)); string_binds.push(ct.clone()); idx += 1; }
-        if let Some(ref dt) = f.created_from { sql.push_str(&format!(" AND created_at >= ${}", idx)); dt_binds.push(dt.clone()); idx += 1; }
-        if let Some(ref dt) = f.created_to { sql.push_str(&format!(" AND created_at <= ${}", idx)); dt_binds.push(dt.clone()); idx += 1; }
+        if let Some(ref dt) = f.created_from { sql.push_str(&format!(" AND created_at >= ${}", idx)); dt_binds.push(*dt); idx += 1; }
+        if let Some(ref dt) = f.created_to { sql.push_str(&format!(" AND created_at <= ${}", idx)); dt_binds.push(*dt); }
         sql.push_str(" ORDER BY created_at DESC");
         if let Some(l) = f.limit { sql.push_str(&format!(" LIMIT {}", l)); }
         if let Some(o) = f.offset { sql.push_str(&format!(" OFFSET {}", o)); }
@@ -43,7 +43,7 @@ impl ChangeRecordRepository for PgChangeRecordRepository {
         for u in &uuid_binds { query = query.bind(u); }
         for s in &string_binds { query = query.bind(s); }
         for d in &dt_binds { query = query.bind(d); }
-        Ok(query.fetch_all(&self.pool).await.repo()?.iter().map(|r| row_to_entity(r)).collect())
+        Ok(query.fetch_all(&self.pool).await.repo()?.iter().map(row_to_entity).collect())
     }
     async fn count(&self, f: ChangeRecordFilter) -> Result<i64, RepositoryError> {
         let mut sql = "SELECT COUNT(*) as count FROM cmdb_change_record WHERE 1=1".to_string();
@@ -54,8 +54,8 @@ impl ChangeRecordRepository for PgChangeRecordRepository {
         if let Some(aid) = f.actor_id { sql.push_str(&format!(" AND actor_id = ${}", idx)); uuid_binds.push(aid); idx += 1; }
         if let Some(ref rt) = f.resource_type { sql.push_str(&format!(" AND resource_type = ${}", idx)); string_binds.push(rt.clone()); idx += 1; }
         if let Some(ref ct) = f.change_type { sql.push_str(&format!(" AND change_type = ${}", idx)); string_binds.push(ct.clone()); idx += 1; }
-        if let Some(ref dt) = f.created_from { sql.push_str(&format!(" AND created_at >= ${}", idx)); dt_binds.push(dt.clone()); idx += 1; }
-        if let Some(ref dt) = f.created_to { sql.push_str(&format!(" AND created_at <= ${}", idx)); dt_binds.push(dt.clone()); idx += 1; }
+        if let Some(ref dt) = f.created_from { sql.push_str(&format!(" AND created_at >= ${}", idx)); dt_binds.push(*dt); idx += 1; }
+        if let Some(ref dt) = f.created_to { sql.push_str(&format!(" AND created_at <= ${}", idx)); dt_binds.push(*dt); }
         let mut query = sqlx::query(&sql);
         for u in &uuid_binds { query = query.bind(u); }
         for s in &string_binds { query = query.bind(s); }

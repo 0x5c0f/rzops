@@ -24,6 +24,7 @@
     required = false,
     disabled = false,
     multiple = false,
+    id = undefined,
     class: className = '',
   }: {
     label?: string;
@@ -37,6 +38,8 @@
     required?: boolean;
     disabled?: boolean;
     multiple?: boolean;
+    /** 供外部 <label for> 关联的控件 id */
+    id?: string;
     class?: string;
   } = $props();
 
@@ -173,6 +176,7 @@
   <div class="relative">
     <button
       type="button"
+      {id}
       onclick={toggleOpen}
       disabled={disabled}
       data-placeholder={selectedValues.length === 0 ? true : undefined}

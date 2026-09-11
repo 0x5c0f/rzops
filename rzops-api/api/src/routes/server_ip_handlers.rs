@@ -54,7 +54,7 @@ pub async fn get_server_ip(
 ) -> impl IntoResponse {
     match repo.find_by_id(id).await {
         Ok(Some(ip)) => {
-            let briefs = resolve_servers(&ns, &[ip.clone()]).await;
+            let briefs = resolve_servers(&ns, std::slice::from_ref(&ip)).await;
             let (sname, sstatus) = ip.server_id.as_ref()
                 .and_then(|sid| briefs.get(sid))
                 .cloned()

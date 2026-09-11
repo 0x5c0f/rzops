@@ -40,7 +40,7 @@ impl BackupPlanRepository for PgBackupPlanRepository {
         if let Some(t) = s_tt { query = query.bind(t); }
         if let Some(tid) = f.target_id { query = query.bind(tid); }
         if let Some(q) = s_q { query = query.bind(format!("%{}%", q)); }
-        Ok(query.fetch_all(&self.pool).await.repo()?.iter().map(|r| row_to_entity(r)).collect())
+        Ok(query.fetch_all(&self.pool).await.repo()?.iter().map(row_to_entity).collect())
     }
     async fn count(&self, f: BackupPlanFilter) -> Result<i64, RepositoryError> {
         let mut sql = "SELECT COUNT(*) as count FROM cmdb_backup_plan WHERE 1=1".to_string();

@@ -81,7 +81,7 @@ impl OpsSiteRepository for PgOpsSiteRepository {
         if let Some(srv) = s_server { query = query.bind(srv); }
         if let Some(q) = s_q { query = query.bind(format!("%{}%", q)); }
         let rows = query.fetch_all(&self.pool).await.repo()?;
-        Ok(rows.iter().map(|r| row_to_ops_site(r)).collect())
+        Ok(rows.iter().map(row_to_ops_site).collect())
     }
 
     async fn count(&self, filter: OpsSiteFilter) -> Result<i64, RepositoryError> {

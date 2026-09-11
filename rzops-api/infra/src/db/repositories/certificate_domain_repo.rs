@@ -84,7 +84,7 @@ impl CertificateDomainRepository for PgCertificateDomainRepository {
             query = query.bind(s);
         }
         let rows = query.fetch_all(&self.pool).await.repo()?;
-        Ok(rows.iter().map(|r| row_to_certificate_domain(r)).collect())
+        Ok(rows.iter().map(row_to_certificate_domain).collect())
     }
 
     async fn count(&self, filter: CertificateDomainFilter) -> Result<i64, RepositoryError> {

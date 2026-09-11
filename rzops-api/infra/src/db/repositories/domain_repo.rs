@@ -79,7 +79,7 @@ impl DomainRepository for PgDomainRepository {
         let mut query = sqlx::query(&sql);
         for bind in &binds { query = query.bind(bind); }
         let rows = query.fetch_all(&self.pool).await.repo()?;
-        Ok(rows.iter().map(|r| row_to_domain(r)).collect())
+        Ok(rows.iter().map(row_to_domain).collect())
     }
 
     async fn count(&self, filter: DomainFilter) -> Result<i64, RepositoryError> {

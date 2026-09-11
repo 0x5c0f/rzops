@@ -101,7 +101,7 @@ impl DataCenterRepository for PgDataCenterRepository {
         }
 
         let rows = query.fetch_all(&self.pool).await.repo()?;
-        Ok(rows.iter().map(|r| row_to_datacenter(r)).collect())
+        Ok(rows.iter().map(row_to_datacenter).collect())
     }
 
     async fn count(&self, filter: DataCenterFilter) -> Result<i64, RepositoryError> {

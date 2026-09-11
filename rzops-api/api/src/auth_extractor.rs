@@ -65,6 +65,8 @@ impl AuthUser {
     }
 
     /// 校验权限点，无权限返回 403。
+    // axum handler 惯用返回 Response；该 lint 对 API 权限守卫属于误报倾向场景，官方建议豁免。
+    #[allow(clippy::result_large_err)]
     pub fn require_perm(&self, perm: &str) -> Result<(), Response> {
         if self.has_perm(perm) {
             Ok(())
@@ -80,6 +82,7 @@ impl AuthUser {
     }
 
     /// Reject the request unless the authenticated user is a superuser.
+    #[allow(clippy::result_large_err)]
     pub fn require_superuser(&self) -> Result<(), Response> {
         if self.is_superuser {
             Ok(())

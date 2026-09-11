@@ -47,14 +47,21 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
     onSubmit: (data: CreateDatabaseInstanceRequest) => Promise<string | void>;
   } = $props();
 
+  // svelte-ignore state_referenced_locally —— 仅初始化用一次，有意读取初始值
+  const initialSnapshot = $state.snapshot(initial);
+  // svelte-ignore state_referenced_locally —— 仅初始化用一次，有意读取初始值
+  const initialBackupPlansSnapshot = $state.snapshot(initialBackupPlans);
+  // svelte-ignore state_referenced_locally —— 仅初始化用一次，有意读取初始值
+  const initialMonitorTargetsSnapshot = $state.snapshot(initialMonitorTargets);
+
   let saving = $state(false);
   let formError = $state<string | null>(null);
   let attachmentRef = $state<{ uploadAll: (id: string) => Promise<void> } | null>(null);
   let serverDisplayOptions = $state<{ label: string; value: string }[]>([]);
 
-  let form = $state<CreateDatabaseInstanceRequest>(createInitial(initial));
-  let backupPlans = $state<BackupDraft[]>(JSON.parse(JSON.stringify(initialBackupPlans)));
-  let monitorTargets = $state<MonitorDraft[]>(JSON.parse(JSON.stringify(initialMonitorTargets)));
+  let form = $state<CreateDatabaseInstanceRequest>(createInitial(initialSnapshot));
+  let backupPlans = $state<BackupDraft[]>(JSON.parse(JSON.stringify(initialBackupPlansSnapshot)));
+  let monitorTargets = $state<MonitorDraft[]>(JSON.parse(JSON.stringify(initialMonitorTargetsSnapshot)));
 
   function createInitial(initial?: CreateDatabaseInstanceRequest): CreateDatabaseInstanceRequest {
     const init = {

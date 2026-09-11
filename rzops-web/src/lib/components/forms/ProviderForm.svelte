@@ -22,11 +22,14 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
     onSubmit: (data: CreateProviderRequest) => Promise<string | void>;
   } = $props();
 
+  // svelte-ignore state_referenced_locally —— 仅初始化用一次，有意读取初始值
+  const initialSnapshot = $state.snapshot(initial);
+
   let saving = $state(false);
   let formError = $state<string | null>(null);
   let attachmentRef = $state<{ uploadAll: (id: string) => Promise<void> } | null>(null);
 
-  let form = $state<CreateProviderRequest>(createInitial(initial));
+  let form = $state<CreateProviderRequest>(createInitial(initialSnapshot));
 
   function createInitial(initial?: CreateProviderRequest): CreateProviderRequest {
     return {

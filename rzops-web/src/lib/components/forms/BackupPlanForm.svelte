@@ -28,13 +28,16 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
     onSubmit: (data: CreateBackupPlanRequest) => Promise<string | void>;
   } = $props();
 
+  // svelte-ignore state_referenced_locally —— 表单仅初始化一次，有意读取 prop 初始值
+  const initialSnapshot = $state.snapshot(initial);
+
   let saving = $state(false);
   let formError = $state<string | null>(null);
   let attachmentRef = $state<{ uploadAll: (id: string) => Promise<void> } | null>(null);
   let targetIds = $state<string[]>([]);
   let displayTargetOptions = $state<{ label: string; value: string }[]>([]);
 
-  let form = $state<CreateBackupPlanRequest>(createInitial(initial));
+  let form = $state<CreateBackupPlanRequest>(createInitial(initialSnapshot));
 
   // 根据目标类型获取搜索函数和列配置
   let targetSearchFn = $derived.by(() => {

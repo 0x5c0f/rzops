@@ -32,6 +32,9 @@ impl ChangeLogState {
 }
 
 /// 记录一条变更。失败只记日志，不阻塞主流程。
+// 参数直接来自各 handler 的上下文（8 个），组合成 struct 会破坏 55+ 调用点的可读性；
+// 该 lint 对内部日志辅助函数属于误报倾向场景，按 clippy 官方建议豁免。
+#[allow(clippy::too_many_arguments)]
 pub async fn record_change(
     state: &ChangeLogState,
     auth: &AuthUser,

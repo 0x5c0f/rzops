@@ -76,7 +76,7 @@ import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
     return '';
   }
 
-  const columns = [
+  const columns = $derived([
     { key: 'name', label: '名称' , link: (item: MonitorTargetResponse) => `/monitor-targets/${item.id}`, lockVisible: true },
     { key: 'target_type', label: '目标类型', valueMap: targetTypeMap },
     { key: 'target_name', label: '关联目标', link: targetHref, render: (v: unknown, item: MonitorTargetResponse) => {
@@ -93,7 +93,7 @@ import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
     { key: 'endpoint', label: '端点', hideBelow: 'xl', hideInTable: true },
     { key: 'interval_seconds', label: '间隔(秒)', hideBelow: 'lg', hideInTable: true },
     { key: 'created_at', label: '创建时间', render: (v: unknown) => formatDate(v as string), hideInTable: true },
-  ];
+  ]);
 
   async function loadData() {
     loading = true;
@@ -230,8 +230,8 @@ import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
     {#if showAdvancedFilter}
       <div class="grid gap-3 rounded-lg border p-4 md:grid-cols-2">
         <div class="space-y-1">
-          <label class="text-xs font-medium text-muted-foreground">状态</label>
-          <select
+          <label for="f-1" class="text-xs font-medium text-muted-foreground">状态</label>
+          <select id="f-1"
             class="w-full rounded-md border px-3 py-2 text-sm"
             value={query.status ?? ''}
             onchange={(e) => {
@@ -247,8 +247,8 @@ import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
           </select>
         </div>
         <div class="space-y-1">
-          <label class="text-xs font-medium text-muted-foreground">目标类型</label>
-          <select
+          <label for="f-2" class="text-xs font-medium text-muted-foreground">目标类型</label>
+          <select id="f-2"
             class="w-full rounded-md border px-3 py-2 text-sm"
             value={query.target_type ?? ''}
             onchange={(e) => {

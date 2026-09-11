@@ -30,13 +30,16 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
     onSubmit: (data: CreateMonitorTargetRequest) => Promise<string | void>;
   } = $props();
 
+  // svelte-ignore state_referenced_locally —— 仅初始化用一次，有意读取初始值
+  const initialSnapshot = $state.snapshot(initial);
+
   let saving = $state(false);
   let formError = $state<string | null>(null);
   let attachmentRef = $state<{ uploadAll: (id: string) => Promise<void> } | null>(null);
   let targetIds = $state<string[]>([]);
   let displayTargetOptions = $state<{ label: string; value: string }[]>([]);
 
-  let form = $state<CreateMonitorTargetRequest>(createInitial(initial));
+  let form = $state<CreateMonitorTargetRequest>(createInitial(initialSnapshot));
 
   // 根据目标类型获取搜索函数和列配置
   let targetSearchFn = $derived.by(() => {

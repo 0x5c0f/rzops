@@ -37,7 +37,7 @@ impl AttachmentRepository for PgAttachmentRepository {
         let mut query = sqlx::query(&sql);
         for s in &string_binds { query = query.bind(s); }
         for u in &uuid_binds { query = query.bind(u); }
-        Ok(query.fetch_all(&self.pool).await.repo()?.iter().map(|r| row_to_entity(r)).collect())
+        Ok(query.fetch_all(&self.pool).await.repo()?.iter().map(row_to_entity).collect())
     }
     async fn count(&self, f: AttachmentFilter) -> Result<i64, RepositoryError> {
         let mut sql = "SELECT COUNT(*) as count FROM cmdb_attachment WHERE 1=1".to_string();

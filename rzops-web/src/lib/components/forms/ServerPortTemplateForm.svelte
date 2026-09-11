@@ -19,6 +19,9 @@
     onSubmit: (data: CreateServerPortTemplateRequest) => Promise<void>;
   } = $props();
 
+  // svelte-ignore state_referenced_locally —— 仅初始化用一次，有意读取初始值
+  const initialSnapshot = $state.snapshot(initial);
+
   let saving = $state(false);
   let formError = $state<string | null>(null);
 
@@ -31,7 +34,7 @@
       access_scope: '',
       is_enabled: true,
       description: '',
-      ...(initial ?? {}),
+      ...(initialSnapshot ?? {}),
     }))
   );
 

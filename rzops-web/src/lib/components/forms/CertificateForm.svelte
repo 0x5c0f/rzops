@@ -39,14 +39,19 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
     onSubmit: (data: CreateCertificateRequest) => Promise<string | void>;
   } = $props();
 
+  // svelte-ignore state_referenced_locally —— 仅初始化用一次，有意读取初始值
+  const initialSnapshot = $state.snapshot(initial);
+  // svelte-ignore state_referenced_locally —— 仅初始化用一次，有意读取初始值
+  const initialDomainsSnapshot = $state.snapshot(initialDomains);
+
   let saving = $state(false);
   let formError = $state<string | null>(null);
   let attachmentRef = $state<{ uploadAll: (id: string) => Promise<void> } | null>(null);
   let providerOptions = $state<{ label: string; value: string }[]>([]);
   let domainOptions = $state<{ label: string; value: string }[]>([]);
 
-  let form = $state<CreateCertificateRequest>(createInitial(initial));
-  let domains = $state<DomainDraft[]>(initialDomains.length ? JSON.parse(JSON.stringify(initialDomains)) : []);
+  let form = $state<CreateCertificateRequest>(createInitial(initialSnapshot));
+  let domains = $state<DomainDraft[]>(initialDomainsSnapshot.length ? JSON.parse(JSON.stringify(initialDomainsSnapshot)) : []);
 
   function createInitial(initial?: CreateCertificateRequest): CreateCertificateRequest {
     return {

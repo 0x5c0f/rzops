@@ -30,7 +30,7 @@ impl SiteServerRelationRepository for PgSiteRelationRepository {
     async fn find_by_site(&self, site_id: Uuid) -> Result<Vec<OpsSiteServer>, RepositoryError> {
         let rows = sqlx::query("SELECT id, site_id, server_id, deploy_role::text, created_at FROM cmdb_ops_site_server WHERE site_id=$1 ORDER BY created_at")
             .bind(site_id).fetch_all(&self.pool).await.repo()?;
-        Ok(rows.iter().map(|r| row_to_site_server(r)).collect())
+        Ok(rows.iter().map(row_to_site_server).collect())
     }
     async fn find_sites_by_server(&self, server_id: Uuid) -> Result<Vec<SiteRefByServer>, RepositoryError> {
         let rows = sqlx::query(
@@ -64,7 +64,7 @@ impl SiteDatabaseRelationRepository for PgSiteRelationRepository {
     async fn find_by_site(&self, site_id: Uuid) -> Result<Vec<OpsSiteDatabase>, RepositoryError> {
         let rows = sqlx::query("SELECT id, site_id, database_instance_id, usage_type::text, created_at FROM cmdb_ops_site_database WHERE site_id=$1 ORDER BY created_at")
             .bind(site_id).fetch_all(&self.pool).await.repo()?;
-        Ok(rows.iter().map(|r| row_to_site_database(r)).collect())
+        Ok(rows.iter().map(row_to_site_database).collect())
     }
     async fn find_sites_by_database(&self, database_instance_id: Uuid) -> Result<Vec<SiteRefByDatabase>, RepositoryError> {
         let rows = sqlx::query(
@@ -93,7 +93,7 @@ impl SiteDomainRelationRepository for PgSiteRelationRepository {
     async fn find_by_site(&self, site_id: Uuid) -> Result<Vec<OpsSiteDomain>, RepositoryError> {
         let rows = sqlx::query("SELECT id, site_id, domain_id, domain_role, created_at FROM cmdb_ops_site_domain WHERE site_id=$1 ORDER BY created_at")
             .bind(site_id).fetch_all(&self.pool).await.repo()?;
-        Ok(rows.iter().map(|r| row_to_site_domain(r)).collect())
+        Ok(rows.iter().map(row_to_site_domain).collect())
     }
     async fn create(&self, e: &OpsSiteDomain) -> Result<OpsSiteDomain, RepositoryError> {
         Ok(row_to_site_domain(&sqlx::query("INSERT INTO cmdb_ops_site_domain (id,site_id,domain_id,domain_role,created_at) VALUES ($1,$2,$3,$4,$5) RETURNING id, site_id, domain_id, domain_role, created_at")

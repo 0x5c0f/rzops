@@ -47,7 +47,7 @@ impl ServerPortTemplateRepository for PgServerPortTemplateRepository {
     async fn find_all(&self, filter: ServerPortTemplateFilter) -> Result<Vec<ServerPortTemplate>, RepositoryError> {
         let mut sql = String::from("SELECT * FROM cmdb_server_port_template WHERE 1=1");
         let mut binds: Vec<String> = Vec::new();
-        let mut idx = 1;
+        let idx = 1;
         if let Some(ref q) = filter.q {
             sql.push_str(&format!(" AND (name ILIKE ${} OR service_name ILIKE ${} OR port::text ILIKE ${})", idx, idx, idx));
             binds.push(format!("%{}%", q));
@@ -62,13 +62,13 @@ impl ServerPortTemplateRepository for PgServerPortTemplateRepository {
         let mut query = sqlx::query(&sql);
         for b in &binds { query = query.bind(b); }
         let rows = query.fetch_all(&self.pool).await.repo()?;
-        Ok(rows.iter().map(|r| row_to_tpl(r)).collect())
+        Ok(rows.iter().map(row_to_tpl).collect())
     }
 
     async fn count(&self, filter: ServerPortTemplateFilter) -> Result<i64, RepositoryError> {
         let mut sql = String::from("SELECT COUNT(*) as count FROM cmdb_server_port_template WHERE 1=1");
         let mut binds: Vec<String> = Vec::new();
-        let mut idx = 1;
+        let idx = 1;
         if let Some(ref q) = filter.q {
             sql.push_str(&format!(" AND (name ILIKE ${} OR service_name ILIKE ${} OR port::text ILIKE ${})", idx, idx, idx));
             binds.push(format!("%{}%", q));

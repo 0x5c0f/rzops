@@ -181,10 +181,11 @@ import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
         {dictType || '全部类型'}
       </Select.Trigger>
       <Select.Content>
-        <div class="px-2 pt-2" onclick={(e) => e.stopPropagation()}>
+        <div class="px-2 pt-2">
           <Input
             placeholder="搜索类型..."
             value={typeSearch}
+            onclick={(e) => e.stopPropagation()}
             oninput={(e) => (typeSearch = (e.target as HTMLInputElement).value)}
           />
         </div>

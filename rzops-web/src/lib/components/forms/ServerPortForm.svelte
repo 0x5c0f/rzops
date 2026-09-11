@@ -26,13 +26,16 @@
     onSubmit: (data: CreateServerPortRequest) => Promise<void>;
   } = $props();
 
+  // svelte-ignore state_referenced_locally —— 仅初始化用一次，有意读取初始值
+  const initialSnapshot = $state.snapshot(initial);
+
   let saving = $state(false);
   let formError = $state<string | null>(null);
 
   /** 内部表单：服务器选择用数组承载（TableSelectModal 单选/多选统一返回数组），
    *  提交时映射回 CreateServerPortRequest.server_id（单选取第一个）。 */
   type PortFormState = Omit<CreateServerPortRequest, 'server_id'> & { server_ids: string[] };
-  let form = $state<PortFormState>(createInitial(initial));
+  let form = $state<PortFormState>(createInitial(initialSnapshot));
 
   function createInitial(initial?: CreateServerPortRequest): PortFormState {
     // 注意：不能用 structuredClone(initial) —— Svelte 5 的 $state 会对含数组字段做 deep proxy，

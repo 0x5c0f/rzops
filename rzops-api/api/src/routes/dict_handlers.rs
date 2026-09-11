@@ -57,7 +57,7 @@ pub async fn list_dicts(
             }
             let count = items.len() as i64;
             let page = query.page.unwrap_or(1).max(1);
-            let per_page = query.per_page.unwrap_or(20).max(1).min(200);
+            let per_page = query.per_page.unwrap_or(20).clamp(1, 200);
             let start = ((page - 1) * per_page) as usize;
             let slice = items.into_iter().skip(start).take(per_page as usize);
             let data: Vec<DictResponse> = slice.map(|i| to_response(&i)).collect();

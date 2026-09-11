@@ -74,7 +74,7 @@ impl CertificateRepository for PgCertificateRepository {
         if let Some(t) = s_type { query = query.bind(t); }
         if let Some(q) = s_q { query = query.bind(format!("%{}%", q)); }
         let rows = query.fetch_all(&self.pool).await.repo()?;
-        Ok(rows.iter().map(|r| row_to_certificate(r)).collect())
+        Ok(rows.iter().map(row_to_certificate).collect())
     }
 
     async fn count(&self, filter: CertificateFilter) -> Result<i64, RepositoryError> {

@@ -22,11 +22,14 @@
     onSubmit: (data: CreateContractRequest) => Promise<void>;
   } = $props();
 
+  // svelte-ignore state_referenced_locally —— 仅初始化用一次，有意读取初始值
+  const initialSnapshot = $state.snapshot(initial);
+
   let saving = $state(false);
   let formError = $state<string | null>(null);
   let providerOptions = $state<{ label: string; value: string }[]>([]);
 
-  let form = $state<CreateContractRequest>(createInitial(initial));
+  let form = $state<CreateContractRequest>(createInitial(initialSnapshot));
 
   function createInitial(initial?: CreateContractRequest): CreateContractRequest {
     return {
