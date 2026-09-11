@@ -90,11 +90,19 @@
   let columnVisibility = $state<Record<string, boolean>>({});
   let storageInitialized = $state(false);
 
+  /** 列的默认可见性：窄屏时 hideBelow 列默认隐藏，但用户显式勾选后优先显示 */
+  function defaultVisible(col: Column): boolean {
+    if (col.lockVisible) return true;
+    if (col.hideInTable) return false;
+    if (col.hideBelow && windowWidth < BREAKPOINTS[col.hideBelow]) return false;
+    return true;
+  }
+
   function loadVisibility() {
     if (!storageKey) {
       const vis: Record<string, boolean> = {};
       for (const col of columns) {
-        vis[col.key] = !col.hideInTable;
+        vis[col.key] = defaultVisible(col);
       }
       columnVisibility = vis;
       storageInitialized = true;
@@ -106,26 +114,24 @@
         const saved = JSON.parse(raw) as Record<string, boolean>;
         const vis: Record<string, boolean> = {};
         for (const col of columns) {
-          if (col.lockVisible) {
-            vis[col.key] = true;
-          } else if (col.key in saved) {
+          if (col.key in saved) {
             vis[col.key] = saved[col.key];
           } else {
-            vis[col.key] = !col.hideInTable;
+            vis[col.key] = defaultVisible(col);
           }
         }
         columnVisibility = vis;
       } else {
         const vis: Record<string, boolean> = {};
         for (const col of columns) {
-          vis[col.key] = !col.hideInTable;
+          vis[col.key] = defaultVisible(col);
         }
         columnVisibility = vis;
       }
     } catch {
       const vis: Record<string, boolean> = {};
       for (const col of columns) {
-        vis[col.key] = !col.hideInTable;
+        vis[col.key] = defaultVisible(col);
       }
       columnVisibility = vis;
     }
@@ -155,7 +161,7 @@
   function resetColumns() {
     const vis: Record<string, boolean> = {};
     for (const col of columns) {
-      vis[col.key] = col.lockVisible ? true : !col.hideInTable;
+      vis[col.key] = defaultVisible(col);
     }
     columnVisibility = vis;
     saveVisibility();
@@ -174,13 +180,7 @@
     return () => window.removeEventListener('resize', onResize);
   });
 
-  let visibleColumns = $derived(
-    columns.filter(
-      (c) =>
-        columnVisibility[c.key] !== false &&
-        (!c.hideBelow || windowWidth >= BREAKPOINTS[c.hideBelow]),
-    ),
-  );
+  let visibleColumns = $derived(columns.filter((c) => columnVisibility[c.key] !== false));
   let visibleCount = $derived(visibleColumns.length);
 
   function getValue(item: T, key: string): unknown {
@@ -387,7 +387,7 @@
               onchange={() => toggleColumn(col.key)}
               class="h-4 w-4"
             />
-            <span>{col.label} {#if col.hideBelow}<span class="text-xs text-muted-foreground">(窄屏自动隐藏)</span>{/if}</span>
+            <span>{col.label} {#if col.hideBelow}<span class="text-xs text-muted-foreground">(窄屏默认隐藏)</span>{/if}</span>
           {/if}
         </label>
       {/each}
