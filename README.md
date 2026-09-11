@@ -153,7 +153,15 @@ npm ci && npm run build    # 产物在 build/
 | `RZOPS_JWT__EXPIRATION_SECONDS` | `86400` | Token 有效期 |
 | `RZOPS_PUBLIC_HOST` | （空） | 仅本地 vite dev 公网反代开发用（见 §3），compose web 为静态构建不受影响 |
 
-后端完整配置项见 `rzops-api/.env.example`。
+**三个 `.env.example` 模板的用途**：
+
+| 模板文件 | 对应运行方式 | 说明 |
+|---|---|---|
+| 根目录 `.env.example` | docker compose 一键启动 | **主模板**：Postgres 服务 + 对外端口 + API 全部配置 + 管理员账号。`cp .env.example .env` 后按需修改 |
+| `rzops-api/.env.example` | 后端单独运行（`cargo run`） | 复制为 `rzops-api/.env`，后端启动时自动加载；数据库指向本机（localhost） |
+| `rzops-web/.env.example` | 前端 vite dev / preview | 仅 `RZOPS_PUBLIC_HOST`（公网反代开发用）；本地直连无需配置 |
+
+单独运行后端时也可用 export 环境变量代替 `.env`（见 §2 手动部署）。
 
 ---
 

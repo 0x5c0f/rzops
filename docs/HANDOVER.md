@@ -542,13 +542,13 @@ user ──< user_role >── role ──< role_permission >── 权限点
 ## 附：近期变更记录
 
 ### 2026-09-11 构建告警清零与操作列修复
-
 - **构建三线清零**：`cargo clippy --workspace --all-targets` 0 警告（infra 闭包→函数指针、未读索引移除、死代码删除；api 层 unwrap_or_default / from_ref / clamp；auth_extractor `result_large_err` 与 change_log `too_many_arguments` 属 clippy 官方豁免场景）；前端 `npm run build` 0 警告（a11y label 关联 23 处、Svelte 5 值捕获 24 处、`$derived` 闭合 3 处）；容器 api/web 两 Dockerfile 构建 0 警告。
 - **列表操作列最终形态**（多次迭代后的定稿）：DataTable 默认操作列 `w-[120px]`，按钮组与表头"操作"统一**水平居中**（`justify-center` + `text-center`），删除按钮距表格右缘 18-19px；用户管理页 3 操作按钮（重置密码+编辑+删除）操作列 `w-[200px]`。修复高分辨率下"删除"按钮被裁成"删"以及贴右缘的问题。
 - **踩坑：问题定位方向**——"操作列贴右"先被误判为浏览器/内容区边距问题（试过 `max-w-[1600px]` 固定值、`xl:px-[5vw]` 视口比例留白两个方案），实际根因是操作列内部按钮与 td 右缘间距不足（td 仅 8px padding）。教训：布局类视觉问题先用浏览器实测（`getBoundingClientRect` 量 td/按钮右缘差）精确定位，再改对应层，避免改错层级。
 - **窄屏自动隐藏列语义修正**：`hideBelow` 原先在渲染过滤里硬性隐藏（勾选也不显示），改为仅影响**默认勾选值**——窄屏时该列默认不勾选，用户显式勾选后始终显示（选择优先于自动隐藏）；"恢复默认"按当前视口宽度计算默认值。
 - **踩坑：多行提交信息丢失（重要）**——通过 `wsl -e sh -lc '...git commit -m "多行..."'` 提交时，多行正文被 PowerShell→WSL 传参截断，最终提交信息只剩 `fix:` 一个词。**规范：带多行正文的提交一律用 `git commit -F <文件>`**（先 Write 写文件 → `sed -i 's/\r$//'` 去 CRLF → `git commit -F`）。
 - **行尾治理经验**：仓库历史为混合行尾（Windows 开发多数 CRLF）；WSL 内 python 写文件默认 LF 会触发整文件 diff。改动后应按基线（上一正式提交）**逐文件**对齐行尾（LF 保持 LF、CRLF 保持 CRLF），不可整批统一。
+- **三个 `.env.example` 模板分工（知识沉淀）**：根目录模板 = docker compose 主配置（`cp .env.example .env`，compose 自动读取）；`rzops-api/.env.example` = 后端单独运行（`cargo run`）模板，后端 `main.rs` 用 `dotenvy::dotenv()` 自动加载运行目录 `.env`；`rzops-web/.env.example` = 前端 vite dev 用（仅 `RZOPS_PUBLIC_HOST`，本地直连无需配置）。**曾踩坑**：rzops-api 模板长期停留在旧值（库名 `rzops`/密码 `changeme` 与根模板 `rzopsdb`/`rzops` 不一致），单独运行后端会连错库——已统一为与根模板一致。
 
 ---
 

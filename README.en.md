@@ -150,7 +150,15 @@ Copy `.env.example` to `.env`. Key items:
 | `RZOPS_JWT__EXPIRATION_SECONDS` | `86400` | token lifetime |
 | `RZOPS_PUBLIC_HOST` | (empty) | dev-only, for public reverse-proxy dev access (see §3); compose web is a static build and unaffected |
 
-Full backend vars: `rzops-api/.env.example`.
+**The three `.env.example` templates:**
+
+| Template | Run mode | Notes |
+|---|---|---|
+| Root `.env.example` | docker compose (one-command) | **Main template**: Postgres service + host ports + all API vars + admin account. `cp .env.example .env`, then edit as needed |
+| `rzops-api/.env.example` | Backend standalone (`cargo run`) | Copy to `rzops-api/.env`; loaded automatically at startup; DB points to localhost |
+| `rzops-web/.env.example` | Frontend vite dev / preview | Only `RZOPS_PUBLIC_HOST` (public reverse-proxy dev); not needed for localhost |
+
+For a standalone backend you may also `export` the variables instead of a `.env` (see §2).
 
 ---
 
