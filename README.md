@@ -127,6 +127,8 @@ npm install
 npm run dev        # http://localhost:5173，/api 自动代理到 8000
 ```
 
+> 通过公网域名反代 / 内网穿透访问 dev server 时，在 `rzops-web/.env`（模板 `rzops-web/.env.example`）设置 `RZOPS_PUBLIC_HOST`（如 `cmdb.example.com`）：vite 自动放行该域名（含子域通配）并禁用 HMR，避免反代未转发 WebSocket 导致页面反复刷新。
+
 ### 4. 前端（生产静态文件）
 
 ```bash
@@ -149,6 +151,7 @@ npm ci && npm run build    # 产物在 build/
 | `RZOPS_SEED_ADMIN_EMAIL` | `admin@rzops.local` | 首次启动自动创建的超级管理员邮箱 |
 | `RZOPS_SEED_ADMIN_PASSWORD` | `admin123` | 超级管理员密码 |
 | `RZOPS_JWT__EXPIRATION_SECONDS` | `86400` | Token 有效期 |
+| `RZOPS_PUBLIC_HOST` | （空） | 仅本地 vite dev 公网反代开发用（见 §3），compose web 为静态构建不受影响 |
 
 后端完整配置项见 `rzops-api/.env.example`。
 

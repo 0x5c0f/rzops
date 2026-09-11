@@ -124,6 +124,8 @@ npm install
 npm run dev        # http://localhost:5173, /api proxied to 8000
 ```
 
+> When accessing the dev server through a public-domain reverse proxy / tunnel, set `RZOPS_PUBLIC_HOST` (e.g. `cmdb.example.com`) in `rzops-web/.env` (template `rzops-web/.env.example`): vite automatically allows that host (including subdomains) and disables HMR to avoid infinite page reloads when the proxy does not forward WebSocket.
+
 ### 4. Frontend (production static)
 
 ```bash
@@ -146,6 +148,7 @@ Copy `.env.example` to `.env`. Key items:
 | `RZOPS_SEED_ADMIN_EMAIL` | `admin@rzops.local` | superuser email auto-created on first boot |
 | `RZOPS_SEED_ADMIN_PASSWORD` | `admin123` | superuser password |
 | `RZOPS_JWT__EXPIRATION_SECONDS` | `86400` | token lifetime |
+| `RZOPS_PUBLIC_HOST` | (empty) | dev-only, for public reverse-proxy dev access (see §3); compose web is a static build and unaffected |
 
 Full backend vars: `rzops-api/.env.example`.
 
