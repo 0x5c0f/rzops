@@ -220,6 +220,7 @@
     onDelete={canSystem('user') ? handleDelete : undefined}
     getDeleteLabel={getDeleteLabel}
     storageKey="users"
+    actionsWidth="w-[200px]"
   >
     {#snippet extraActions(item)}
       <Button variant="ghost" size="sm" onclick={() => openPwd(item)}>重置密码</Button>

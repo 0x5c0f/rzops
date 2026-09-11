@@ -539,5 +539,15 @@ superuser (user.is_superuser=true) bypasses all checks
 
 ---
 
-*Handover distilled from the full RzOps development history (2026-09-09). Pair with [AGENTS.md](../AGENTS.md); both humans and AI agents can ramp up quickly.*
+## Appendix: Recent Changes
+
+### 2026-09-11 — Build-warning cleanup & actions-column fix
+
+- **Three-line warning cleanup**: `cargo clippy --workspace --all-targets` → 0 warnings (infra closures→fn pointers, unused-index removals, dead-code removal; api unwrap_or_default / from_ref / clamp; auth_extractor `result_large_err` and change_log `too_many_arguments` are official clippy exemptions); frontend `npm run build` → 0 warnings (23 a11y label associations, 24 Svelte-5 value-capture ignores, 3 `$derived` closures fixed); both container Dockerfiles → 0 warnings.
+- **List actions-column width fix**: DataTable default actions column `w-[90px]` → `w-[110px]` (Edit+Delete ≈ 82px + 16px padding), button container `flex-nowrap`; Users page with 3 action buttons (Reset password + Edit + Delete) → `w-[180px]`. Fixes the "Delete" button being clipped to just "Del" on high-resolution screens.
+- **Line-ending lessons**: the repo historically mixes CRLF/LF (Windows dev, mostly CRLF); WSL python writes default to LF and produces whole-file diffs. After edits, align line endings **per file** against the baseline commit (LF stays LF, CRLF stays CRLF) — never batch-normalize.
+
+---
+
+*Handover distilled from the full RzOps development history (2026-09-09, continuously updated). Pair with [AGENTS.md](../AGENTS.md); both humans and AI agents can ramp up quickly.*
 

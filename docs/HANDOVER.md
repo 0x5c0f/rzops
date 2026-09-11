@@ -539,4 +539,14 @@ user ──< user_role >── role ──< role_permission >── 权限点
 
 ---
 
-*交接文档由 RzOps 开发全过程沉淀整理（2026-09-09）。配合 [AGENTS.md](../AGENTS.md) 使用，AI 与人类开发者均可快速接手。*
+## 附：近期变更记录
+
+### 2026-09-11 构建告警清零与操作列修复
+
+- **构建三线清零**：`cargo clippy --workspace --all-targets` 0 警告（infra 闭包→函数指针、未读索引移除、死代码删除；api 层 unwrap_or_default / from_ref / clamp；auth_extractor `result_large_err` 与 change_log `too_many_arguments` 属 clippy 官方豁免场景）；前端 `npm run build` 0 警告（a11y label 关联 23 处、Svelte 5 值捕获 24 处、`$derived` 闭合 3 处）；容器 api/web 两 Dockerfile 构建 0 警告。
+- **列表操作列宽度修复**：DataTable 默认操作列 `w-[90px]` → `w-[110px]`（编辑+删除两按钮 82px + padding 16px），按钮容器加 `flex-nowrap`；用户管理页 3 个操作按钮（重置密码+编辑+删除）操作列 `w-[180px]`。修复高分辨率下"删除"按钮被裁成"删"的问题。
+- **行尾治理经验**：仓库历史为混合行尾（Windows 开发多数 CRLF）；WSL 内 python 写文件默认 LF 会触发整文件 diff。改动后应按基线（上一正式提交）**逐文件**对齐行尾（LF 保持 LF、CRLF 保持 CRLF），不可整批统一。
+
+---
+
+*交接文档由 RzOps 开发全过程沉淀整理（2026-09-09，持续更新）。配合 [AGENTS.md](../AGENTS.md) 使用，AI 与人类开发者均可快速接手。*

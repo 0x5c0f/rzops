@@ -49,7 +49,7 @@
     perPage = 20,
     children,
     extraActions,
-    actionsWidth = 'w-[90px]',
+    actionsWidth = 'w-[120px]',
     expandContent,
   }: {
     columns: Column[];
@@ -266,7 +266,7 @@
             <Table.Head class={cn('sticky top-0 z-10 bg-background shadow-[0_1px_0_0_var(--border)]', col.class)}>{col.label}</Table.Head>
           {/each}
           {#if hasActions}
-            <Table.Head class={cn('sticky top-0 z-10 bg-background shadow-[0_1px_0_0_var(--border)]', actionsWidth)}>操作</Table.Head>
+            <Table.Head class={cn('sticky top-0 z-10 bg-background text-center shadow-[0_1px_0_0_var(--border)]', actionsWidth)}>操作</Table.Head>
           {/if}
         </Table.Row>
       </Table.Header>
@@ -338,8 +338,8 @@
                 </Table.Cell>
               {/each}
               {#if hasActions}
-                <Table.Cell>
-                  <div class="flex gap-0.5">
+                <Table.Cell class="text-center">
+                  <div class="flex flex-nowrap justify-center gap-0.5">
                     {#if extraActions}
                       {@render extraActions(item)}
                     {/if}
