@@ -10,9 +10,6 @@ export default defineConfig(({ mode }) => {
 	const publicHost = env.RZOPS_PUBLIC_HOST || '';
 
 	return {
-		// 依赖预构建缓存放到 WSL 原生盘（ext4）——项目位于 /mnt/c（9P 跨盘 IO 慢），
-		// 将 node_modules/.vite 的依赖扫描/预构建产物移出慢盘，可显著缩短冷启动时间。
-		cacheDir: '/home/chenxiaodong/.cache/rzops-vite',
 		plugins: [
 			tailwindcss(),
 			sveltekit({

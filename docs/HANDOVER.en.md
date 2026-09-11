@@ -27,7 +27,7 @@
 ### 2.1 Requirements
 
 - Docker (with Compose) — recommended (**dev & test unified on compose**); or local Rust (stable) + Node 22+ + PostgreSQL 16.
-- Runtime is WSL Docker Compose: `rzops-db-1`(5432) / `rzops-api-1`(8000) / `rzops-web-1`(8080). The legacy systemd setup (`rzops-api.service` / `rzops-web.service`) and the `rzops-postgres` dev-db container are stopped & disabled, kept only as background history.
+- Runtime is Docker Compose: `rzops-db-1`(5432) / `rzops-api-1`(8000) / `rzops-web-1`(8080). The legacy systemd setup (`rzops-api.service` / `rzops-web.service`) and the `rzops-postgres` dev-db container are stopped & disabled, kept only as background history.
 
 ### 2.2 One-command startup (Docker Compose)
 
@@ -66,7 +66,7 @@ cd rzops-api && cargo clippy --workspace -- -D warnings  # lint
 cd rzops-web && npm run check                            # svelte-check
 ```
 
-> Compose mode: rebuild the web service with `docker compose up -d --build web` after frontend edits (the legacy WSL systemd `/mnt/c` watcher issue no longer applies).
+> Compose mode: rebuild the web service with `docker compose up -d --build web` after frontend edits (dev mode does not depend on vite watcher hot-reload; see §6.6 and README for static deployment).
 
 ---
 
@@ -350,11 +350,9 @@ Design principles:
 - **Symptom**: form submit fails on empty strings for `Option<Uuid>`/`Option<DateTime>` fields.
 - **Decision**: `client.ts` `sanitizeEmptyRefs` strips empty `_id/_date/_time` fields before submit; all new forms must go through this wrapper.
 
-### 6.8 Vite cross-drive performance (WSL dev)
+### 6.8 Vite dev-time performance
 
-- **Symptom**: Vite very slow on `/mnt/c`; code changes not picked up (legacy systemd dev mode only).
-- **Decision**: `vite.config.ts` `cacheDir` on the native disk (`~/.cache/rzops-vite`) + `warmup`; cross-drive watcher misses changes.
-- **Now (compose mode)**: `docker compose up -d --build web` after frontend edits; no watcher/systemd involved.
+- **Current**: rebuild the web service with `docker compose up -d --build web` after frontend edits; use `npm run dev` during development. `vite.config.ts` keeps `warmup` to pre-warm common routes and reduce first-paint latency.
 
 ### 6.9 Edit page "ID first, name later" (UX)
 
@@ -408,9 +406,9 @@ Design principles:
 
 - Attachments are read-only; target-ID/uploader-ID show resolved names (click-through); target_type/target_id/storage_key/content_type/file_size are **computed by the program**.
 
-### 6.19 Windows/PowerShell toolchain pitfalls (dev env)
+### 6.19 Dev-script conventions
 
-- Complex `wsl -e sh -lc` commands break on PowerShell quoting → use `seed/_xxx.sh` scripts + `sed -i 's/\r$//'` to strip CRLF; sudo password `1`.
+- Ad-hoc dev scripts live under `seed/` with an `_` prefix (e.g. `seed/_xxx.sh` / `seed/_xxx.py`); **delete them after use, never commit**. If checked out on a non-Linux toolchain where CRLF crept in, run `sed -i 's/\r$//'` before executing shell scripts.
 
 ---
 
@@ -475,7 +473,7 @@ superuser (user.is_superuser=true) bypasses all checks
 
 - Port conflicts: override `API_PORT` / `POSTGRES_PORT` / `WEB_PORT` in root `.env` (not committed).
 - Attachments: uploads volume; API connection via `RZOPS_*` in `docker-compose.yml`.
-- **Legacy (disabled)**: WSL systemd `rzops-api.service` / `rzops-web.service` and the `rzops-postgres` dev container are stopped & `systemctl disable`d — background history only.
+- **Legacy (disabled)**: systemd `rzops-api.service` / `rzops-web.service` and the `rzops-postgres` dev container are stopped & `systemctl disable`d — background history only.
 
 ### 9.2 Production
 

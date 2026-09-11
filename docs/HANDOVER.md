@@ -27,7 +27,7 @@
 ### 2.1 环境要求
 
 - Docker（含 Compose）——推荐一键启动（**开发与测试统一走 compose**）；或本机 Rust（stable）+ Node 22+ + PostgreSQL 16。
-- 运行环境为 WSL 内 Docker Compose 三服务：`rzops-db-1`(5432) / `rzops-api-1`(8000) / `rzops-web-1`(8080)。历史 systemd 方式（`rzops-api.service`/`rzops-web.service`）与开发库容器 `rzops-postgres` 已停用（`systemctl disable`），仅作背景记录。
+- 运行环境为 Docker Compose 三服务：`rzops-db-1`(5432) / `rzops-api-1`(8000) / `rzops-web-1`(8080)。历史 systemd 方式（`rzops-api.service`/`rzops-web.service`）与开发库容器 `rzops-postgres` 已停用（`systemctl disable`），仅作背景记录。
 
 ### 2.2 一键启动（Docker Compose）
 
@@ -66,7 +66,7 @@ cd rzops-api && cargo clippy --workspace -- -D warnings  # lint
 cd rzops-web && npm run check                            # svelte-check
 ```
 
-> compose 模式改前端后：`docker compose up -d --build web` 即可生效（历史 WSL systemd dev 模式的 `/mnt/c` 跨盘 watcher 问题不再适用）。
+> compose 模式改前端后：`docker compose up -d --build web` 即可生效（生产/静态部署见 §6.6 与 README；开发期不依赖 vite watcher 热更新）。
 
 ---
 
@@ -350,11 +350,9 @@ erDiagram
 - **现象**：提交表单报错（字段为空字符串，后端 `Option<Uuid>`/`Option<DateTime>` 解析失败）。
 - **决策**：前端 `client.ts` 统一 `sanitizeEmptyRefs`，提交前剔除 `_id/_date/_time` 结尾的空字段；新表单必须沿用该封装。
 
-### 6.8 Vite 跨盘性能（WSL 开发环境）
+### 6.8 Vite 开发期性能
 
-- **现象**：`/mnt/c` 下 Vite 启动极慢、改代码不生效（仅历史 systemd dev 模式）。
-- **决策**：`vite.config.ts` 设 `cacheDir` 到原生盘（`~/.cache/rzops-vite`）+ `warmup`；跨盘 watcher 不感知变更。
-- **现状（compose 模式）**：改前端后 `docker compose up -d --build web` 生效，不再依赖 watcher/systemd。
+- **现状**：改前端后 `docker compose up -d --build web` 生效；开发期直接 `npm run dev` 即可。`vite.config.ts` 保留 `warmup` 预热常用路由以降低首屏延迟。
 
 ### 6.9 编辑页"先显示 ID 再显示名称"（体验）
 
@@ -408,9 +406,9 @@ erDiagram
 
 - 附件不允许编辑（只读）；目标ID/上传者ID 显示为关联对象名称（可点击跳转）；目标类型/目标ID/存储键/内容类型/文件大小**程序自动计算**，杜绝用户手填脏数据。
 
-### 6.19 Windows/PowerShell 工具链坑（开发环境）
+### 6.19 开发脚本约定
 
-- PowerShell 执行 `wsl -e sh -lc` 复杂命令引号易碎 → 统一 `seed/_xxx.sh` 脚本 + `sed -i 's/\r$//'` 去除 CRLF；sudo 密码 `1`。
+- 临时开发脚本统一放 `seed/` 目录、`_` 前缀命名（如 `seed/_xxx.sh` / `seed/_xxx.py`），**用完即删、不提交**；Git 检出后在非 Linux 工具链可能出现 CRLF，脚本类文件用 `sed -i 's/\r$//'` 去除后再执行。
 
 ---
 
@@ -475,7 +473,7 @@ user ──< user_role >── role ──< role_permission >── 权限点
 
 - 端口冲突：根 `.env`（不入库）覆盖 `API_PORT`/`POSTGRES_PORT`/`WEB_PORT`。
 - 附件存储：uploads 卷；API 连接参数见 `docker-compose.yml` 的 `RZOPS_*`。
-- **历史（已停用）**：WSL systemd 服务 `rzops-api.service`/`rzops-web.service` 与开发库容器 `rzops-postgres` 已 `systemctl disable`/停止，仅作背景记录。
+- **历史（已停用）**：systemd 服务 `rzops-api.service`/`rzops-web.service` 与开发库容器 `rzops-postgres` 已 `systemctl disable`/停止，仅作背景记录。
 
 ### 9.2 生产部署
 

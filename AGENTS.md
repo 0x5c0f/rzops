@@ -9,7 +9,7 @@ RzOps 是运维 CMDB：Rust(axum) 后端 + Svelte5/SvelteKit 前端 + Postgres16
 ## 关键命令
 
 ```bash
-# 后端（WSL 内，项目在 /mnt/c/workspace/RzOps）
+# 后端（Rust workspace，位于 rzops-api/）
 cd rzops-api && cargo build --release --workspace    # 构建（glibc 动态）
 cargo build --release --target x86_64-unknown-linux-musl --workspace  # 静态构建（无 glibc 依赖，Dockerfile 用此方案）
 cargo run -p rzops-app                                # 运行（需 DATABASE_URL 相关 RZOPS_* 环境变量）
@@ -32,10 +32,9 @@ docker compose up -d --build api     # 后端（musl 静态编译，首次较慢
 
 ## 运行环境（非显然，必读）
 
-- **运行与开发测试统一走 docker compose**（WSL Docker）：三服务 `rzops-db-1`(5432) / `rzops-api-1`(8000) / `rzops-web-1`(8080)。旧 systemd 方式（`rzops-api.service`/`rzops-web.service`）与开发库容器 `rzops-postgres` 已停用并 `systemctl disable`，勿再使用。
+- **运行与开发测试统一走 docker compose**：三服务 `rzops-db-1`(5432) / `rzops-api-1`(8000) / `rzops-web-1`(8080)。旧 systemd 方式（`rzops-api.service`/`rzops-web.service`）与开发库容器 `rzops-postgres` 已停用并 `systemctl disable`，勿再使用。
 - **端口冲突**：若 8000/5432/8080 被占，根 `.env`（不入库，模板 `.env.example`）覆盖 `API_PORT`/`POSTGRES_PORT`/`WEB_PORT` 后 `docker compose up -d`。
-- **跨盘（/mnt/c）文件变更 Vite watcher 不感知**（仅历史 systemd dev 模式）；compose 模式改前端后执行 `docker compose up -d --build web` 即可。
-- Vite 缓存目录已指到原生盘（`vite.config.ts` cacheDir），勿改回。
+- 改前端/后端代码后重建对应服务：`docker compose up -d --build web` / `docker compose up -d --build api`。
 - 附件上传存储：`rzops-api/uploads/`（compose 中为 uploads 卷）。
 - 数据库密码/JWT 密钥在 `rzops-api/.env` 与根 `.env.example`（占位）。
 
@@ -61,7 +60,6 @@ docker compose up -d --build api     # 后端（musl 静态编译，首次较慢
 
 | 坑 | 表现 | 解法 |
 |---|---|---|
-| Vite 跨盘 watcher | 改代码不生效（仅历史 dev 模式） | compose：`docker compose up -d --build web` |
 | 公网反代 | Blocked request / 无限刷新 | Vite `allowedHosts` 加域名；公网生产用**静态构建**（hmr 不参与） |
 | 云端 WAF(ModSecurity) | 保存 403（PUT/含"ssh"字段被拦） | WAF 规则问题非应用缺陷，放行 PUT/调整规则 |
 | 后端 Option 空串 | 保存报错 | 前端 `sanitizeEmptyRefs`（已统一） |
