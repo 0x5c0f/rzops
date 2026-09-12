@@ -2,6 +2,7 @@
 name = "rzops-server"
 version.workspace = true
 edition.workspace = true
+license.workspace = true
 
 [dependencies]
 rzops-api = { workspace = true }

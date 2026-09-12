@@ -213,4 +213,6 @@ RzOps/
 
 ## License
 
-MIT
+Licensed under the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0)（见 [LICENSE](LICENSE)）。
+
+Copyright © 2026 0x5c0f（署名见 [NOTICE](NOTICE)）
