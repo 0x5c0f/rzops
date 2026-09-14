@@ -19,7 +19,8 @@
   import {
     serverTypeOptions, hostingTypeOptions, serverRoleOptions,
     serverStatusOptions, architectureOptions, raidLevelOptions,
-    webServerSoftwareOptions, siteServerRoleOptions, ipTypeOptions, getOptionLabel, getOptionLabels
+    webServerSoftwareOptions, siteServerRoleOptions, ipTypeOptions, getOptionLabel, getOptionLabels,
+    environmentOptions,
   } from '$lib/utils/enum-options';
   import { getDataCenterOptions, getProviderOptions, ensureOption } from '$lib/utils/entity-options';
   import { formatDate } from '$lib/utils/format';
@@ -131,6 +132,10 @@ import { canUpdate, canDelete } from '$lib/utils/permissions';
             <div class="flex justify-between">
               <dt class="text-muted-foreground">服务器类型</dt>
               <dd>{getOptionLabel($serverTypeOptions, server.server_type)}</dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">环境</dt>
+              <dd>{server.environment ? getOptionLabel($environmentOptions, server.environment) : '-'}</dd>
             </div>
             <div class="flex justify-between">
               <dt class="text-muted-foreground">托管类型</dt>

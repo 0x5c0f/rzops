@@ -35,7 +35,7 @@
       address: p.address ?? '',
       website: p.website ?? '',
       description: p.description ?? '',
-      status: p.status ?? 'active',
+      status: p.status || 'active',
     };
   }
 

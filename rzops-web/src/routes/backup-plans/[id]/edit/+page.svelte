@@ -31,7 +31,7 @@
       target_id: p.target_id ?? '',
       schedule: p.schedule ?? '',
       retention_days: p.retention_days ?? undefined,
-      status: p.status ?? 'active',
+      status: p.status || 'active',
       remarks: p.remarks ?? '',
     };
   }

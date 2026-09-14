@@ -33,7 +33,7 @@
       country: d.country ?? '',
       line_type: d.line_type ?? [],
       description: d.description ?? '',
-      status: d.status ?? 'active',
+      status: d.status || 'active',
     };
   }
 

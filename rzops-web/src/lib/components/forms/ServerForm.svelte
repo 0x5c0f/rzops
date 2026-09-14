@@ -71,7 +71,6 @@
     id?: string;
     site_id: string;
     deploy_role: string;
-    is_primary: boolean;
   }
 
   let {
@@ -131,6 +130,7 @@
       is_database_server: false,
       is_raid: false,
       price_currency: 'CNY',
+      status: 'active',
       environment: '',
       ...JSON.parse(JSON.stringify(initial ?? {})),
     };
@@ -192,7 +192,7 @@
     return { name: '', db_type: '', port: '', instance_name: '', importance: '', description: '' };
   }
   function emptySiteRel(): SiteDraft {
-    return { site_id: '', deploy_role: '', is_primary: false };
+    return { site_id: '', deploy_role: '' };
   }
 
   function addIpRow() {
@@ -345,14 +345,12 @@
       if (rel.id) {
         await siteRelationsApi.updateServer(rel.id, {
           deploy_role: rel.deploy_role || undefined,
-          is_primary: rel.is_primary,
         });
       } else {
         await siteRelationsApi.createServer({
           site_id: rel.site_id,
           server_id: serverId,
           deploy_role: rel.deploy_role || undefined,
-          is_primary: rel.is_primary,
         });
       }
     }
@@ -364,7 +362,7 @@
       { value: form.name, label: '服务器名称', required: true, maxLength: 100 },
       { value: form.primary_ip, label: '主IP', format: 'ip' },
       { value: form.asset_code, label: '资产编号', maxLength: 50 },
-      { value: form.lease_amount, label: '租赁金额', format: 'positiveNumber' },
+      { value: form.price, label: '租赁金额', format: 'positiveNumber' },
     ]);
     if (formError) return;
     // 日期范围校验
@@ -673,7 +671,7 @@
   <Card.Root>
     <Card.Header>
       <Card.Title>关联站点</Card.Title>
-      <p class="text-sm text-muted-foreground">维护该服务器部署承载的站点（一台服务器可关联多个站点，含部署角色与主备节点）</p>
+      <p class="text-sm text-muted-foreground">维护该服务器部署承载的站点（一台服务器可关联多个站点，含部署角色）</p>
     </Card.Header>
     <Card.Content class="space-y-3">
       {#each siteRels as rel, i}
@@ -694,12 +692,6 @@
               options={$siteServerRoleOptions}
               placeholder="选择角色"
             />
-          </div>
-          <div class="flex items-end gap-2 md:col-span-2">
-            <label class="flex items-center gap-2 pb-2 text-sm">
-              <input type="checkbox" bind:checked={rel.is_primary} class="h-4 w-4" />
-              主用节点
-            </label>
           </div>
           <div class="flex items-end justify-end md:col-span-1">
             <Button variant="ghost" size="sm" type="button" onclick={() => removeSiteRelRow(i)}>删除</Button>

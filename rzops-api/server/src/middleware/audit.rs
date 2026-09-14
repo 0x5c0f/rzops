@@ -85,7 +85,24 @@ fn parse_path(path: &str) -> (Option<String>, Option<Uuid>) {
     (Some(parse_resource_type(resource).to_string()), id)
 }
 
+/// 从响应 JSON body 中提取新建资源的 id（POST 新建场景）。
+/// 形如 {"id":"<uuid>", ...}；非 JSON 或解析失败返回 None（保持 resource_id 为空）。
+fn extract_resource_id(bytes: &[u8]) -> Option<Uuid> {
+    let text = String::from_utf8_lossy(bytes);
+    serde_json::from_str::<serde_json::Value>(text.trim())
+        .ok()
+        .and_then(|v| {
+            v.get("id")
+                .and_then(|i| i.as_str())
+                .and_then(|s| Uuid::parse_str(s).ok())
+        })
+}
+
 /// 审计中间件：写请求时记录一条审计日志，随后继续处理。
+///
+/// 同步写入（不 spawn）以保证：
+/// 1. POST 新建可在响应 body 中提取到新建资源的 id 后再落库，资源列可回填名称；
+/// 2. 避免异步写入与后续读取之间的竞态。
 pub async fn audit_log_middleware(
     State(state): State<AuditState>,
     request: Request,
@@ -94,65 +111,118 @@ pub async fn audit_log_middleware(
     let method = request.method().clone();
     let path = request.uri().path().to_string();
 
-    if matches!(method, Method::POST | Method::PUT | Method::PATCH | Method::DELETE) {
-        // 提取操作者（Bearer token）
-        let actor_id = request
-            .headers()
-            .get("authorization")
-            .and_then(|h| h.to_str().ok())
-            .and_then(|h| h.strip_prefix("Bearer "))
-            .and_then(|t| state.token_service.validate_token(t).ok())
-            .and_then(|c| Uuid::parse_str(&c.sub).ok());
+    if !matches!(method, Method::POST | Method::PUT | Method::PATCH | Method::DELETE) {
+        return next.run(request).await;
+    }
 
-        let ip = request
-            .headers()
-            .get("x-forwarded-for")
-            .or_else(|| request.headers().get("x-real-ip"))
-            .and_then(|h| h.to_str().ok())
-            .map(|s| s.to_string());
+    // 提取操作者（Bearer token）
+    let actor_id = request
+        .headers()
+        .get("authorization")
+        .and_then(|h| h.to_str().ok())
+        .and_then(|h| h.strip_prefix("Bearer "))
+        .and_then(|t| state.token_service.validate_token(t).ok())
+        .and_then(|c| Uuid::parse_str(&c.sub).ok());
 
-        let ua = request
-            .headers()
-            .get("user-agent")
-            .and_then(|h| h.to_str().ok())
-            .map(|s| s.to_string());
+    let ip = request
+        .headers()
+        .get("x-forwarded-for")
+        .or_else(|| request.headers().get("x-real-ip"))
+        .and_then(|h| h.to_str().ok())
+        .map(|s| s.to_string());
 
-        let action = match method {
-            Method::POST => "create",
-            Method::PUT | Method::PATCH => "update",
-            Method::DELETE => {
-                // 回收站彻底删除（永久删除）与普通软删除区分
-                if path.contains("/recycle/") {
-                    "purge"
-                } else {
-                    "delete"
-                }
+    let ua = request
+        .headers()
+        .get("user-agent")
+        .and_then(|h| h.to_str().ok())
+        .map(|s| s.to_string());
+
+    let action = match method {
+        Method::POST => "create",
+        Method::PUT | Method::PATCH => "update",
+        Method::DELETE => {
+            // 回收站彻底删除（永久删除）与普通软删除区分
+            if path.contains("/recycle/") {
+                "purge"
+            } else {
+                "delete"
             }
-            _ => "other",
-        };
+        }
+        _ => "other",
+    };
 
-        let (resource_type, resource_id) = parse_path(&path);
-        let repo = state.audit_repo.clone();
+    let (resource_type, path_id) = parse_path(&path);
+    // POST 新建且路径无 id：需从响应 body 提取新建资源 id
+    let needs_extract = method == Method::POST && path_id.is_none();
 
-        if let Some(rt) = resource_type {
-            let log = AuditLog {
-                id: Uuid::new_v4(),
-                actor_id,
-                action: action.to_string(),
-                resource_type: rt.to_string(),
-                resource_id,
-                ip_address: ip,
-                user_agent: ua,
-                extra_data: serde_json::json!({}),
-                created_at: chrono::Utc::now(),
-            };
-            tokio::spawn(async move {
-                if let Err(e) = repo.create(&log).await {
-                    tracing::error!("failed to record audit for {}: {}", rt, e);
-                }
-            });
+    let response = next.run(request).await;
+
+    let mut resource_id = path_id;
+    if needs_extract {
+        let (parts, body) = response.into_parts();
+        match axum::body::to_bytes(body, 1024 * 1024).await {
+            Ok(bytes) => {
+                resource_id = extract_resource_id(&bytes).or(path_id);
+                return finalize(
+                    state,
+                    actor_id,
+                    action,
+                    resource_type,
+                    resource_id,
+                    ip,
+                    ua,
+                    Response::from_parts(parts, bytes.into()),
+                ).await;
+            }
+            Err(_) => {
+                // 读取 body 失败（极罕见）：移除 content-length 以匹配空 body，仍完成审计
+                let mut parts = parts;
+                parts.headers.remove(axum::http::header::CONTENT_LENGTH);
+                return finalize(
+                    state,
+                    actor_id,
+                    action,
+                    resource_type,
+                    resource_id,
+                    ip,
+                    ua,
+                    Response::from_parts(parts, axum::body::Body::empty()),
+                ).await;
+            }
         }
     }
 
-    next.run(request).await
+    finalize(state, actor_id, action, resource_type, resource_id, ip, ua, response).await
+}
+
+/// 写入审计日志并返回响应（best-effort：失败只记日志，不阻塞主流程）。
+async fn finalize(
+    state: AuditState,
+    actor_id: Option<Uuid>,
+    action: &str,
+    resource_type: Option<String>,
+    resource_id: Option<Uuid>,
+    ip: Option<String>,
+    ua: Option<String>,
+    response: Response,
+) -> Response {
+    if let Some(rt) = resource_type {
+        let log = AuditLog {
+            id: Uuid::new_v4(),
+            actor_id,
+            action: action.to_string(),
+            resource_type: rt.clone(),
+            resource_id,
+            ip_address: ip,
+            user_agent: ua,
+            extra_data: serde_json::json!({}),
+            created_at: chrono::Utc::now(),
+        };
+        let repo = state.audit_repo.clone();
+        // 同步写入：写操作低频，一次 INSERT 开销可接受，且保证与响应顺序一致
+        if let Err(e) = repo.create(&log).await {
+            tracing::error!("failed to record audit for {}: {}", rt, e);
+        }
+    }
+    response
 }

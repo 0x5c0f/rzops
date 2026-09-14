@@ -598,6 +598,21 @@ user ──< user_role >── role ──< role_permission >── 权限点
 - **已回归验证**：回收站 502、数据库实例 TDZ 白屏、权限不生效、编辑页闪 ID、审计资源列"加载中"均已在当前版本修复（详见报告 §四）。
 - **bu 点击技巧沉淀**：bits-ui Dialog 弹窗的确认按钮**不能用 `[role="dialog"]` 定位**（bits-ui 的 role 不是 dialog），需从弹窗标题文本（如"确认删除"）向上找含 `data-[state=open]` 的容器再取按钮；`b.click()`（原生）对部分按钮无效，用 `['pointerdown','mousedown','pointerup','mouseup','click']` 事件序列。删除流程验证要点：点删除→弹窗出现→定位容器→点确认→**看列表是否移除 + Toast**，中途勿刷新（刷新会丢弹窗状态）。
 
+### 2026-09-14 8 个 BUG 修复（UI 测试报告问题闭环）
+
+- **背景**：UI 测试报告（`docs/UI_TEST_REPORT.md`）8 个问题经用户确认为真，本轮全部修复并回归。**容器已重建**（`docker compose build web api`），`npm run build` 成功，本次修改文件 `svelte-check` 清零。
+- **BUG-1（严重·数据丢失）修复**：根因链 ① `servers/[id]/edit` 等 3 个 edit 页 `toForm()` 缺 `environment` 映射；② 编辑页 `status` 用 `?? 'active'` 对空串不兜底；③ 前端把空串序列化提交；④ 后端 `unwrap_or(existing.status)` 只保护 None 不保护 `Some("")`。前端 3 个 edit 页 toForm 补 environment、10 个 edit 页 status `??`→`||`；ServerForm createInitial 补 `status:'active'`；后端 3 个 handler update 加空串过滤（注意 **`unwrap_or` 的闭包惰性坑：`or(existing.status.clone())` 需改 `unwrap_or_else(|| existing.status.clone())`**）。**教训：空串（`Some("")`）≠ None，前端 `??` 兜底对空串无效，必须用 `||`；后端必须同时过滤 `Some("")`**。
+- **BUG-2（筛选无效）修复**：RemoteSearchSelect 新增 `onValueChange` 回调 prop，列表页传入 `query={...query,page:1}; loadData()`。**教训：受控筛选组件值变化后必须显式触发重新查询**，不能只改 query 状态。
+- **BUG-3（端口多选）修复**：数据模型确认=**每台服务器一条 `cmdb_server_port` 记录**（多服务器绑定=批量创建）；ServerPortForm `multiple={!editing}` + 新建多选循环提交 `CreateServerPortRequest[]`；onSubmit/handleUpdate 类型兼容数组。
+- **BUG-4（徽章映射）修复**：详情页 StatusBadge 传 `label`/`color`（`getOptionLabel`/`getOptionColor`，字典权威映射），不再走静态 `resource-status.ts`。
+- **BUG-5（详情补环境）**：服务器/站点详情页基本信息区补"环境"行。
+- **BUG-6（审计资源列"-"）修复（重写 audit 中间件）**：根因=请求前按 URL 解析资源 id，POST 新建无 id→None；变更记录是 handler 内拿真实 id 落库所以正常。改**同步写入**（不再 `tokio::spawn`）：① POST 可在响应体提取新建 id 后再落库；② 避免异步与后续读取竞态。POST 通过 `axum::body::to_bytes` 读响应体、`extract_resource_id` 提取 `{"id":...}`；**读取失败时需移除 Content-Length header 回空 body 兜底**（否则响应体长度不匹配报错）。坑：`finalize` 签名 `&str`、`extract_resource_id` 借用生命周期、`to_bytes` 后 body move。
+- **BUG-7（viewer 详情附件删除）**：AttachmentSection 用 `canDelete('attachment')` 控制条目删除按钮。
+- **BUG-8（viewer 菜单无审计）**：`database/seed-data.sql` viewer 角色补 `system:audit`/`system:change` 两行（运行库直接 INSERT）。**教训：改 seed-data.sql 后运行库需手动补 INSERT，否则不生效**。
+- **连带发现并修复**：**TableSelectModal 复选框双重 toggle 坑**——checkbox `onchange` 与所在行 `tr onclick` 都调 `toggleRow`，点 checkbox 先触发 change 再冒泡到 tr → 两次 toggle 抵消（选不中）。修复：checkbox 加 `onclick={(e)=>e.stopPropagation()}`。ServerForm 清理已删"主用节点"（is_primary）残留 UI/类型；`lease_amount`→`price` 校验名；RemoteSearchSelect `selectedValues` 显式 `$derived<string[]>`（`multiple` 是 boolean 非字面量，TS 无法收窄 `[value]` 分支，需显式标注+`typeof value==='string'` 收窄）；ServerPortForm createInitial 逐字段兜底（spread 覆盖报"specified more than once"）；`hideBelow: 'sm' as const`、`link` 返回 `null` 非 undefined（Column 类型要求）。
+- **回归结果**：BUG-1~8 全部通过浏览器回归（详见 UI_TEST_REPORT §六）。**待人工复核**：bu 自动化下端口选择弹窗点"确认"后表单回填但 Dialog 未关闭（Esc/Close/overlay 均无效，疑为 bits-ui Dialog + portal + 自动化环境兼容问题，功能本身正常——多选创建已验证成功）。
+- **存量待办**：`svelte-check` 全库仍有 72 errors + 2 warnings（历史遗留：servers/+page `is_database_server` 查询字段、users/+page asChild/email 校验、certificates 列表 `certificate_type`、backup-plans edit entityId、ServerPortTemplateForm spread 覆盖等，分布于旧文件，非本轮范围）——**建议下轮全面清理**。
+
 ---
 
 *交接文档由 RzOps 开发全过程沉淀整理（2026-09-09，持续更新）。配合 [AGENTS.md](../AGENTS.md) 使用，AI 与人类开发者均可快速接手。*

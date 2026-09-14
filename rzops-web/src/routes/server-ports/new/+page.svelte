@@ -5,8 +5,11 @@
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import ServerPortForm from '$lib/components/forms/ServerPortForm.svelte';
 
-  async function handleCreate(data: CreateServerPortRequest) {
-    await serverPortsApi.create(data);
+  async function handleCreate(data: CreateServerPortRequest | CreateServerPortRequest[]) {
+    const items = Array.isArray(data) ? data : [data];
+    for (const item of items) {
+      await serverPortsApi.create(item);
+    }
     goto('/server-ports');
   }
 </script>

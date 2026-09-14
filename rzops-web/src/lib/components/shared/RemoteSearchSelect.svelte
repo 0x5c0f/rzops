@@ -26,6 +26,7 @@
     multiple = false,
     id = undefined,
     class: className = '',
+    onValueChange,
   }: {
     label?: string;
     value?: string | string[] | undefined;
@@ -41,6 +42,8 @@
     /** 供外部 <label for> 关联的控件 id */
     id?: string;
     class?: string;
+    /** 值变化回调（列表筛选等场景在值变化后重新查询） */
+    onValueChange?: (v: string | string[] | undefined) => void;
   } = $props();
 
   let open = $state(false);
@@ -58,8 +61,10 @@
     }
   }
 
-  let selectedValues = $derived(
-    multiple ? (Array.isArray(value) ? value : []) : value ? [value] : []
+  let selectedValues = $derived<string[]>(
+    multiple
+      ? (Array.isArray(value) ? value : [])
+      : (typeof value === 'string' ? [value] : [])
   );
 
   let allOptions = $derived([...displayOptions, ...options]);
@@ -128,6 +133,7 @@
       value = opt.value;
       open = false;
     }
+    onValueChange?.(value);
   }
 
   function removeValue(v: string) {
@@ -136,12 +142,14 @@
     } else {
       value = '';
     }
+    onValueChange?.(value);
   }
 
   function clearValue(e: MouseEvent) {
     e.stopPropagation();
     e.preventDefault();
     value = multiple ? [] : '';
+    onValueChange?.(value);
   }
 </script>
 

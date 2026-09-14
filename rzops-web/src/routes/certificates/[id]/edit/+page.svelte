@@ -39,7 +39,7 @@
       lease_start_date: c.lease_start_date ?? '',
       lease_end_date: c.lease_end_date ?? '',
       certificate_type: c.certificate_type ?? '',
-      status: c.status ?? 'active',
+      status: c.status || 'active',
       remarks: c.remarks ?? '',
     };
   }

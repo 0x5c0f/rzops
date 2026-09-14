@@ -33,7 +33,7 @@
       ip_type: ip.ip_type ?? '',
       is_primary: ip.is_primary ?? false,
       isp_provider_id: ip.isp_provider_id ?? '',
-      status: ip.status ?? 'enabled',
+      status: ip.status || 'enabled',
       description: ip.description ?? '',
     };
   }

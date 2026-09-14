@@ -22,12 +22,12 @@ import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
 
   const columns = $derived([
     { key: 'service_name', label: '服务名称' , link: (item: ServerPortResponse) => `/server-ports/${item.id}`, lockVisible: true },
-    { key: 'protocol', label: '协议', hideBelow: 'sm', valueMap: protocolMap },
+    { key: 'protocol', label: '协议', hideBelow: 'sm' as const, valueMap: protocolMap },
     { key: 'port', label: '端口' },
     {
       key: 'server_name',
       label: '所属服务器',
-      link: (item: ServerPortResponse) => item.server_id ? `/servers/${item.server_id}` : undefined,
+      link: (item: ServerPortResponse) => item.server_id ? `/servers/${item.server_id}` : null,
       render: (v: unknown, item: ServerPortResponse) => {
         if (!item.server_name) return '-';
         return formatResourceWithStatus(item.server_name, item.server_status ?? '', 'server');

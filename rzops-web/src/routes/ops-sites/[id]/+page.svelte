@@ -13,7 +13,7 @@
   import * as Card from '$lib/ui/card';
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import StatusBadge from '$lib/components/shared/StatusBadge.svelte';
-  import { siteStatusOptions, importanceOptions, serviceTargetOptions, getOptionLabel } from '$lib/utils/enum-options';
+  import { siteStatusOptions, importanceOptions, serviceTargetOptions, environmentOptions, getOptionLabel } from '$lib/utils/enum-options';
   import { formatDate } from '$lib/utils/format';
   import { onMount } from 'svelte';
   import ConfirmDialog from '$lib/components/shared/ConfirmDialog.svelte';
@@ -105,6 +105,10 @@ import { canUpdate, canDelete } from '$lib/utils/permissions';
             <div class="flex justify-between">
               <dt class="text-muted-foreground">服务目标</dt>
               <dd>{getOptionLabel($serviceTargetOptions, site.service_target)}</dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-muted-foreground">环境</dt>
+              <dd>{site.environment ? getOptionLabel($environmentOptions, site.environment) : '-'}</dd>
             </div>
             <div class="flex justify-between">
               <dt class="text-muted-foreground">重要性</dt>

@@ -36,10 +36,12 @@
     };
   }
 
-  async function handleUpdate(data: CreateServerPortRequest) {
+  async function handleUpdate(data: CreateServerPortRequest | CreateServerPortRequest[]) {
     const id = $page.params.id;
     if (!id) return;
-    await serverPortsApi.update(id, data);
+    // 编辑模式始终为单条（ServerPortForm 编辑时不循环多选）；此处兼容数组类型
+    const item = Array.isArray(data) ? data[0] : data;
+    await serverPortsApi.update(id, item);
     goto(`/server-ports/${id}`);
   }
 </script>

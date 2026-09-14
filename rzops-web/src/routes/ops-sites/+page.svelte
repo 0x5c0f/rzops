@@ -266,6 +266,7 @@ import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
             displayOptions={serverFilterDisplayOptions}
             placeholder="全部服务器"
             searchPlaceholder="输入服务器名称搜索..."
+            onValueChange={() => { query = { ...query, page: 1 }; loadData(); }}
           />
         </div>
       </div>

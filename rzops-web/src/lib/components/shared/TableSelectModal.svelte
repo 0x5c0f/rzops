@@ -320,6 +320,7 @@
                         type="checkbox"
                         class="h-4 w-4"
                         checked={isRowSelected(item)}
+                        onclick={(e) => e.stopPropagation()}
                         onchange={(e) => { e.stopPropagation(); toggleRow(item); }}
                       />
                     </td>

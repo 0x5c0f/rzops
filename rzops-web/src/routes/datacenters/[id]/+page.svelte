@@ -11,7 +11,7 @@
   import * as Table from '$lib/ui/table';
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import StatusBadge from '$lib/components/shared/StatusBadge.svelte';
-  import { getOptionLabel, getOptionLabels, commonStatusOptions, lineTypeOptions } from '$lib/utils/enum-options';
+  import { getOptionLabel, getOptionLabels, getOptionColor, commonStatusOptions, lineTypeOptions } from '$lib/utils/enum-options';
   import { getProviderOptions } from '$lib/utils/entity-options';
   import { formatResourceWithStatus, getResourceStatusClass } from '$lib/utils/resource-status';
   import { providersApi } from '$lib/api/providers';
@@ -82,7 +82,7 @@ import { canUpdate, canDelete } from '$lib/utils/permissions';
     <div class="flex items-center justify-between">
       <div class="flex items-center gap-3">
         <h1 class="text-2xl font-semibold">{datacenter.name}</h1>
-        <StatusBadge status={datacenter.status} />
+        <StatusBadge status={datacenter.status} label={getOptionLabel($commonStatusOptions, datacenter.status)} color={getOptionColor($commonStatusOptions, datacenter.status)} />
       </div>
       <div class="flex gap-2">
         <Button variant="outline" onclick={() => goto('/datacenters')}>返回列表</Button>

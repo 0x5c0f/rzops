@@ -11,7 +11,7 @@
   import * as Table from '$lib/ui/table';
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import StatusBadge from '$lib/components/shared/StatusBadge.svelte';
-  import { certificateStatusOptions, certificateTypeOptions, getOptionLabel } from '$lib/utils/enum-options';
+  import { certificateStatusOptions, certificateTypeOptions, getOptionLabel, getOptionColor } from '$lib/utils/enum-options';
   import { getProviderOptions, getDomainOptions } from '$lib/utils/entity-options';
   import { formatResourceWithStatus, getResourceStatusClass } from '$lib/utils/resource-status';
   import { providersApi } from '$lib/api/providers';
@@ -87,7 +87,7 @@ import { canUpdate, canDelete } from '$lib/utils/permissions';
     <div class="flex items-center justify-between">
       <div class="flex items-center gap-3">
         <h1 class="text-2xl font-semibold">{certificate.name}</h1>
-        <StatusBadge status={certificate.status} />
+        <StatusBadge status={certificate.status} label={getOptionLabel($certificateStatusOptions, certificate.status)} color={getOptionColor($certificateStatusOptions, certificate.status)} />
       </div>
       <div class="flex gap-2">
         <Button variant="outline" onclick={() => goto('/certificates')}>返回列表</Button>

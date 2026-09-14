@@ -352,6 +352,8 @@ INSERT INTO public.role_permission (role_id, permission_code) VALUES
   ('449f51aa-228e-4351-9e40-68343bd6fc4a', 'monitor_target:read'),
   ('449f51aa-228e-4351-9e40-68343bd6fc4a', 'attachment:read'),
   ('449f51aa-228e-4351-9e40-68343bd6fc4a', 'dict:read'),
+  ('449f51aa-228e-4351-9e40-68343bd6fc4a', 'system:audit'),
+  ('449f51aa-228e-4351-9e40-68343bd6fc4a', 'system:change'),
   ('c6f412c2-fdb8-4f5a-a528-8a8e69673316', 'server:read'),
   ('c6f412c2-fdb8-4f5a-a528-8a8e69673316', 'server:update');
 

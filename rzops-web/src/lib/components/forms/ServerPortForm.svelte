@@ -23,7 +23,8 @@
     editing?: boolean;
     submitLabel?: string;
     initialServers?: { id: string; name: string }[];
-    onSubmit: (data: CreateServerPortRequest) => Promise<void>;
+    /** 新建时多选服务器会传入数组（每台服务器创建一条端口记录）；编辑时始终为单条 */
+    onSubmit: (data: CreateServerPortRequest | CreateServerPortRequest[]) => Promise<void>;
   } = $props();
 
   // svelte-ignore state_referenced_locally —— 仅初始化用一次，有意读取初始值
@@ -42,12 +43,11 @@
     // structuredClone 无法克隆 proxy 数组，会抛 DataCloneError。用 JSON 深拷贝解包 proxy。
     const base = JSON.parse(JSON.stringify(initial ?? {})) as CreateServerPortRequest;
     return {
-      protocol: '',
-      port: 0,
-      service_name: '',
-      access_scope: '',
-      is_enabled: true,
-      ...base,
+      protocol: base.protocol ?? '',
+      port: base.port ?? 0,
+      service_name: base.service_name ?? '',
+      access_scope: base.access_scope ?? '',
+      is_enabled: base.is_enabled ?? true,
       server_ids: base.server_id ? [base.server_id] : [],
     };
   }
@@ -67,7 +67,12 @@
     saving = true;
     try {
       const { server_ids, ...rest } = form;
-      await onSubmit({ ...rest, server_id: server_ids[0] ?? '' } as CreateServerPortRequest);
+      // 新建 + 多选服务器：为每台服务器创建一条端口记录（与端口模板批量实例化语义一致）
+      if (!editing && server_ids.length > 1) {
+        await onSubmit(server_ids.map(sid => ({ ...rest, server_id: sid } as CreateServerPortRequest)));
+      } else {
+        await onSubmit({ ...rest, server_id: server_ids[0] ?? '' } as CreateServerPortRequest);
+      }
     } catch (err) {
       console.error('Failed to save server port:', err);
       formError = '保存失败，请重试';
@@ -102,7 +107,7 @@
       <div class="md:col-span-2 lg:col-span-3">
         <TableSelectModal
           label="服务器 *"
-          multiple={false}
+          multiple={!editing}
           bind:value={form.server_ids}
           searchFn={searchServerPaginated}
           displayOptions={displayServerOptions}

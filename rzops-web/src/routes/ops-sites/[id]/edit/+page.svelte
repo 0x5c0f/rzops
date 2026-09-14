@@ -50,7 +50,8 @@
       code_repo_url: s.code_repo_url ?? '',
       function_summary: s.function_summary ?? '',
       remarks: s.remarks ?? '',
-      status: s.status ?? 'active',
+      status: s.status || 'active',
+      environment: s.environment ?? '',
       is_test_site: s.is_test_site ?? false,
     };
   }

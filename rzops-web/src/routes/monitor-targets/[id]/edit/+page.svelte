@@ -32,7 +32,7 @@
       monitor_type: t.monitor_type ?? '',
       endpoint: t.endpoint ?? '',
       interval_seconds: t.interval_seconds ?? undefined,
-      status: t.status ?? 'active',
+      status: t.status || 'active',
       remarks: t.remarks ?? '',
     };
   }

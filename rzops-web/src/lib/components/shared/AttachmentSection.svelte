@@ -6,6 +6,7 @@
   import * as Card from '$lib/ui/card';
   import { formatDate, formatBytes } from '$lib/utils/format';
   import ConfirmDialog from '$lib/components/shared/ConfirmDialog.svelte';
+  import { canCreate, canDelete } from '$lib/utils/permissions';
 
   let {
     targetType,
@@ -86,6 +87,7 @@
   </Card.Header>
   <Card.Content class="space-y-3">
     <div class="flex items-center gap-2">
+      {#if canCreate('attachment')}
       <input
         type="file"
         class="block max-w-sm text-sm file:mr-2 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-sm file:text-primary-foreground hover:file:bg-primary/90"
@@ -94,6 +96,7 @@
       />
       {#if uploading}
         <span class="text-sm text-muted-foreground">上传中...</span>
+      {/if}
       {/if}
     </div>
     {#if error}
@@ -116,7 +119,9 @@
             </div>
             <div class="flex shrink-0 gap-1">
               <Button variant="ghost" size="sm" onclick={() => handleDownload(item)}>下载</Button>
+              {#if canDelete('attachment')}
               <Button variant="ghost" size="sm" onclick={() => handleDelete(item)} class="text-red-600 hover:text-red-700">删除</Button>
+              {/if}
             </div>
           </div>
         {/each}

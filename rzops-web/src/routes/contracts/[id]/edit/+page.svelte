@@ -35,7 +35,7 @@
       end_date: c.end_date ?? '',
       amount: c.amount ?? '',
       currency: c.currency ?? 'CNY',
-      status: c.status ?? 'active',
+      status: c.status || 'active',
       remarks: c.remarks ?? '',
     };
   }

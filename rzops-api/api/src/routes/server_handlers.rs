@@ -300,8 +300,11 @@ pub async fn update_server(
         software_provider_id: body.software_provider_id.or(existing.software_provider_id),
         status: body
             .status
-            
-            .unwrap_or(existing.status),
+            .as_deref()
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+            .map(ToString::to_string)
+            .unwrap_or_else(|| existing.status.clone()),
         environment: body.environment.or(existing.environment),
         offline_time: body.offline_time.or(existing.offline_time),
         offline_reason: body.offline_reason.or(existing.offline_reason),

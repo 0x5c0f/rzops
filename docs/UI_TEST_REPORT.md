@@ -162,3 +162,37 @@
 | 回收站（残留） | e2e-verify-instance（数据库实例） | - |
 
 *注：回收站残留的 e2e-verify-instance 为更早前用户手动删除的数据，可人工复测时处理。*
+
+---
+
+## 六、8 个 BUG 修复与回归验证（2026-09-14 第二轮）
+
+### 修复清单
+
+| BUG | 修复方案 | 验证结果 |
+|---|---|---|
+| BUG-1 严重 | ① 三个编辑页（servers/database-instances/ops-sites）`toForm()` 补 `environment` 映射；② 全部 10 个 edit 页 `status` 兜底 `??`→`||`（空串也兜底）；③ ServerForm createInitial 补 `status:'active'`；④ 后端 server/database_instance/ops_site 三个 update handler 对空串 status/environment 过滤（`unwrap_or_else`） | ✅ 编辑页回显"运行中/测试"；直接保存后 DB 状态仍 `active`、环境 `test`，不再清空 |
+| BUG-2 中 | RemoteSearchSelect 新增 `onValueChange` 回调；server-ips/database-instances/ops-sites 三个列表页传入 `query={...query,page:1}; loadData()` | ✅ 服务器IP高级筛选选"e2e-test-srv-01"自动查询 → 列表 2→1 条 |
+| BUG-3 中 | ServerPortForm `multiple={!editing}`；新建多选时循环为每台服务器创建一条端口记录（`onSubmit` 兼容数组）；新建页/编辑页 handleUpdate 兼容数组类型 | ✅ 新建选 2 台服务器 → 列表出现 2 条 e2e-test-multi（TCP/50321，各绑定一台） |
+| BUG-4 中 | 数据中心/证书详情页 StatusBadge 改为传 `label={getOptionLabel(...)} color={getOptionColor(...)}`（字典权威映射） | ✅ 数据中心徽章"活跃"、证书徽章"有效" |
+| BUG-5 低 | 服务器/站点详情页基本信息区补"环境"行（`getOptionLabel($environmentOptions, ...)`） | ✅ 服务器详情显示"环境：测试" |
+| BUG-6 低 | 重写 audit 中间件：改为同步写入（不再 tokio::spawn）；POST 新建时从响应体提取新资源 id 再落库（`axum::body::to_bytes`） | ✅ 新建供应商 e2e-audit-provider-02 → 审计日志资源列显示名称（不再 "-"） |
+| BUG-7 低 | AttachmentSection 用 `canDelete('attachment')` 控制条目删除按钮 | ✅ e2e-viewer 详情页附件条目无删除按钮 |
+| BUG-8 低 | seed-data.sql viewer 角色补 `system:audit`/`system:change` 两行（运行库已 INSERT 0 2） | ✅ e2e-viewer 登录后菜单出现"审计→审计日志/变更记录" |
+
+### 修复过程中连带发现并修复
+
+1. **TableSelectModal 复选框双重 toggle**：checkbox `onchange` 与所在行 `tr onclick` 都会调用 `toggleRow`，点击 checkbox 时先触发 change 再冒泡到 tr → 两次 toggle 互相抵消（选中变未选中）。修复：checkbox 增加 `onclick={(e) => e.stopPropagation()}`，行点击走 tr、checkbox 走自身 change。
+2. **类型清理**：ServerForm 移除已删"主用节点"（is_primary）残留 UI/类型引用；`lease_amount`→`price` 校验字段名修正；RemoteSearchSelect `selectedValues` 显式 `$derived<string[]>`；ServerPortForm createInitial 逐字段兜底（消除 spread 覆盖 TS 错误）；server-ports 列表 `hideBelow as const` / `link ?? null` 类型修正。
+
+### 回归环境
+
+- 容器重建：`docker compose build web api` → `up -d`（web:8080 / api:8000 / db:5432 healthy）
+- `npm run build` 成功（adapter-static，仅 PLUGIN_TIMINGS info 提示非错误）
+- 本次修改文件 `svelte-check` 清零；存量 72 errors + 2 warnings 为历史遗留（见交接文档待办）
+
+### 待人工复核项
+
+- **端口新建服务器选择弹窗**：自动化（bu）环境下点击"确认"后表单已回填但 Dialog 未关闭（Esc/Close/overlay 均无效）；真实浏览器点击关闭是否正常需人工复核一次。功能本身不受影响（多选创建已验证成功）。
+- 回收站已含 e2e-verify-instance（残留），人工复测可处理。
+
