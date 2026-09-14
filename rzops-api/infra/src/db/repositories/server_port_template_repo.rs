@@ -37,7 +37,7 @@ fn row_to_tpl(row: &sqlx::postgres::PgRow) -> ServerPortTemplate {
 #[async_trait]
 impl ServerPortTemplateRepository for PgServerPortTemplateRepository {
     async fn find_by_id(&self, id: Uuid) -> Result<Option<ServerPortTemplate>, RepositoryError> {
-        let row = sqlx::query("SELECT * FROM cmdb_server_port_template WHERE id = $1")
+        let row = sqlx::query("SELECT * FROM cmdb_server_port_template WHERE id = $1 AND deleted_at IS NULL")
             .bind(id)
             .fetch_optional(&self.pool)
             .await.repo()?;
@@ -45,7 +45,7 @@ impl ServerPortTemplateRepository for PgServerPortTemplateRepository {
     }
 
     async fn find_all(&self, filter: ServerPortTemplateFilter) -> Result<Vec<ServerPortTemplate>, RepositoryError> {
-        let mut sql = String::from("SELECT * FROM cmdb_server_port_template WHERE 1=1");
+        let mut sql = String::from("SELECT * FROM cmdb_server_port_template WHERE deleted_at IS NULL");
         let mut binds: Vec<String> = Vec::new();
         let idx = 1;
         if let Some(ref q) = filter.q {
@@ -66,7 +66,7 @@ impl ServerPortTemplateRepository for PgServerPortTemplateRepository {
     }
 
     async fn count(&self, filter: ServerPortTemplateFilter) -> Result<i64, RepositoryError> {
-        let mut sql = String::from("SELECT COUNT(*) as count FROM cmdb_server_port_template WHERE 1=1");
+        let mut sql = String::from("SELECT COUNT(*) as count FROM cmdb_server_port_template WHERE deleted_at IS NULL");
         let mut binds: Vec<String> = Vec::new();
         let idx = 1;
         if let Some(ref q) = filter.q {
@@ -126,7 +126,7 @@ impl ServerPortTemplateRepository for PgServerPortTemplateRepository {
     }
 
     async fn delete(&self, id: Uuid) -> Result<bool, RepositoryError> {
-        let result = sqlx::query("DELETE FROM cmdb_server_port_template WHERE id = $1")
+        let result = sqlx::query("UPDATE cmdb_server_port_template SET deleted_at = now() WHERE id = $1 AND deleted_at IS NULL")
             .bind(id)
             .execute(&self.pool)
             .await.repo()?;

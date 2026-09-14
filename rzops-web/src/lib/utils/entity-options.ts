@@ -244,11 +244,12 @@ export async function searchCertificatePaginated(
 }
 
 /**
- * 远程搜索数据库实例选项
+ * 远程搜索数据库实例选项（空关键字只返回最新创建的6个，避免下拉过长）
  */
 export async function searchDatabaseInstanceOptions(keyword: string): Promise<SelectOption[]> {
   try {
-    const res = await databaseInstancesApi.list({ q: keyword || undefined, per_page: 20 });
+    const perPage = keyword.trim() ? 20 : 6;
+    const res = await databaseInstancesApi.list({ q: keyword || undefined, per_page: perPage });
     return res.data.map(item => ({
       label: `${item.name} (${item.db_type})`,
       value: item.id,
@@ -260,11 +261,12 @@ export async function searchDatabaseInstanceOptions(keyword: string): Promise<Se
 }
 
 /**
- * 远程搜索域名选项
+ * 远程搜索域名选项（空关键字只返回最新创建的6个）
  */
 export async function searchDomainOptions(keyword: string): Promise<SelectOption[]> {
   try {
-    const res = await domainsApi.list({ q: keyword || undefined, per_page: 20 });
+    const perPage = keyword.trim() ? 20 : 6;
+    const res = await domainsApi.list({ q: keyword || undefined, per_page: perPage });
     return res.data.map(item => ({
       label: item.domain_name,
       value: item.id,
@@ -276,11 +278,12 @@ export async function searchDomainOptions(keyword: string): Promise<SelectOption
 }
 
 /**
- * 远程搜索证书选项（用于 RemoteSearchSelect）
+ * 远程搜索证书选项（用于 RemoteSearchSelect，空关键字只返回最新创建的6个）
  */
 export async function searchCertificateOptions(keyword: string): Promise<SelectOption[]> {
   try {
-    const res = await certificatesApi.list({ q: keyword || undefined, per_page: 20 });
+    const perPage = keyword.trim() ? 20 : 6;
+    const res = await certificatesApi.list({ q: keyword || undefined, per_page: perPage });
     return res.data.map(item => ({
       label: item.name,
       value: item.id,
@@ -292,11 +295,12 @@ export async function searchCertificateOptions(keyword: string): Promise<SelectO
 }
 
 /**
- * 远程搜索站点选项
+ * 远程搜索站点选项（空关键字只返回最新创建的6个）
  */
 export async function searchOpsSiteOptions(keyword: string): Promise<SelectOption[]> {
   try {
-    const res = await opsSitesApi.list({ q: keyword || undefined, per_page: 20 });
+    const perPage = keyword.trim() ? 20 : 6;
+    const res = await opsSitesApi.list({ q: keyword || undefined, per_page: perPage });
     return res.data.map(item => ({
       label: item.name,
       value: item.id,
@@ -308,11 +312,12 @@ export async function searchOpsSiteOptions(keyword: string): Promise<SelectOptio
 }
 
 /**
- * 远程搜索供应商选项
+ * 远程搜索供应商选项（空关键字只返回最新创建的6个）
  */
 export async function searchProviderOptions(keyword: string): Promise<SelectOption[]> {
   try {
-    const res = await providersApi.list({ q: keyword || undefined, per_page: 20 });
+    const perPage = keyword.trim() ? 20 : 6;
+    const res = await providersApi.list({ q: keyword || undefined, per_page: perPage });
     return res.data.map(item => ({
       label: item.name,
       value: item.id,

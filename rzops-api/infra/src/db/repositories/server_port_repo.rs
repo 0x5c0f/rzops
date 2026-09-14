@@ -52,13 +52,13 @@ fn row_to_server_port(row: &sqlx::postgres::PgRow) -> ServerPort {
 #[async_trait]
 impl ServerPortRepository for PgServerPortRepository {
     async fn find_by_id(&self, id: Uuid) -> Result<Option<ServerPort>, RepositoryError> {
-        let sql = format!(r#"{} WHERE p.id = $1"#, PORT_SELECT);
+        let sql = format!(r#"{} WHERE p.id = $1 AND p.deleted_at IS NULL"#, PORT_SELECT);
         let row = sqlx::query(&sql).bind(id).fetch_optional(&self.pool).await.repo()?;
         Ok(row.map(|r| row_to_server_port(&r)))
     }
 
     async fn find_all(&self, filter: ServerPortFilter) -> Result<Vec<ServerPort>, RepositoryError> {
-        let mut sql = format!(r#"{} WHERE 1=1"#, PORT_SELECT);
+        let mut sql = format!(r#"{} WHERE p.deleted_at IS NULL"#, PORT_SELECT);
 
         let mut string_binds: Vec<String> = Vec::new();
         let mut uuid_binds: Vec<Uuid> = Vec::new();
@@ -94,7 +94,7 @@ impl ServerPortRepository for PgServerPortRepository {
     }
 
     async fn count(&self, filter: ServerPortFilter) -> Result<i64, RepositoryError> {
-        let mut sql = String::from("SELECT COUNT(*) as count FROM cmdb_server_port p WHERE 1=1");
+        let mut sql = String::from("SELECT COUNT(*) as count FROM cmdb_server_port p WHERE p.deleted_at IS NULL");
 
         let mut string_binds: Vec<String> = Vec::new();
         let mut uuid_binds: Vec<Uuid> = Vec::new();
@@ -173,7 +173,7 @@ impl ServerPortRepository for PgServerPortRepository {
     }
 
     async fn delete(&self, id: Uuid) -> Result<bool, RepositoryError> {
-        let result = sqlx::query("DELETE FROM cmdb_server_port WHERE id = $1")
+        let result = sqlx::query("UPDATE cmdb_server_port SET deleted_at = now() WHERE id = $1 AND deleted_at IS NULL")
             .bind(id)
             .execute(&self.pool)
             .await.repo()?;

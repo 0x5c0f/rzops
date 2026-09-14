@@ -102,6 +102,7 @@
   {:else}
     <DatabaseInstanceForm
       initial={toForm(instance)}
+      initialServerName={instance.server_name}
       initialBackupPlans={backupPlans.map(toBackupDraft)}
       initialMonitorTargets={monitorTargets.map(toMonitorDraft)}
       entityId={instance.id}

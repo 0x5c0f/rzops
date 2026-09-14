@@ -60,7 +60,7 @@ impl ProviderRepository for PgProviderRepository {
                    fax, address, website, description, status,
                    created_at, updated_at
             FROM cmdb_provider
-            WHERE id = $1
+            WHERE id = $1 AND deleted_at IS NULL
             "#,
         )
         .bind(id)
@@ -80,7 +80,7 @@ impl ProviderRepository for PgProviderRepository {
                    fax, address, website, description, status,
                    created_at, updated_at
             FROM cmdb_provider
-            WHERE 1=1
+            WHERE deleted_at IS NULL
             "#,
         );
 
@@ -125,7 +125,7 @@ impl ProviderRepository for PgProviderRepository {
     }
 
     async fn count(&self, filter: ProviderFilter) -> Result<i64, RepositoryError> {
-        let mut sql = String::from("SELECT COUNT(*) as count FROM cmdb_provider WHERE 1=1");
+        let mut sql = String::from("SELECT COUNT(*) as count FROM cmdb_provider WHERE deleted_at IS NULL");
 
         let mut binds: Vec<String> = Vec::new();
         let mut bind_idx = 1;
@@ -234,7 +234,7 @@ impl ProviderRepository for PgProviderRepository {
     }
 
     async fn delete(&self, id: Uuid) -> Result<bool, RepositoryError> {
-        let result = sqlx::query("DELETE FROM cmdb_provider WHERE id = $1")
+        let result = sqlx::query("UPDATE cmdb_provider SET deleted_at = now() WHERE id = $1 AND deleted_at IS NULL")
             .bind(id)
             .execute(&self.pool)
             .await.repo()?;

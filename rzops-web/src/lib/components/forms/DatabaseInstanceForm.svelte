@@ -34,6 +34,7 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
   let {
     initial = {} as CreateDatabaseInstanceRequest,
     entityId = '',
+    initialServerName = null,
     initialBackupPlans = [] as BackupDraft[],
     initialMonitorTargets = [] as MonitorDraft[],
     submitLabel = '保存',
@@ -41,6 +42,8 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
   }: {
     initial?: CreateDatabaseInstanceRequest;
     entityId?: string;
+    /** 编辑时已绑定服务器的名称，用于可靠回显（避免依赖搜索命中与先闪 id 再变名字） */
+    initialServerName?: string | null;
     initialBackupPlans?: BackupDraft[];
     initialMonitorTargets?: MonitorDraft[];
     submitLabel?: string;
@@ -57,7 +60,11 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
   let saving = $state(false);
   let formError = $state<string | null>(null);
   let attachmentRef = $state<{ uploadAll: (id: string) => Promise<void> } | null>(null);
-  let serverDisplayOptions = $state<{ label: string; value: string }[]>([]);
+  // 同步初始化服务器回显选项：编辑时直接使用传入的 server_name，
+  // 避免异步搜索期间 RemoteSearchSelect 回退显示原始 id（先闪 id 再变名字）
+  let serverDisplayOptions = $state<{ label: string; value: string }[]>(
+    form.server_id && initialServerName ? [{ label: initialServerName, value: form.server_id }] : []
+  );
 
   let form = $state<CreateDatabaseInstanceRequest>(createInitial(initialSnapshot));
   let backupPlans = $state<BackupDraft[]>(JSON.parse(JSON.stringify(initialBackupPlansSnapshot)));
@@ -78,8 +85,9 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
   }
 
   onMount(async () => {
-    // 编辑时回显服务器名称
-    if (form.server_id) {
+    // 编辑回显已由 serverDisplayOptions 同步初始化；
+    // 仅当已绑定服务器但缺少名称信息时（异常数据）才 fallback 搜索
+    if (form.server_id && serverDisplayOptions.length === 0) {
       serverDisplayOptions = await searchServerOptions('');
       const found = serverDisplayOptions.find(o => o.value === form.server_id);
       if (!found) {

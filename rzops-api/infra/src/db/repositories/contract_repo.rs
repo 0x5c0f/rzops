@@ -21,10 +21,10 @@ const COLS: &str = "id, name, provider_id, subject_type, subject_id, contract_no
 #[async_trait]
 impl ContractRepository for PgContractRepository {
     async fn find_by_id(&self, id: Uuid) -> Result<Option<Contract>, RepositoryError> {
-        Ok(sqlx::query(&format!("SELECT {} FROM cmdb_contract WHERE id=$1", COLS)).bind(id).fetch_optional(&self.pool).await.repo()?.map(|r| row_to_entity(&r)))
+        Ok(sqlx::query(&format!("SELECT {} FROM cmdb_contract WHERE id=$1 AND deleted_at IS NULL", COLS)).bind(id).fetch_optional(&self.pool).await.repo()?.map(|r| row_to_entity(&r)))
     }
     async fn find_all(&self, f: ContractFilter) -> Result<Vec<Contract>, RepositoryError> {
-        let mut sql = format!("SELECT {} FROM cmdb_contract WHERE 1=1", COLS);
+        let mut sql = format!("SELECT {} FROM cmdb_contract WHERE deleted_at IS NULL", COLS);
         let mut idx = 1;
         let s_status = f.status.as_ref();
         let s_q = f.q.as_ref();
@@ -39,7 +39,7 @@ impl ContractRepository for PgContractRepository {
         Ok(query.fetch_all(&self.pool).await.repo()?.iter().map(row_to_entity).collect())
     }
     async fn count(&self, f: ContractFilter) -> Result<i64, RepositoryError> {
-        let mut sql = "SELECT COUNT(*) as count FROM cmdb_contract WHERE 1=1".to_string();
+        let mut sql = "SELECT COUNT(*) as count FROM cmdb_contract WHERE deleted_at IS NULL".to_string();
         let mut idx = 1;
         let s_status = f.status.as_ref();
         let s_q = f.q.as_ref();
@@ -61,6 +61,6 @@ impl ContractRepository for PgContractRepository {
             .fetch_optional(&self.pool).await.repo()?.map(|r| row_to_entity(&r)))
     }
     async fn delete(&self, id: Uuid) -> Result<bool, RepositoryError> {
-        Ok(sqlx::query("DELETE FROM cmdb_contract WHERE id=$1").bind(id).execute(&self.pool).await.repo()?.rows_affected() > 0)
+        Ok(sqlx::query("UPDATE cmdb_contract SET deleted_at = now() WHERE id=$1 AND deleted_at IS NULL").bind(id).execute(&self.pool).await.repo()?.rows_affected() > 0)
     }
 }

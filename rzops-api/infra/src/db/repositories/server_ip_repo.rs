@@ -43,7 +43,7 @@ impl ServerIpRepository for PgServerIpRepository {
         let row = sqlx::query(
             r#"SELECT id, server_id, ip_address, nic_name, ip_type, is_primary,
                       isp_provider_id, description, status::text, created_at, updated_at
-               FROM cmdb_server_ip WHERE id = $1"#,
+               FROM cmdb_server_ip WHERE id = $1 AND deleted_at IS NULL"#,
         )
         .bind(id)
         .fetch_optional(&self.pool)
@@ -55,7 +55,7 @@ impl ServerIpRepository for PgServerIpRepository {
         let mut sql = String::from(
             r#"SELECT id, server_id, ip_address, nic_name, ip_type, is_primary,
                       isp_provider_id, description, status::text, created_at, updated_at
-               FROM cmdb_server_ip WHERE 1=1"#,
+               FROM cmdb_server_ip WHERE deleted_at IS NULL"#,
         );
 
         let mut string_binds: Vec<String> = Vec::new();
@@ -82,7 +82,7 @@ impl ServerIpRepository for PgServerIpRepository {
     }
 
     async fn count(&self, filter: ServerIpFilter) -> Result<i64, RepositoryError> {
-        let mut sql = String::from("SELECT COUNT(*) as count FROM cmdb_server_ip WHERE 1=1");
+        let mut sql = String::from("SELECT COUNT(*) as count FROM cmdb_server_ip WHERE deleted_at IS NULL");
 
         let mut string_binds: Vec<String> = Vec::new();
         let mut uuid_binds: Vec<Uuid> = Vec::new();
@@ -148,7 +148,7 @@ impl ServerIpRepository for PgServerIpRepository {
     }
 
     async fn delete(&self, id: Uuid) -> Result<bool, RepositoryError> {
-        let result = sqlx::query("DELETE FROM cmdb_server_ip WHERE id = $1")
+        let result = sqlx::query("UPDATE cmdb_server_ip SET deleted_at = now() WHERE id = $1 AND deleted_at IS NULL")
             .bind(id)
             .execute(&self.pool)
             .await.repo()?;

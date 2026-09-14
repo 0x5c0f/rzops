@@ -53,7 +53,7 @@ impl DataCenterRepository for PgDataCenterRepository {
         let row = sqlx::query(
             r#"SELECT id, name, provider_id, phone, address, country,
                       line_type, description, status::text, created_at, updated_at
-               FROM cmdb_data_center WHERE id = $1"#,
+               FROM cmdb_data_center WHERE id = $1 AND deleted_at IS NULL"#,
         )
         .bind(id)
         .fetch_optional(&self.pool)
@@ -66,7 +66,7 @@ impl DataCenterRepository for PgDataCenterRepository {
         let mut sql = String::from(
             r#"SELECT id, name, provider_id, phone, address, country,
                       line_type, description, status::text, created_at, updated_at
-               FROM cmdb_data_center WHERE 1=1"#,
+               FROM cmdb_data_center WHERE deleted_at IS NULL"#,
         );
         let mut binds: Vec<String> = Vec::new();
         let mut idx = 1;
@@ -105,7 +105,7 @@ impl DataCenterRepository for PgDataCenterRepository {
     }
 
     async fn count(&self, filter: DataCenterFilter) -> Result<i64, RepositoryError> {
-        let mut sql = String::from("SELECT COUNT(*) as count FROM cmdb_data_center WHERE 1=1");
+        let mut sql = String::from("SELECT COUNT(*) as count FROM cmdb_data_center WHERE deleted_at IS NULL");
         let mut binds: Vec<String> = Vec::new();
         let mut idx = 1;
 
@@ -186,7 +186,7 @@ impl DataCenterRepository for PgDataCenterRepository {
     }
 
     async fn delete(&self, id: Uuid) -> Result<bool, RepositoryError> {
-        let result = sqlx::query("DELETE FROM cmdb_data_center WHERE id = $1")
+        let result = sqlx::query("UPDATE cmdb_data_center SET deleted_at = now() WHERE id = $1 AND deleted_at IS NULL")
             .bind(id)
             .execute(&self.pool)
             .await.repo()?;
