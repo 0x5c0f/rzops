@@ -610,7 +610,7 @@ user ──< user_role >── role ──< role_permission >── 权限点
 - **BUG-7（viewer 详情附件删除）**：AttachmentSection 用 `canDelete('attachment')` 控制条目删除按钮。
 - **BUG-8（viewer 菜单无审计）**：`database/seed-data.sql` viewer 角色补 `system:audit`/`system:change` 两行（运行库直接 INSERT）。**教训：改 seed-data.sql 后运行库需手动补 INSERT，否则不生效**。
 - **连带发现并修复**：**TableSelectModal 复选框双重 toggle 坑**——checkbox `onchange` 与所在行 `tr onclick` 都调 `toggleRow`，点 checkbox 先触发 change 再冒泡到 tr → 两次 toggle 抵消（选不中）。修复：checkbox 加 `onclick={(e)=>e.stopPropagation()}`。ServerForm 清理已删"主用节点"（is_primary）残留 UI/类型；`lease_amount`→`price` 校验名；RemoteSearchSelect `selectedValues` 显式 `$derived<string[]>`（`multiple` 是 boolean 非字面量，TS 无法收窄 `[value]` 分支，需显式标注+`typeof value==='string'` 收窄）；ServerPortForm createInitial 逐字段兜底（spread 覆盖报"specified more than once"）；`hideBelow: 'sm' as const`、`link` 返回 `null` 非 undefined（Column 类型要求）。
-- **回归结果**：BUG-1~8 全部通过浏览器回归（详见 UI_TEST_REPORT §六）。**待人工复核**：bu 自动化下端口选择弹窗点"确认"后表单回填但 Dialog 未关闭（Esc/Close/overlay 均无效，疑为 bits-ui Dialog + portal + 自动化环境兼容问题，功能本身正常——多选创建已验证成功）。
+- **回归结果**：BUG-1~8 全部通过浏览器回归（详见 UI_TEST_REPORT §六）。**弹窗关闭已人工复核通过（2026-09-14）**：真实浏览器点"确认"弹窗正常关闭、选项回填、Esc 正常——bu 自动化下 Dialog 不关闭属**自动化工具兼容限制，非产品缺陷**。**踩坑：Dialog 开启/关闭类行为必须以真实浏览器人工复核为准，bu 自动化环境的 Dialog 状态不可作为判据（bits-ui Dialog + portal 在自动化环境关闭失效，但真实点击正常）。**
 - **存量待办**：`svelte-check` 全库仍有 72 errors + 2 warnings（历史遗留：servers/+page `is_database_server` 查询字段、users/+page asChild/email 校验、certificates 列表 `certificate_type`、backup-plans edit entityId、ServerPortTemplateForm spread 覆盖等，分布于旧文件，非本轮范围）——**建议下轮全面清理**。
 
 ---
