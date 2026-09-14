@@ -576,6 +576,17 @@ user ──< user_role >── role ──< role_permission >── 权限点
 - **教训（重要）**：Svelte 5 中**任何 `$state` 初始化表达式引用了其它 `let`/`$state` 变量，被引用变量必须已声明在前**；改"回显优化"类代码时，先在源码里确认变量声明顺序，再构建部署。另：用户浏览器报错产物 hash（`app.B5yKyMB2.js`）与部署产物（`app.BfomGHhY.js`）不一致时，先让用户**强制刷新（Ctrl+Shift+R）**排除旧 JS 缓存，再判断是否真未修复。
 - **排查手段**：bu 浏览器沙箱内页面 `fetch` 被拦截（`Failed to fetch`）、沙箱网络与 WSL 隔离（127.0.0.1 连接被拒），**无法用 bu 做本机 SPA 的 UI 级验证**；替代为 `npx svelte-check`（确认改动文件无新增 Error）+ API 直连验证数据层 + 静态检查编译产物 hash 已更新 + 用户强刷确认。控制台出现 `VM1079 ... reportAllChanges ... startTime` 类报错为**浏览器扩展**（injected.js WebSocket Proxy/性能脚本）所致，与应用无关。
 
+### 2026-09-14 回收站 502 panic：名称列 NULL 解码崩溃 + 数据库实例双名称字段
+- **现象**：用户通过前端 UI 新建数据库实例并删除后，回收站接口 `/api/v1/recycle` 返回 502；API 日志：`panicked at recycle_repo.rs:113 ... ColumnDecode { index: "name", source: UnexpectedNullError }`。
+- **根因（两层）**：
+  1. **前端字段名与后端不一致**：数据库实例表单绑定/校验/提交都用 `name` 字段，后端 `CreateDatabaseInstanceRequest` 同时存在 `name`（必填）与 `instance_name`（可选）两个字段——前端只发 `name`，导致 `instance_name` 永远为 NULL（此前测试数据都是 SQL 直插，未暴露）。
+  2. **回收站查询不抗 NULL**：`recycle_repo.rs` 用 `({name_col})::text AS name` 做 17 张表 UNION，任一表名称列出现 NULL（如 `instance_name`）→ `r.get::<String>("name")` 抛 `UnexpectedNullError` → tokio worker panic → 502。
+- **修复**：
+  1. `recycle_repo.rs`：名称列包 `COALESCE(({name_col})::text, '')`，所有资源类型容错 NULL。
+  2. `database_instance_handlers.rs` create/update：`instance_name` 未传时自动用 `name` 兜底（`body.instance_name.or(Some(body_name))`），注意先从 body 提取字段再组合，避免 Rust 部分 move 编译错误。
+  3. 历史脏数据补齐：`UPDATE cmdb_database_instance SET instance_name = name WHERE instance_name IS NULL AND name <> ''`。
+- **教训**：① 前后端字段名必须逐一对齐（新资源类型接入时核对 DTO 与表单绑定）；② 后端 UNION/聚合查询对可空列必须 `COALESCE` 或 `Option<T>` 解码，**禁止对可能 NULL 的列 `unwrap()`**（这是 panic 源头，回收站之前一直没测到是因为测试数据都是 SQL 直插、名称列非空）；③ 此类端到端数据流问题（前端录入 → 落库 → 跨表查询）必须用"前端录入路径 + 数据库核对"的方式测试，SQL 直插数据测不出来。
+
 
 ---
 

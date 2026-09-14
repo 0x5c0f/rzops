@@ -577,6 +577,17 @@ superuser (user.is_superuser=true) bypasses all checks
 - **Lesson (important)**: in Svelte 5, **any `$state` initializer that references another `let`/`$state` variable requires that variable to be declared above it**. When touching "echo/display" code, verify declaration order in source before building. Also: when the browser error bundle hash (`app.B5yKyMB2.js`) differs from the deployed hash (`app.BfomGHhY.js`), ask the user to **hard refresh (Ctrl+Shift+R)** to rule out stale JS cache before concluding it's still broken.
 - **Verification note**: the bu browser sandbox blocks in-page `fetch` (`Failed to fetch`) and its network is isolated from WSL (127.0.0.1 refused), so bu **cannot** do UI-level verification of this local SPA; fall back to `npx svelte-check` (no new errors in changed files) + direct API checks + verifying the compiled bundle hash changed + user hard-refresh confirmation. Console errors like `VM1079 ... reportAllChanges ... startTime` come from a **browser extension** (injected.js WebSocket proxy / performance script), unrelated to the app.
 
+### 2026-09-14 Recycle-bin 502 panic: NULL name-column decode + DB-instance dual name fields
+- **Symptom**: after creating a DB instance via the frontend UI and deleting it, `/api/v1/recycle` returned 502; API log: `panicked at recycle_repo.rs:113 ... ColumnDecode { index: "name", source: UnexpectedNullError }`.
+- **Root cause (two layers)**:
+  1. **Frontend field name mismatch**: the DB-instance form binds/validates/submits `name`, while the backend `CreateDatabaseInstanceRequest` has both `name` (required) and `instance_name` (optional) — the frontend only sent `name`, so `instance_name` was always NULL (earlier test data was inserted via SQL directly, so it never surfaced).
+  2. **Recycle query not NULL-tolerant**: `recycle_repo.rs` builds a 17-table UNION with `({name_col})::text AS name`; any NULL name column (e.g. `instance_name`) made `r.get::<String>("name")` throw `UnexpectedNullError` → tokio worker panic → 502.
+- **Fix**:
+  1. `recycle_repo.rs`: wrap the name column in `COALESCE(({name_col})::text, '')` so all resource types tolerate NULL.
+  2. `database_instance_handlers.rs` create/update: fall back to `name` when `instance_name` is not sent (`body.instance_name.or(Some(body_name))`); extract fields from `body` first to avoid Rust partial-move compile errors.
+  3. Backfill dirty rows: `UPDATE cmdb_database_instance SET instance_name = name WHERE instance_name IS NULL AND name <> ''`.
+- **Lesson**: ① frontend/backend field names must be aligned 1:1 (check DTO vs form bindings when adding a resource type); ② backend UNION/aggregate queries must `COALESCE` nullable columns or decode as `Option<T>` — **never `unwrap()` a possibly-NULL column** (that was the panic source; the recycle bin never surfaced it before because test data was SQL-inserted with non-null names); ③ such end-to-end data-flow bugs (frontend entry → DB → cross-table query) must be tested through the real frontend entry path plus DB verification — SQL-inserted data cannot reveal them.
+
 
 ---
 

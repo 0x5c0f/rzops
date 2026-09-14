@@ -67,7 +67,7 @@ impl RecycleRepository for PgRecycleRepository {
                 }
             }
             parts.push(format!(
-                "SELECT '{}' AS resource_type, t.id, ({} )::text AS name, t.deleted_at, row_to_json(t) AS data FROM {} t WHERE t.deleted_at IS NOT NULL",
+                "SELECT '{}' AS resource_type, t.id, COALESCE(({} )::text, '') AS name, t.deleted_at, row_to_json(t) AS data FROM {} t WHERE t.deleted_at IS NOT NULL",
                 rtype, name_col, table
             ));
         }
