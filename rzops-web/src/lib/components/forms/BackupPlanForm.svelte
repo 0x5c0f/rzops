@@ -6,13 +6,13 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
   import { Label } from '$lib/ui/label';
   import * as Card from '$lib/ui/card';
   import FormSelect from '$lib/components/shared/FormSelect.svelte';
-  import TableSelectModal from '$lib/components/shared/TableSelectModal.svelte';
+  import RemoteSearchSelect from '$lib/components/shared/RemoteSearchSelect.svelte';
   import TextArea from '$lib/components/shared/TextArea.svelte';
-  import { commonStatusOptions, backupTargetTypeOptions, databaseStatusOptions, siteStatusOptions, serverStatusOptions, serverTypeOptions, getOptionLabel } from '$lib/utils/enum-options';
+  import { commonStatusOptions, backupTargetTypeOptions } from '$lib/utils/enum-options';
   import {
-    searchServerPaginated,
-    searchDatabasePaginated,
-    searchSitePaginated,
+    searchServerOptions,
+    searchDatabaseInstanceOptions,
+    searchOpsSiteOptions,
   } from '$lib/utils/entity-options';
   import { validate } from '$lib/utils/validation';
   import { onMount } from 'svelte';
@@ -34,51 +34,23 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
   let saving = $state(false);
   let formError = $state<string | null>(null);
   let attachmentRef = $state<{ uploadAll: (id: string) => Promise<void> } | null>(null);
-  let targetIds = $state<string[]>([]);
-  let displayTargetOptions = $state<{ label: string; value: string }[]>([]);
+  let targetDisplayOptions = $state<{ label: string; value: string }[]>([]);
 
   let form = $state<CreateBackupPlanRequest>(createInitial(initialSnapshot));
 
-  // 根据目标类型获取搜索函数和列配置
+  // 根据目标类型获取远程搜索函数（单选，与数据库实例编辑页服务器选择一致）
   let targetSearchFn = $derived.by(() => {
-    const map: Record<string, (keyword: string, page: number, perPage: number) => Promise<{ data: Record<string, unknown>[]; total: number }>> = {
-      server: searchServerPaginated,
-      database: searchDatabasePaginated,
-      site: searchSitePaginated,
+    const map: Record<string, (keyword: string) => Promise<{ label: string; value: string }[]>> = {
+      server: searchServerOptions,
+      database: searchDatabaseInstanceOptions,
+      site: searchOpsSiteOptions,
     };
     return map[form.target_type] || null;
   });
 
-  let targetColumns = $derived.by(() => {
-    if (form.target_type === 'server') {
-      return [
-        { key: 'name', label: '服务器名称' },
-        { key: 'primary_ip', label: '主IP', width: 'w-32' },
-        { key: 'status', label: '状态', width: 'w-20', render: (item: Record<string, unknown>) => getOptionLabel($serverStatusOptions, String(item.status ?? '')) },
-        { key: 'server_type', label: '类型', width: 'w-24', render: (item: Record<string, unknown>) => getOptionLabel($serverTypeOptions, String(item.server_type ?? '')) },
-      ];
-    }
-    if (form.target_type === 'database') {
-      return [
-        { key: 'name', label: '实例名称' },
-        { key: 'db_type', label: '类型', width: 'w-24' },
-        { key: 'port', label: '端口', width: 'w-20' },
-        { key: 'status', label: '状态', width: 'w-20', render: (item: Record<string, unknown>) => getOptionLabel($databaseStatusOptions, String(item.status ?? '')) },
-      ];
-    }
-    if (form.target_type === 'site') {
-      return [
-        { key: 'name', label: '站点名称' },
-        { key: 'url', label: 'URL', width: 'w-48' },
-        { key: 'status', label: '状态', width: 'w-20', render: (item: Record<string, unknown>) => getOptionLabel($siteStatusOptions, String(item.status ?? '')) },
-      ];
-    }
-    return [];
-  });
-
-  let targetModalTitle = $derived.by(() => {
+  let targetPlaceholder = $derived.by(() => {
     const map: Record<string, string> = { server: '选择服务器', database: '选择数据库实例', site: '选择站点' };
-    return map[form.target_type] || '选择目标';
+    return map[form.target_type] || '选择目标对象';
   });
 
   function createInitial(initial?: CreateBackupPlanRequest): CreateBackupPlanRequest {
@@ -91,19 +63,23 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
     };
   }
 
-  // 目标类型改变时清空已选目标
+  // 目标类型改变时清空已选目标（仅用户切换时触发；首跑与初始值相同则不清空，避免编辑回显丢失）
+  let prevTargetType = $state(form.target_type);
   $effect(() => {
-    if (form.target_type) {
-      targetIds = [];
-      displayTargetOptions = [];
+    const t = form.target_type;
+    if (t !== prevTargetType) {
+      prevTargetType = t;
+      form.target_id = '';
+      targetDisplayOptions = [];
     }
   });
 
-  // 编辑时初始化已选目标
-  onMount(() => {
-    if (form.target_id) {
-      targetIds = [form.target_id];
-      displayTargetOptions = [{ label: form.target_id, value: form.target_id }];
+  // 编辑时初始化已选目标：解析 id 为真实名称，避免先显示 id
+  onMount(async () => {
+    if (form.target_id && targetSearchFn) {
+      const opts = await targetSearchFn('');
+      const found = opts.find(o => o.value === form.target_id);
+      targetDisplayOptions = found ? [found] : [{ label: form.target_id, value: form.target_id }];
     }
   });
 
@@ -119,7 +95,7 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
     try {
       const id = await onSubmit({
         ...form,
-        target_id: targetIds[0] || undefined,
+        target_id: form.target_id || undefined,
         target_type: form.target_type || undefined,
       });
       if (id) await attachmentRef?.uploadAll(id);
@@ -194,17 +170,14 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
         options={$backupTargetTypeOptions}
         placeholder="选择目标类型"
       />
-      {#if targetSearchFn && targetColumns.length > 0}
-        <TableSelectModal
+      {#if targetSearchFn}
+        <RemoteSearchSelect
           label="目标对象"
-          multiple={false}
-          bind:value={targetIds}
+          bind:value={form.target_id}
           searchFn={targetSearchFn}
-          displayOptions={displayTargetOptions}
-          placeholder="选择目标对象"
+          displayOptions={targetDisplayOptions}
+          placeholder={targetPlaceholder}
           searchPlaceholder="输入名称搜索..."
-          modalTitle={targetModalTitle}
-          columns={targetColumns}
         />
       {/if}
     </Card.Content>

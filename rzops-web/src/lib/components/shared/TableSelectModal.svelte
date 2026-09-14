@@ -83,7 +83,13 @@
   }
 
   let triggerText = $derived(
-    selectedValues.length > 0 ? `已选择 ${selectedValues.length} 项` : placeholder
+    multiple
+      ? selectedValues.length > 0
+        ? `已选择 ${selectedValues.length} 项`
+        : placeholder
+      : selectedValues.length > 0
+        ? labelOf(selectedValues[0])
+        : placeholder
   );
 
   async function loadData() {
@@ -216,8 +222,8 @@
     </Label>
   {/if}
 
-  <!-- 已选标签 -->
-  {#if selectedValues.length > 0}
+  <!-- 已选标签（仅多选时在框上方展示；单选已选值直接回填到触发框内，避免布局下移） -->
+  {#if multiple && selectedValues.length > 0}
     <div class="flex flex-wrap gap-1">
       {#each selectedValues as v}
         <Badge variant="secondary" class="gap-1">

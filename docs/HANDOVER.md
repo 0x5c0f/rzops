@@ -551,6 +551,14 @@ user ──< user_role >── role ──< role_permission >── 权限点
 - **三个 `.env.example` 模板分工（知识沉淀）**：根目录模板 = docker compose 主配置（`cp .env.example .env`，compose 自动读取）；`rzops-api/.env.example` = 后端单独运行（`cargo run`）模板，后端 `main.rs` 用 `dotenvy::dotenv()` 自动加载运行目录 `.env`；`rzops-web/.env.example` = 前端 vite dev 用（仅 `RZOPS_PUBLIC_HOST`，本地直连无需配置）。**曾踩坑**：rzops-api 模板长期停留在旧值（库名 `rzops`/密码 `changeme` 与根模板 `rzopsdb`/`rzops` 不一致），单独运行后端会连错库——已统一为与根模板一致。
 - **项目许可改为 Apache-2.0**（2026-09-12）：`LICENSE` 为 Apache-2.0 官方全文（不可改动）；署名按 Apache 规范放 `NOTICE` 文件（`Copyright 2026 0x5c0f`），**不写进 LICENSE 正文**；`rzops-api/Cargo.toml` workspace.package 与 7 个子 crate（`license.workspace = true`）均标 Apache-2.0；`rzops-web/package.json` 加 `"license": "Apache-2.0"`；README（中/英）License 章节更新为 Apache-2.0 + 版权行。
 
+
+### 2026-09-14 回收站确认弹窗 / 单选选择器统一 / 下拉回填布局
+- **回收站彻底删除加确认弹窗与结果提示**：`recycle/+page.svelte` 的 `handlePurge`（原直接调 API 后刷列表）拆为 `requestPurge`（打开 `ConfirmDialog`）+ `confirmPurge`（成功 `showToast('已彻底删除','success')` 后 `loadData()`，失败 `showToast('彻底删除失败，请重试','error')`，`finally` 复位 `purging/pendingPurge/confirmOpen`）；`handleRestore` 同步补成功/失败 Toast。**踩坑**：浏览器端点击确认曾连续报"彻底删除失败"，一度怀疑前后端协议问题；实际是测试会话 token 过期（api 容器重启 + 多脚本重复登录）与 bu 沙箱 fetch 被禁（bu.js 内一切 fetch 均 Failed to fetch，含同源 GET）叠加造成，后端/代理层（8000/8080 直连）purge 均 200 `{"ok":true}` 实删成功。教训：UI 现象与后端直连结果矛盾时，先排除会话/token 与浏览器自动化沙箱因素，再怀疑业务代码。
+- **监控目标/备份计划目标对象单选统一为 RemoteSearchSelect**：两表单从 `TableSelectModal`（弹层表格）改为 `RemoteSearchSelect`（触发按钮 + 远程搜索面板，与数据库实例编辑页服务器选择一致），目标类型映射 server/database/site/domain（监控另含 certificate，新增 `searchCertificateOptions`）；`TableSelectModal` 单选时 `triggerText` 显示已选名称（回填到框内），已选 Badge 仅多选时渲染——解决"选择回填显示在选择框上方导致布局下移"。**踩坑（重要）**：`$effect(() => { if (form.target_type) { form.target_id = ''; ... } })` 在 Svelte 5 中**首次挂载也会执行**，会清空编辑页回显的 `target_id`（新建页无感知、编辑页静默丢数据）。修复：`let prevTargetType = $state(form.target_type)` + `$effect` 内仅当 `t !== prevTargetType` 才清空（首跑相等不清空）。凡"监听某字段变化执行副作用"且副作用会改动其他字段的 `$effect`，都要先比较前值，避免首跑误触发。
+- **数据库实例状态联动评估结论（未改代码）**：后端 `database_instance_repo::find_all` 的 ORDER BY 已含 `CASE WHEN status IN (retired/offline/inactive/disabled) THEN 2 WHEN server_id IS NULL OR server 已删/退役 THEN 1 ELSE 0 END`，前端列表服务器列已展示服务器状态标签、失效实例行变色——服务器退役/删除后实例自动沉底并标注，无需新增联动。
+- **监控目标关联目标多选评估结论（保持单选）**：`target_id` 为后端单值字段，改多选需新增 `target_ids` 字段与关联表，当前业务（一个监控/备份对象）单选足够；多选场景（服务器端口、站点关联资源）继续用 TableSelectModal 弹层表格。
+
+
 ---
 
 *交接文档由 RzOps 开发全过程沉淀整理（2026-09-09，持续更新）。配合 [AGENTS.md](../AGENTS.md) 使用，AI 与人类开发者均可快速接手。*

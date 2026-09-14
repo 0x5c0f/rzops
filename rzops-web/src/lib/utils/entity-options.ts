@@ -276,6 +276,22 @@ export async function searchDomainOptions(keyword: string): Promise<SelectOption
 }
 
 /**
+ * 远程搜索证书选项（用于 RemoteSearchSelect）
+ */
+export async function searchCertificateOptions(keyword: string): Promise<SelectOption[]> {
+  try {
+    const res = await certificatesApi.list({ q: keyword || undefined, per_page: 20 });
+    return res.data.map(item => ({
+      label: item.name,
+      value: item.id,
+    }));
+  } catch (err) {
+    console.error('Failed to search certificates:', err);
+    return [];
+  }
+}
+
+/**
  * 远程搜索站点选项
  */
 export async function searchOpsSiteOptions(keyword: string): Promise<SelectOption[]> {

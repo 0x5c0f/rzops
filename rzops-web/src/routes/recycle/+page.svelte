@@ -9,7 +9,9 @@
   import * as Select from '$lib/ui/select';
   import DataTable from '$lib/components/shared/DataTable.svelte';
   import Pagination from '$lib/components/shared/Pagination.svelte';
+  import ConfirmDialog from '$lib/components/shared/ConfirmDialog.svelte';
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
+  import { showToast } from '$lib/stores/toast.svelte.ts';
   import { onMount } from 'svelte';
 
   let data = $state<RecycleItem[]>([]);
@@ -19,6 +21,9 @@
   let resourceType = $state('');
   let page = $state(1);
   let perPage = $state(20);
+  let pendingPurge = $state<RecycleItem | null>(null);
+  let confirmOpen = $state(false);
+  let purging = $state(false);
 
   // 展开详情中隐藏的内部/元信息字段（ID 与删除时间已在列表列展示）
   const HIDDEN_FIELDS = new Set(['id', 'deleted_at', 'created_at', 'updated_at']);
@@ -64,18 +69,34 @@
   async function handleRestore(item: RecycleItem) {
     try {
       await recycleApi.restore({ resource_type: item.resource_type, id: item.id });
+      showToast('已恢复', 'success');
       await loadData();
     } catch (err) {
       console.error('Failed to restore item:', err);
+      showToast('恢复失败，请重试', 'error');
     }
   }
 
-  async function handlePurge(item: RecycleItem) {
+  function requestPurge(item: RecycleItem) {
+    pendingPurge = item;
+    confirmOpen = true;
+  }
+
+  async function confirmPurge() {
+    if (!pendingPurge) return;
+    const item = pendingPurge;
+    purging = true;
     try {
       await recycleApi.purge(item.resource_type, item.id);
+      showToast('已彻底删除', 'success');
       await loadData();
     } catch (err) {
       console.error('Failed to purge item:', err);
+      showToast('彻底删除失败，请重试', 'error');
+    } finally {
+      purging = false;
+      pendingPurge = null;
+      confirmOpen = false;
     }
   }
 </script>
@@ -131,9 +152,17 @@
 {#snippet rowActions(item: RecycleItem)}
   <Button variant="outline" size="sm" class="px-1.5" onclick={() => handleRestore(item)}>恢复</Button>
   {#if canDelete('recycle')}
-    <Button variant="destructive" size="sm" class="px-1.5" onclick={() => handlePurge(item)}>彻底删除</Button>
+    <Button variant="destructive" size="sm" class="px-1.5" disabled={purging} onclick={() => requestPurge(item)}>彻底删除</Button>
   {/if}
 {/snippet}
+
+<ConfirmDialog
+  bind:open={confirmOpen}
+  title="彻底删除"
+  description={pendingPurge ? `该${resourceTypeLabels[pendingPurge.resource_type] || '数据'}将被物理删除且无法恢复，确定要彻底删除吗？` : ''}
+  confirmLabel="彻底删除"
+  onConfirm={confirmPurge}
+/>
 
 {#snippet detailContent(item: RecycleItem)}
   <div class="space-y-2 px-2 py-3">
