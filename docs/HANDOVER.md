@@ -569,6 +569,13 @@ user ──< user_role >── role ──< role_permission >── 权限点
 - **api Dockerfile 去掩盖**：依赖缓存层原为 `cargo build ... 2>/dev/null || true`（静默吞 stderr），已去掉 `2>/dev/null` 保留 `|| true`——该层仅预编译依赖缓存、失败不致命，但输出必须可见，告警才能被发现和修复。
 - **排查方法沉淀**：验证打包告警的正确姿势是 `docker compose build --no-cache` 全量重建（缓存命中会掩盖 npm install/cargo 阶段输出）；grep 关键词时注意 `serde_path_to_error`/`thiserror`/`_error.svelte`/`error_response` 等**文件名含 "error" 的误匹配**，须按上下文甄别。
 
+### 2026-09-14 TDZ 踩坑：$state 初始化引用顺序（数据库实例编辑页白屏）
+- **现象**：数据库实例新建/编辑页无法进入，控制台 `Uncaught ReferenceError: Cannot access 'Y' before initialization`（压缩后变量名）。
+- **根因**：上一轮修复"编辑页服务器字段先闪 ID"时，把 `serverDisplayOptions` 的同步初始化（`form.server_id && initialServerName ? [...] : []`）放在了 **`form` 定义之前**——`let` 存在暂时性死区（TDZ），初始化表达式引用后声明变量直接抛错。ServerIpForm 同款写法没问题是因为其 `form` 定义在 `serverDisplayOptions` 之前。
+- **修复**：将 `serverDisplayOptions` 初始化移到 `form` 定义之后；并用 Python 脚本扫描全部 13 个表单组件，确认无其他 `$state` 初始化引用后声明变量的情况（0 风险）。
+- **教训（重要）**：Svelte 5 中**任何 `$state` 初始化表达式引用了其它 `let`/`$state` 变量，被引用变量必须已声明在前**；改"回显优化"类代码时，先在源码里确认变量声明顺序，再构建部署。另：用户浏览器报错产物 hash（`app.B5yKyMB2.js`）与部署产物（`app.BfomGHhY.js`）不一致时，先让用户**强制刷新（Ctrl+Shift+R）**排除旧 JS 缓存，再判断是否真未修复。
+- **排查手段**：bu 浏览器沙箱内页面 `fetch` 被拦截（`Failed to fetch`）、沙箱网络与 WSL 隔离（127.0.0.1 连接被拒），**无法用 bu 做本机 SPA 的 UI 级验证**；替代为 `npx svelte-check`（确认改动文件无新增 Error）+ API 直连验证数据层 + 静态检查编译产物 hash 已更新 + 用户强刷确认。控制台出现 `VM1079 ... reportAllChanges ... startTime` 类报错为**浏览器扩展**（injected.js WebSocket Proxy/性能脚本）所致，与应用无关。
+
 
 ---
 

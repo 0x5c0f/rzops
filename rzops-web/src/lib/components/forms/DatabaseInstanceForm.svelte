@@ -60,15 +60,17 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
   let saving = $state(false);
   let formError = $state<string | null>(null);
   let attachmentRef = $state<{ uploadAll: (id: string) => Promise<void> } | null>(null);
-  // 同步初始化服务器回显选项：编辑时直接使用传入的 server_name，
-  // 避免异步搜索期间 RemoteSearchSelect 回退显示原始 id（先闪 id 再变名字）
-  let serverDisplayOptions = $state<{ label: string; value: string }[]>(
-    form.server_id && initialServerName ? [{ label: initialServerName, value: form.server_id }] : []
-  );
 
   let form = $state<CreateDatabaseInstanceRequest>(createInitial(initialSnapshot));
   let backupPlans = $state<BackupDraft[]>(JSON.parse(JSON.stringify(initialBackupPlansSnapshot)));
   let monitorTargets = $state<MonitorDraft[]>(JSON.parse(JSON.stringify(initialMonitorTargetsSnapshot)));
+  // 同步初始化服务器回显选项：编辑时直接使用传入的 server_name，
+  // 避免异步搜索期间 RemoteSearchSelect 回退显示原始 id（先闪 id 再变名字）。
+  // 注意：必须放在 form 定义之后，否则触发 TDZ（Cannot access before initialization）
+  // svelte-ignore state_referenced_locally —— 仅初始化用一次，有意读取初始值
+  let serverDisplayOptions = $state<{ label: string; value: string }[]>(
+    form.server_id && initialServerName ? [{ label: initialServerName, value: form.server_id }] : []
+  );
 
   function createInitial(initial?: CreateDatabaseInstanceRequest): CreateDatabaseInstanceRequest {
     const init = {

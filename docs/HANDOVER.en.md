@@ -570,6 +570,13 @@ superuser (user.is_superuser=true) bypasses all checks
 - **api Dockerfile de-masking**: the dependency-cache layer used `cargo build ... 2>/dev/null || true` (silencing stderr); removed `2>/dev/null`, kept `|| true` — the layer only pre-compiles dependency cache and failure is non-fatal, but output must be visible so warnings can be found and fixed.
 - **Method note**: to verify build warnings correctly, run `docker compose build --no-cache` (cache hits mask npm install / cargo output); when grepping, beware false matches from file names containing "error" (`serde_path_to_error`, `thiserror`, `_error.svelte`, `error_response`).
 
+### 2026-09-14 TDZ gotcha: $state init order (DB-instance edit page white screen)
+- **Symptom**: DB-instance new/edit page did not open; console: `Uncaught ReferenceError: Cannot access 'Y' before initialization` (minified name).
+- **Root cause**: while fixing "server field flashes ID first", the `serverDisplayOptions` synchronous init (`form.server_id && initialServerName ? [...] : []`) was placed **before the `form` declaration** — `let` has a temporal dead zone (TDZ), so referencing the later-declared variable throws. ServerIpForm was fine only because its `form` is declared before `serverDisplayOptions`.
+- **Fix**: moved the `serverDisplayOptions` init after `form`; scanned all 13 form components with a script to confirm no other `$state` init references a later-declared variable (0 risk).
+- **Lesson (important)**: in Svelte 5, **any `$state` initializer that references another `let`/`$state` variable requires that variable to be declared above it**. When touching "echo/display" code, verify declaration order in source before building. Also: when the browser error bundle hash (`app.B5yKyMB2.js`) differs from the deployed hash (`app.BfomGHhY.js`), ask the user to **hard refresh (Ctrl+Shift+R)** to rule out stale JS cache before concluding it's still broken.
+- **Verification note**: the bu browser sandbox blocks in-page `fetch` (`Failed to fetch`) and its network is isolated from WSL (127.0.0.1 refused), so bu **cannot** do UI-level verification of this local SPA; fall back to `npx svelte-check` (no new errors in changed files) + direct API checks + verifying the compiled bundle hash changed + user hard-refresh confirmation. Console errors like `VM1079 ... reportAllChanges ... startTime` come from a **browser extension** (injected.js WebSocket proxy / performance script), unrelated to the app.
+
 
 ---
 
