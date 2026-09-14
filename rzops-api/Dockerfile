@@ -25,7 +25,7 @@ COPY rzops-api/common/Cargo.toml common/
 RUN mkdir -p app/src server/src api/src domain/src infra/src config/src common/src \
     && echo 'fn main() {}' > app/src/main.rs \
     && for d in server api domain infra config common; do echo '' > $d/src/lib.rs; done \
-    && cargo build --release --target x86_64-unknown-linux-musl --workspace 2>/dev/null || true
+    && cargo build --release --target x86_64-unknown-linux-musl --workspace || true
 
 # 真实源码
 COPY rzops-api/ .

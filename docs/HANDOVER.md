@@ -563,6 +563,12 @@ user ──< user_role >── role ──< role_permission >── 权限点
 - **数据库实例编辑页"服务器先显示 ID 再显示名字"根因与修复**：`DatabaseInstanceForm.onMount` 原用 `searchServerOptions('')` 只取最新 6 台做回显，命不中时以 `{ label: server_id, value: server_id }` 兜底写入 displayOptions，RemoteSearchSelect 的 `labelOf` 找不到 labelCache/allOptions 时原样返回 value（即 ID）；且 onMount 异步赋值导致首帧先渲染 ID。修复：表单新增 `initialServerName` prop，**同步**初始化 `serverDisplayOptions`（`form.server_id && initialServerName ? [{label: initialServerName, value: form.server_id}] : []`），编辑页传 `instance.server_name`（后端 JOIN 已返回），onMount 仅在无名称的异常数据时才 fallback 搜索。与 ServerIpForm 既有方案统一。**规范：编辑回显关联对象名称一律由父页面传入名称字段同步初始化，禁止依赖搜索命中或裸显示 ID。**
 - **关联下拉"空关键字全量展示"统一限流**：`entity-options.ts` 中 `searchDatabaseInstanceOptions`/`searchDomainOptions`/`searchCertificateOptions`/`searchOpsSiteOptions`/`searchProviderOptions` 原固定 `per_page: 20`（打开即拉 20 条，数据量大后仍会很长），已统一为 `keyword.trim() ? 20 : 6`（空关键字只返回最新创建 6 条，输入关键字返回 20 条），与 `searchServerOptions` 既有做法一致。**规范：所有 RemoteSearchSelect 的 searchFn 空关键字必须限 6 条（最新创建优先），有关键字限 20 条。**
 
+### 2026-09-14 打包告警清零（npm notice 与 Dockerfile 输出治理）
+- **无缓存完整重建暴露唯一告警**：`docker compose build --no-cache api web` 全量输出仅 npm 的版本更新提示（`npm notice New major version of npm available! 10.9.8 -> 12.0.2`），Rust 编译（cargo build --release --target x86_64-unknown-linux-musl）0 警告、前端 `npm run build` 0 警告、容器运行日志 0 warn/error。
+- **修复 npm notice**：web Dockerfile 增加 `ENV npm_config_update_notifier=false`。**踩坑：`NO_UPDATE_NOTIFIER=1` 对 npm 10 不生效**（那是 yarn/pnpm 的变量），npm 必须用 `npm_config_update_notifier=false`。
+- **api Dockerfile 去掩盖**：依赖缓存层原为 `cargo build ... 2>/dev/null || true`（静默吞 stderr），已去掉 `2>/dev/null` 保留 `|| true`——该层仅预编译依赖缓存、失败不致命，但输出必须可见，告警才能被发现和修复。
+- **排查方法沉淀**：验证打包告警的正确姿势是 `docker compose build --no-cache` 全量重建（缓存命中会掩盖 npm install/cargo 阶段输出）；grep 关键词时注意 `serde_path_to_error`/`thiserror`/`_error.svelte`/`error_response` 等**文件名含 "error" 的误匹配**，须按上下文甄别。
+
 
 ---
 
