@@ -641,3 +641,9 @@ user ──< user_role >── role ──< role_permission >── 权限点
 - **服务器IP 重复键友好处理（duplicate key 修复）**：根因是 `cmdb_server_ip` 表 `UNIQUE(ip_address)` 对**软删记录仍生效**，新建同 IP 直接撞唯一约束，后端所有 DB 错误统一返回 500 + 原始数据库错误文案。修复：repo create 层捕获 `sqlx::Error::Database` 且 `is_unique_violation()` 时映射 `RepositoryError::Constraint("该 IP 地址已存在（可能已被删除，可在回收站处理）")`（该变体此前只存在于枚举、从未使用）；handler 对 `Constraint` 返回 `409 Conflict` + 友好文案（其余仍 500）。前端 `ServerIpForm` catch 改为显示 `err.message`（后端友好文案）而非固定"保存失败，请重试"。
 - **测试记录**：后端 409 已 curl 实测（重复 IP 创建返回 `{"error":"该 IP 地址已存在（可能已被删除，可在回收站处理）"}` + HTTP 409）；域名详情 API 确认返回 `registered_date`。**bu 浏览器沙箱本轮 fetch 代理损坏**（登录点击无 network 请求、reload 超时），前端交互（多选 toggle、日期选择器联动）为代码级验证（svelte-check 干净 + npm run build 成功），待人工复核。
 - **踩坑：PowerShell→WSL 参数透传**——`wsl -e bash -lc "...$VAR...@file..."` 中 `$` 与 `@` 会被 PowerShell 提前解释（splatting 报错），含变量/文件引用的命令一律写脚本文件（Write → `sed -i 's/\r$//'` → `bash script.sh`）执行。
+### 2026-09-15 第四轮：服务器IP 移除全局唯一约束
+- **需求背景**：`cmdb_server_ip.ip_address` 原为 `UNIQUE(ip_address)` 全局唯一约束。用户指出该约束不合理：① 回收 IP 复用（软删记录仍占位，退役设备释放的 IP 无法分配给新设备）；② IP 未绑定服务器时的复用场景；③ 异地机房私有网段相同（10.x/172.16/192.168 在不同网络划分内重复合法）。
+- **实施**：运行库 `ALTER TABLE cmdb_server_ip DROP CONSTRAINT cmdb_server_ip_ip_address_key`（已执行）；`database/schema.sql` 同步移除该约束定义（CREATE TABLE 内联无 UNIQUE，仅约束段）；全仓无其他引用该约束名；seed-data.sql 不含 IP 记录无需改动。
+- **后端**：`server_ip_repo::create` 的 `is_unique_violation` → `RepositoryError::Constraint` → 409 映射**保留**（防御性，约束移除后正常流程不再触发）。
+- **实测**：同 IP 连续创建两次均返回 201（此前第二次 409）；测试数据已清理。
+- **踩坑：PowerShell→WSL 引号嵌套**——含 psql `'...'::regclass` 与内层引号的命令在 `wsl -e bash -lc` 内必炸（PowerShell 先解析 `$`/`"`/`@`），一律写脚本文件执行。

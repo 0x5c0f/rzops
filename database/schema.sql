@@ -635,12 +635,6 @@ ALTER TABLE ONLY public.cmdb_server
     ADD CONSTRAINT cmdb_server_asset_code_key UNIQUE (asset_code);
 
 
--- Name: cmdb_server_ip cmdb_server_ip_ip_address_key; Type: CONSTRAINT; Schema: public; Owner: -
-
-ALTER TABLE ONLY public.cmdb_server_ip
-    ADD CONSTRAINT cmdb_server_ip_ip_address_key UNIQUE (ip_address);
-
-
 -- Name: cmdb_server_ip cmdb_server_ip_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 
 ALTER TABLE ONLY public.cmdb_server_ip
