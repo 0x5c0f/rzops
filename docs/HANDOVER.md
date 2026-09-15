@@ -633,3 +633,11 @@ user ──< user_role >── role ──< role_permission >── 权限点
 ---
 
 *交接文档由 RzOps 开发全过程沉淀整理（2026-09-09，持续更新）。配合 [AGENTS.md](../AGENTS.md) 使用，AI 与人类开发者均可快速接手。*
+### 2026-09-15 第三轮体验优化（3 项新问题）
+- **供应商类型"不可取消"交互修复**：`FormMultiSelect` 下拉列表中的已选项原先 `disabled`（点击无反应，只能点 Trigger 内标签的 × 移除，用户感知"选择后不可取消"）。改为**可点击切换**（toggle）：已选项点击即取消、未选项点击即添加；已选项加 `text-primary` 高亮与"已选（点击取消）"提示；同时补 X 的 `onkeydown`（Enter/Space）消除 a11y 警告。**待确认（产品决策）**：供应商类型数据模型为 JSONB 数组（`provider_types text[]`），UI 与之一致支持多选（一个供应商可同时标记多个类型）；用户认为"应该单选"。若改为单选需调整：DB 列（`provider_types jsonb → provider_type varchar`）+ 运行库迁移 + 后端 DTO/repo + 种子数据 + ProviderForm（FormMultiSelect→FormSelect）+ 列表/筛选，工作量中等，**待用户确认后实施**。
+- **域名注册日期校验与详情展示**：
+  - **日期联动（选择器级限制）**：注册日期 `max=到期日期`、到期日期 `min=注册日期`（未选注册日期时用今天）——从 UI 上杜绝"注册日期晚于到期日期"的组合；保存侧 `validateDateRange` 校验本就存在（`start > end` 报"注册日期不能晚于到期日期"），双保险。
+  - **详情页补注册日期**：`/domains/[id]/+page.svelte` 基本信息卡片新增"注册日期"行（此前只有到期日期）。API 已返回 `registered_date`，无需后端改动。
+- **服务器IP 重复键友好处理（duplicate key 修复）**：根因是 `cmdb_server_ip` 表 `UNIQUE(ip_address)` 对**软删记录仍生效**，新建同 IP 直接撞唯一约束，后端所有 DB 错误统一返回 500 + 原始数据库错误文案。修复：repo create 层捕获 `sqlx::Error::Database` 且 `is_unique_violation()` 时映射 `RepositoryError::Constraint("该 IP 地址已存在（可能已被删除，可在回收站处理）")`（该变体此前只存在于枚举、从未使用）；handler 对 `Constraint` 返回 `409 Conflict` + 友好文案（其余仍 500）。前端 `ServerIpForm` catch 改为显示 `err.message`（后端友好文案）而非固定"保存失败，请重试"。
+- **测试记录**：后端 409 已 curl 实测（重复 IP 创建返回 `{"error":"该 IP 地址已存在（可能已被删除，可在回收站处理）"}` + HTTP 409）；域名详情 API 确认返回 `registered_date`。**bu 浏览器沙箱本轮 fetch 代理损坏**（登录点击无 network 请求、reload 超时），前端交互（多选 toggle、日期选择器联动）为代码级验证（svelte-check 干净 + npm run build 成功），待人工复核。
+- **踩坑：PowerShell→WSL 参数透传**——`wsl -e bash -lc "...$VAR...@file..."` 中 `$` 与 `@` 会被 PowerShell 提前解释（splatting 报错），含变量/文件引用的命令一律写脚本文件（Write → `sed -i 's/\r$//'` → `bash script.sh`）执行。

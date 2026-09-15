@@ -99,6 +99,10 @@ import { canUpdate, canDelete } from '$lib/utils/permissions';
               <dd class="font-mono">{domain.domain_name}</dd>
             </div>
             <div class="flex justify-between">
+              <dt class="text-muted-foreground">注册日期</dt>
+              <dd>{formatDate(domain.registered_date)}</dd>
+            </div>
+            <div class="flex justify-between">
               <dt class="text-muted-foreground">到期日期</dt>
               <dd>{formatDate(domain.expiry_date)}</dd>
             </div>

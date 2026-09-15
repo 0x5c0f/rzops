@@ -143,6 +143,10 @@ pub async fn create_server_ip(
             record_change(&change_log, &auth, rzops_domain::enums::ChangeType::Create, "server_ip", Some(created.id), serde_json::json!(null), serde_json::to_value(to_response(&created, None, None)).unwrap_or(serde_json::json!({})), None).await;
             (StatusCode::CREATED, Json(to_response(&created, None, None))).into_response()
         }
+        Err(rzops_domain::errors::RepositoryError::Constraint(msg)) => (
+            StatusCode::CONFLICT,
+            Json(ErrorResponse { error: msg }),
+        ).into_response(),
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ErrorResponse { error: format!("failed to create server IP: {}", e) }),

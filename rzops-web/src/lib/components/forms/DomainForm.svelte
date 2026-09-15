@@ -20,6 +20,7 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
     onSubmit,
   }: {
     initial?: CreateDomainRequest;
+    entityId?: string;
     submitLabel?: string;
     onSubmit: (data: CreateDomainRequest) => Promise<string | void>;
   } = $props();
@@ -112,6 +113,7 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
         id="registered_date"
         label="注册日期"
         bind:value={form.registered_date}
+        max={form.expiry_date || undefined}
         required
       />
 
@@ -119,7 +121,7 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
         id="expiry_date"
         label="到期日期"
         bind:value={form.expiry_date}
-        min={new Date().toISOString().slice(0, 10)}
+        min={form.registered_date || new Date().toISOString().slice(0, 10)}
         required
       />
 

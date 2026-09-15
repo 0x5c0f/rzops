@@ -79,7 +79,7 @@
       await onSubmit(form);
     } catch (err) {
       console.error('Failed to save server IP:', err);
-      formError = '保存失败，请重试';
+      formError = err instanceof Error && err.message ? err.message : '保存失败，请重试';
     } finally {
       saving = false;
     }

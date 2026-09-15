@@ -100,7 +100,7 @@ impl ServerIpRepository for PgServerIpRepository {
     }
 
     async fn create(&self, ip: &ServerIP) -> Result<ServerIP, RepositoryError> {
-        let row = sqlx::query(
+        let result = sqlx::query(
             r#"INSERT INTO cmdb_server_ip
                (id, server_id, ip_address, nic_name, ip_type, is_primary, isp_provider_id,
                 description, status, created_at, updated_at)
@@ -120,8 +120,16 @@ impl ServerIpRepository for PgServerIpRepository {
         .bind(ip.created_at)
         .bind(ip.updated_at)
         .fetch_one(&self.pool)
-        .await.repo()?;
-        Ok(row_to_server_ip(&row))
+        .await;
+        match result {
+            Ok(row) => Ok(row_to_server_ip(&row)),
+            Err(sqlx::Error::Database(db_err)) if db_err.is_unique_violation() => {
+                Err(RepositoryError::Constraint(
+                    "该 IP 地址已存在（可能已被删除，可在回收站处理）".to_string(),
+                ))
+            }
+            Err(e) => Err(RepositoryError::Database(e.to_string())),
+        }
     }
 
     async fn update(&self, id: Uuid, ip: &ServerIP) -> Result<Option<ServerIP>, RepositoryError> {

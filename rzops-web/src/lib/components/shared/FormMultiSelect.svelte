@@ -43,6 +43,15 @@
     value = currentValue.filter(item => item !== v);
   }
 
+  // 下拉列表中的项可点击切换：已选项点击即取消，未选项点击即添加
+  function toggleValue(v: string) {
+    if (currentValue.includes(v)) {
+      removeValue(v);
+    } else {
+      addValue(v);
+    }
+  }
+
   // 前 maxDisplay 个已选项（解析 label），其余折叠为 +N
   let displayItems = $derived(
     currentValue.slice(0, Math.max(0, maxDisplay)).map(v => ({
@@ -61,7 +70,7 @@
     {/if}
   </Label>
 
-  <Select.Root type="single" value="" onValueChange={(v) => { if (v) addValue(v); }} {disabled}>
+  <Select.Root type="single" value="" onValueChange={(v) => { if (v) toggleValue(v); }} {disabled}>
     <Select.Trigger class="w-full flex-wrap whitespace-normal">
       {#if currentValue.length > 0}
         <span class="flex flex-wrap items-center gap-1">
@@ -77,6 +86,13 @@
                     e.stopPropagation();
                     e.preventDefault();
                     removeValue(item.value);
+                  }}
+                  onkeydown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      removeValue(item.value);
+                    }
                   }}
                   class="ml-0.5 cursor-pointer rounded-full hover:bg-muted"
                 >
@@ -98,9 +114,14 @@
         <Select.Item
           value={option.value}
           label={option.label}
-          disabled={currentValue.includes(option.value)}
+          class={currentValue.includes(option.value) ? 'text-primary' : ''}
         >
-          {option.label}
+          <span class="flex w-full items-center justify-between gap-2">
+            {option.label}
+            {#if currentValue.includes(option.value)}
+              <span class="text-xs text-muted-foreground">已选（点击取消）</span>
+            {/if}
+          </span>
         </Select.Item>
       {/each}
     </Select.Content>
