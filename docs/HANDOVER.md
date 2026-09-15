@@ -671,3 +671,16 @@ user ──< user_role >── role ──< role_permission >── 权限点
 - **约定（重要）**：本项目前端 `api.get/post/put/delete` **必须写完整 `/api/v1/...` 路径**，client 不做前缀拼接；写漏前缀不会报错，而是被 nginx 当成 SPA 路由返回 HTML，表现为"接口静默失败"。
 - **关联目标显示文案统一**：列表/详情页的"关联目标/所属服务器/服务器"列，未关联时由 `-` 统一为**"未关联目标"**（目标类）/ **"未关联服务器"**（服务器归属类）；服务器列 "已删除" 统一为 **"服务器已删除"**（server-ips / database-instances / server-ports 详情）；**行级颜色逻辑全部保留**（未关联无强调色、已删除红 text-red-500、已退役橙/黄 text-amber-600，各列表 getRowClass 不动）。涉及文件：backup-plans、monitor-targets、server-ips、database-instances（列表+详情）、server-ports 详情共 9 处。
 - **待办（已给用户评估，待拍板）**：**服务器/站点/数据库实例编辑页的关联卡片删除语义**——当前 `ServerForm.syncIps`（`serverIpsApi.delete`）、`syncDbInstances`（`databaseInstancesApi.delete`）、`OpsSiteForm.syncBackupPlans`/`syncMonitorTargets`（`backupPlansApi.delete`/`monitorTargetsApi.delete`）、`DatabaseInstanceForm` 同款——**父实体编辑页删除关联 = 直接软删子实体记录**。建议统一为"解绑/解除关联"：IP/DB 实例 `server_id` 置空、备份计划/监控目标 `target_type/target_id` 置空（子实体有独立管理页，应保留可复用）；端口（每服务器独立记录，`UNIQUE(server_id,protocol,port)`）删自己的记录合理；站点关联/证书域名（中间表）已正确。后端需新增 4 个 unbind 端点（server-ips / database-instances / backup-plans / monitor-targets）。
+
+### 2026-09-15 Round 7: 父实体编辑页"删除关联"改为解绑（unbind），新增 4 个后端端点
+- **需求背景**：用户发现服务器编辑页 IP 标签卡片"删除已添加的 IP"实际是软删 IP 记录本身（`serverIpsApi.delete`），而非解除 IP 与服务器的关联——IP/数据库实例是独立资产（有独立管理页），删除关联后应保留记录可复用。评估结论（6 处应改 + 4 处已正确）：ServerForm.syncIps / syncDbInstances、OpsSiteForm.syncBackupPlans / syncMonitorTargets、DatabaseInstanceForm 同款 → 改解绑；端口（每服务器独立记录 `UNIQUE(server_id,protocol,port)`）删自己的记录合理、站点关联/证书域名（多对多中间表）删 relation 记录本来就对。
+- **后端实施（4 个 unbind 端点）**：
+  - `POST /api/v1/server-ips/{id}/unbind`：`UPDATE cmdb_server_ip SET server_id=NULL, updated_at=now() WHERE id=$1 AND deleted_at IS NULL RETURNING ...`
+  - `POST /api/v1/database-instances/{id}/unbind`：`server_id=NULL`
+  - `POST /api/v1/backup-plans/{id}/unbind`：`target_type=NULL, target_id=NULL`
+  - `POST /api/v1/monitor-targets/{id}/unbind`：`target_type=NULL, target_id=NULL`
+  - 均复用各自 `row_to_*` 转换 + `record_change(ChangeType::Update)` 变更日志；改动面 = domain trait（4 个 `ports/*_repository.rs` 加 `unbind(&self, id)`）+ infra repo（4 个 `repositories/*_repo.rs` 实现）+ api handler（4 个 `routes/*_handlers.rs` 加 `unbind_*`）+ `routes/mod.rs` 注册 `/{id}/unbind` POST + `openapi.rs` 注册。注意 monitor_target_handlers.rs 的 delete 签名是 `State(r):State<...>`（无空格），Edit 精确匹配失败后需按原文改。
+- **前端实施**：4 个 `lib/api/{server-ips,database-instances,backup-plans,monitor-targets}.ts` 加 `unbind: (id) => api.post(`/api/v1/.../${id}/unbind`)`；3 个表单 sync 由 `Api.delete` 改为 `Api.unbind`（ServerForm 267/315 行、OpsSiteForm 233/257 行、DatabaseInstanceForm 124/148 行）；端口/站点关联/证书域名保持原样。
+- **测试结果**：后端 curl 端到端全绿（登录→造 4 条绑定数据→逐个 unbind HTTP 200→GET 验证 server_id/target_id 为 null 且记录仍在）；`cargo check` / `cargo build --release --target x86_64-unknown-linux-musl`（1m44s）无警告；`npm run build` 无警告；容器 `--no-cache` 重建后 grep 确认 `.unbind(` 调用与 4 个 API 路径已入 chunk（ServerForm 的 sync 变为 `some(t=>t.id===e.id)&&await R.unbind(e.id)` 形式）。
+- **坑（提交管理）**：`git add -A` 会把工作目录里的 `tmp_*.sh` 临时脚本一并提交——临时脚本应放子目录或用 `git status --short` 检查后再 add；误提交后用 `git rm <file>` 清理并单独 commit。
+- **bu 沙箱状态**：登录点击仍无网络请求（fetch 代理失效），UI 自动化不可用；本轮前端验证依赖"后端 curl 端到端 + 前端构建 + 容器产物 grep + 用户人工复核"。
