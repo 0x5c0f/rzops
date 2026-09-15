@@ -662,3 +662,12 @@ user ──< user_role >── role ──< role_permission >── 权限点
 - **验证方法（重要）**：SvelteKit 表单组件是**懒加载 chunk**，页面 HTML 不直接引用——检查容器是否含新逻辑要 `docker exec rzops-web-1 sh -c "grep -rl '文案' /usr/share/nginx/html/_app/immutable/"` 全量搜，**不要**只 grep 页面 HTML 引用的 js。
 - **修复**：`docker compose build --no-cache web && docker compose up -d web` 后，容器内 `DvebhqAm.js` 含「绑定当前服务器」「IP 重复提醒」，HTTP 可达确认。本机 8080 已可实测。
 - **踩坑**：`docker compose build`（不带 --no-cache）对前端静态构建**可能复用旧 COPY 层**，前端代码更新后务必验证容器内产物，必要时 --no-cache。
+### 2026-09-15 第六轮：IP 重复提醒真正根因（前端路径前缀） + 关联目标文案统一
+- **IP 重复提醒" 仍不生效\根因（重大踩坑）**：即使重建容器、检查请求正常发出（带
+
+### 2026-09-15 第六轮：IP 重复提醒真正根因（前端路径前缀） + 关联目标文案统一
+- **IP 重复提醒"仍不生效"根因（重大踩坑）**：即使重建容器、检查请求正常发出（带 `_t` 且返回 200），用户控制台报 `Duplicate IP check failed: SyntaxError: Unexpected token '<', "<!doctype "... is not valid JSON`。**根因：前端 `api.get('/server-ips', ...)` 写漏了 `/api/v1` 前缀**——`client.ts` 的 `request()` 不自动拼接 baseURL，路径原样请求；nginx 对非 `/api/` 路径走 SPA fallback 返回 `index.html`，`JSON.parse` 失败 → catch 静默跳过 → 不弹窗。**修复**：检查路径改为 `/api/v1/server-ips`；curl 对比确认 `/api/v1/server-ips` 返回 JSON、`/server-ips` 返回 `<!doctype html>`。
+- **同轮修复**：检查请求增加 `_t=Date.now()` 时间戳参数（防止浏览器内存缓存复用同 URL GET 的旧检查结果，旧缓存导致第二次添加不弹）；增加 `console.info('[dup-check] ...')` 观测日志便于定位。
+- **约定（重要）**：本项目前端 `api.get/post/put/delete` **必须写完整 `/api/v1/...` 路径**，client 不做前缀拼接；写漏前缀不会报错，而是被 nginx 当成 SPA 路由返回 HTML，表现为"接口静默失败"。
+- **关联目标显示文案统一**：列表/详情页的"关联目标/所属服务器/服务器"列，未关联时由 `-` 统一为**"未关联目标"**（目标类）/ **"未关联服务器"**（服务器归属类）；服务器列 "已删除" 统一为 **"服务器已删除"**（server-ips / database-instances / server-ports 详情）；**行级颜色逻辑全部保留**（未关联无强调色、已删除红 text-red-500、已退役橙/黄 text-amber-600，各列表 getRowClass 不动）。涉及文件：backup-plans、monitor-targets、server-ips、database-instances（列表+详情）、server-ports 详情共 9 处。
+- **待办（已给用户评估，待拍板）**：**服务器/站点/数据库实例编辑页的关联卡片删除语义**——当前 `ServerForm.syncIps`（`serverIpsApi.delete`）、`syncDbInstances`（`databaseInstancesApi.delete`）、`OpsSiteForm.syncBackupPlans`/`syncMonitorTargets`（`backupPlansApi.delete`/`monitorTargetsApi.delete`）、`DatabaseInstanceForm` 同款——**父实体编辑页删除关联 = 直接软删子实体记录**。建议统一为"解绑/解除关联"：IP/DB 实例 `server_id` 置空、备份计划/监控目标 `target_type/target_id` 置空（子实体有独立管理页，应保留可复用）；端口（每服务器独立记录，`UNIQUE(server_id,protocol,port)`）删自己的记录合理；站点关联/证书域名（中间表）已正确。后端需新增 4 个 unbind 端点（server-ips / database-instances / backup-plans / monitor-targets）。
