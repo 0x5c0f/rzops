@@ -38,7 +38,7 @@
   let formError = $state<string | null>(null);
   let providerOptions = $state<{ label: string; value: string }[]>([]);
   let confirmOpen = $state(false);
-  let duplicateCount = $state(0);
+  let duplicateDescription = $state('');
 
   let form = $state<CreateServerIpRequest>(createInitial(initialSnapshot));
   // 同步初始化服务器回显选项：编辑时直接使用传入的 server_name，
@@ -79,8 +79,10 @@
     ]);
     if (formError) return;
 
-    // 新建时检查：同 IP 是否存在未绑定服务器的记录（软删记录已被接口天然排除）
-    // 有则提示确认（不拦截）；编辑自身记录跳过检查
+    // 新建时检查（软删记录已被接口天然排除）：
+    // 1) 同 IP 且未绑定服务器 → 可能重复登记空闲 IP
+    // 2) 同 IP 且绑定与本次相同的服务器 → 同一服务器重复绑定同一 IP
+    // 命中则提示确认（不拦截）；编辑自身记录跳过检查；绑定其他服务器的同 IP 不提醒（异地机房同网段合法）
     if (!editing && form.ip_address) {
       try {
         const res = await api.get<{ data: { ip_address: string; server_id: string | null }[] }>('/server-ips', {
@@ -88,10 +90,17 @@
           per_page: 100,
         });
         const hits = res.data.filter(
-          item => item.ip_address === form.ip_address && !item.server_id,
+          item =>
+            item.ip_address === form.ip_address &&
+            (!item.server_id || (form.server_id && item.server_id === form.server_id)),
         );
         if (hits.length > 0) {
-          duplicateCount = hits.length;
+          const unboundCount = hits.filter(i => !i.server_id).length;
+          const sameServerCount = hits.length - unboundCount;
+          const parts: string[] = [];
+          if (unboundCount > 0) parts.push(`${unboundCount} 条未绑定服务器的记录`);
+          if (sameServerCount > 0) parts.push(`${sameServerCount} 条绑定当前服务器的记录`);
+          duplicateDescription = `该 IP 已存在${parts.join('、')}，确认继续添加吗？`;
           confirmOpen = true;
           return;
         }
@@ -203,7 +212,7 @@
 <ConfirmDialog
   bind:open={confirmOpen}
   title="IP 重复提醒"
-  description={`该 IP 已存在 ${duplicateCount} 条未绑定服务器的记录，确认继续添加吗？`}
+  description={duplicateDescription}
   confirmLabel="确认添加"
   onConfirm={doSave}
 />
