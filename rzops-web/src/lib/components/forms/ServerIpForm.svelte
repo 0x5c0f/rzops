@@ -10,6 +10,8 @@
   import { ipStatusOptions, ipTypeOptions, serverStatusOptions, serverTypeOptions, getOptionLabel } from '$lib/utils/enum-options';
   import { searchServerOptions, getProviderOptions } from '$lib/utils/entity-options';
   import { validate } from '$lib/utils/validation';
+  import { api } from '$lib/api/client';
+  import ConfirmDialog from '$lib/components/shared/ConfirmDialog.svelte';
   import { onMount } from 'svelte';
 
   let {
@@ -35,6 +37,8 @@
   let saving = $state(false);
   let formError = $state<string | null>(null);
   let providerOptions = $state<{ label: string; value: string }[]>([]);
+  let confirmOpen = $state(false);
+  let duplicateCount = $state(0);
 
   let form = $state<CreateServerIpRequest>(createInitial(initialSnapshot));
   // 同步初始化服务器回显选项：编辑时直接使用传入的 server_name，
@@ -74,6 +78,33 @@
       { value: form.nic_name, label: '网卡名称', maxLength: 100 },
     ]);
     if (formError) return;
+
+    // 新建时检查：同 IP 是否存在未绑定服务器的记录（软删记录已被接口天然排除）
+    // 有则提示确认（不拦截）；编辑自身记录跳过检查
+    if (!editing && form.ip_address) {
+      try {
+        const res = await api.get<{ data: { ip_address: string; server_id: string | null }[] }>('/server-ips', {
+          q: form.ip_address,
+          per_page: 100,
+        });
+        const hits = res.data.filter(
+          item => item.ip_address === form.ip_address && !item.server_id,
+        );
+        if (hits.length > 0) {
+          duplicateCount = hits.length;
+          confirmOpen = true;
+          return;
+        }
+      } catch (err) {
+        // 检查失败不阻塞保存，静默跳过
+        console.warn('Duplicate IP check failed:', err);
+      }
+    }
+
+    await doSave();
+  }
+
+  async function doSave() {
     saving = true;
     try {
       await onSubmit(form);
@@ -168,3 +199,11 @@
     </Button>
   </div>
 </div>
+
+<ConfirmDialog
+  bind:open={confirmOpen}
+  title="IP 重复提醒"
+  description={`该 IP 已存在 ${duplicateCount} 条未绑定服务器的记录，确认继续添加吗？`}
+  confirmLabel="确认添加"
+  onConfirm={doSave}
+/>

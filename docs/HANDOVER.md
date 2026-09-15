@@ -647,3 +647,7 @@ user ──< user_role >── role ──< role_permission >── 权限点
 - **后端**：`server_ip_repo::create` 的 `is_unique_violation` → `RepositoryError::Constraint` → 409 映射**保留**（防御性，约束移除后正常流程不再触发）。
 - **实测**：同 IP 连续创建两次均返回 201（此前第二次 409）；测试数据已清理。
 - **踩坑：PowerShell→WSL 引号嵌套**——含 psql `'...'::regclass` 与内层引号的命令在 `wsl -e bash -lc` 内必炸（PowerShell 先解析 `$`/`"`/`@`），一律写脚本文件执行。
+### 2026-09-15 第五轮：服务器IP 重复提醒（新建时）
+- **需求**：新建服务器 IP 时，若库中已有同 IP 且**未绑定任何服务器**的记录，提示确认（不拦截）；已绑定服务器的同 IP 不提醒（异地机房同网段合法场景）；**软删记录不参与提醒**（列表接口 `WHERE deleted_at IS NULL` 天然排除，回收 IP 复用不受打扰）。
+- **实现（纯前端，后端零改动）**：`ServerIpForm.handleSave` 校验通过后、提交前，调 `GET /api/v1/server-ips?q={ip}&per_page=100`，过滤 `ip_address === 输入 && !server_id` 的记录；有命中则 `ConfirmDialog`（"该 IP 已存在 N 条未绑定服务器的记录，确认继续添加吗？"），确认后 `doSave()`；检查失败静默跳过（`console.warn`）不阻塞保存；编辑自身记录跳过检查。
+- **实测**：API 造未绑定 IP `203.0.113.251` → `q` 查询返回 1 条且 `server_id=None`，前端过滤条件成立。**bu 浏览器沙箱连续两轮损坏**（fetch 代理失效），弹窗交互为代码级验证（svelte-check 干净 + build 成功），待人工复核。测试数据 `203.0.113.251` 保留供复核，复核后清理。
