@@ -131,6 +131,17 @@ impl DatabaseInstanceRepository for PgDatabaseInstanceRepository {
         Ok(row.map(|r| row_to_database_instance(&r)))
     }
 
+    async fn unbind(&self, id: Uuid) -> Result<Option<DatabaseInstance>, RepositoryError> {
+        let row = sqlx::query(&format!(
+            r#"UPDATE cmdb_database_instance SET
+                server_id=NULL, updated_at=now()
+               WHERE id=$1 AND deleted_at IS NULL RETURNING {}"#, SELECT_COLS
+        ))
+        .bind(id)
+        .fetch_optional(&self.pool).await.repo()?;
+        Ok(row.map(|r| row_to_database_instance(&r)))
+    }
+
     async fn delete(&self, id: Uuid) -> Result<bool, RepositoryError> {
         let result = sqlx::query("UPDATE cmdb_database_instance SET deleted_at = now() WHERE id = $1 AND deleted_at IS NULL").bind(id).execute(&self.pool).await.repo()?;
         Ok(result.rows_affected() > 0)

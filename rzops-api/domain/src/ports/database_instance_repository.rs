@@ -23,5 +23,7 @@ pub trait DatabaseInstanceRepository: Send + Sync {
     async fn count(&self, filter: DatabaseInstanceFilter) -> Result<i64, crate::errors::RepositoryError>;
     async fn create(&self, db: &DatabaseInstance) -> Result<DatabaseInstance, crate::errors::RepositoryError>;
     async fn update(&self, id: Uuid, db: &DatabaseInstance) -> Result<Option<DatabaseInstance>, crate::errors::RepositoryError>;
+    /// 解除数据库实例与服务器的绑定（server_id 置空），实例记录本身保留
+    async fn unbind(&self, id: Uuid) -> Result<Option<DatabaseInstance>, crate::errors::RepositoryError>;
     async fn delete(&self, id: Uuid) -> Result<bool, crate::errors::RepositoryError>;
 }

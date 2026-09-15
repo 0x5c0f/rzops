@@ -19,5 +19,7 @@ pub trait MonitorTargetRepository: Send + Sync {
     async fn count(&self, filter: MonitorTargetFilter) -> Result<i64, crate::errors::RepositoryError>;
     async fn create(&self, item: &MonitorTarget) -> Result<MonitorTarget, crate::errors::RepositoryError>;
     async fn update(&self, id: Uuid, item: &MonitorTarget) -> Result<Option<MonitorTarget>, crate::errors::RepositoryError>;
+    /// 解除监控目标与目标的关联（target_type/target_id 置空），目标记录本身保留
+    async fn unbind(&self, id: Uuid) -> Result<Option<MonitorTarget>, crate::errors::RepositoryError>;
     async fn delete(&self, id: Uuid) -> Result<bool, crate::errors::RepositoryError>;
 }

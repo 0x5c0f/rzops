@@ -70,6 +70,11 @@ impl MonitorTargetRepository for PgMonitorTargetRepository {
             .bind(id).bind(&e.name).bind(&e.target_type).bind(e.target_id).bind(e.monitor_type.clone()).bind(&e.endpoint).bind(e.interval_seconds).bind(e.status.clone()).bind(&e.remarks).bind(e.updated_at)
             .fetch_optional(&self.pool).await.repo()?.map(|r| row_to_entity(&r)))
     }
+    async fn unbind(&self, id: Uuid) -> Result<Option<MonitorTarget>, RepositoryError> {
+        Ok(sqlx::query(&format!("UPDATE cmdb_monitor_target SET target_type=NULL,target_id=NULL,updated_at=now() WHERE id=$1 AND deleted_at IS NULL RETURNING {}", COLS))
+            .bind(id)
+            .fetch_optional(&self.pool).await.repo()?.map(|r| row_to_entity(&r)))
+    }
     async fn delete(&self, id: Uuid) -> Result<bool, RepositoryError> {
         Ok(sqlx::query("UPDATE cmdb_monitor_target SET deleted_at = now() WHERE id=$1 AND deleted_at IS NULL").bind(id).execute(&self.pool).await.repo()?.rows_affected() > 0)
     }

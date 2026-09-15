@@ -22,4 +22,6 @@ export const monitorTargetsApi = {
 
   delete: (id: string) =>
     api.delete<void>(`/api/v1/monitor-targets/${id}`),
+  unbind: (id: string) =>
+    api.post<unknown>(`/api/v1/monitor-targets/${id}/unbind`),
 };

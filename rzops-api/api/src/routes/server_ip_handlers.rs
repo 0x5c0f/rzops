@@ -198,6 +198,34 @@ pub async fn update_server_ip(
     }
 }
 
+/// POST /server-ips/:id/unbind —— 解除 IP 与服务器的绑定（server_id 置空），IP 记录保留
+#[utoipa::path(post, path = "/api/v1/server-ips/{id}/unbind", params(("id" = uuid::Uuid, Path)), responses((status = 200, body = ServerIpResponse), (status = 404, body = ErrorResponse)), tag = "ServerIp", security(("bearer_auth" = [])))]
+pub async fn unbind_server_ip(
+    auth: AuthUser,
+    State(repo): State<Arc<dyn ServerIpRepository>>,
+    Extension(change_log): Extension<ChangeLogState>,
+    Path(id): Path<Uuid>,
+) -> impl IntoResponse {
+    let existing = match repo.find_by_id(id).await {
+        Ok(Some(ip)) => ip,
+        Ok(None) => {
+            return (StatusCode::NOT_FOUND, Json(ErrorResponse { error: "server IP not found".to_string() })).into_response()
+        }
+        Err(e) => {
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: format!("database error: {}", e) })).into_response()
+        }
+    };
+    let before_value = serde_json::to_value(to_response(&existing, None, None)).unwrap_or(serde_json::json!({}));
+    match repo.unbind(id).await {
+        Ok(Some(updated)) => {
+            record_change(&change_log, &auth, rzops_domain::enums::ChangeType::Update, "server_ip", Some(updated.id), before_value, serde_json::to_value(to_response(&updated, None, None)).unwrap_or(serde_json::json!({})), None).await;
+            (StatusCode::OK, Json(to_response(&updated, None, None))).into_response()
+        }
+        Ok(None) => (StatusCode::NOT_FOUND, Json(ErrorResponse { error: "server IP not found".to_string() })).into_response(),
+        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: format!("failed to unbind server IP: {}", e) })).into_response(),
+    }
+}
+
 /// DELETE /server-ips/:id
 #[utoipa::path(delete, path = "/api/v1/server-ips/{id}", params(("id" = uuid::Uuid, Path)), responses((status = 200), (status = 404, body = ErrorResponse)), tag = "ServerIp", security(("bearer_auth" = [])))]
 pub async fn delete_server_ip(

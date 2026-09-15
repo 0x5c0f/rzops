@@ -69,6 +69,11 @@ impl BackupPlanRepository for PgBackupPlanRepository {
             .bind(id).bind(&e.name).bind(&e.target_type).bind(e.target_id).bind(&e.schedule).bind(e.retention_days).bind(e.status.clone()).bind(&e.remarks).bind(e.updated_at)
             .fetch_optional(&self.pool).await.repo()?.map(|r| row_to_entity(&r)))
     }
+    async fn unbind(&self, id: Uuid) -> Result<Option<BackupPlan>, RepositoryError> {
+        Ok(sqlx::query(&format!("UPDATE cmdb_backup_plan SET target_type=NULL,target_id=NULL,updated_at=now() WHERE id=$1 AND deleted_at IS NULL RETURNING {}", COLS))
+            .bind(id)
+            .fetch_optional(&self.pool).await.repo()?.map(|r| row_to_entity(&r)))
+    }
     async fn delete(&self, id: Uuid) -> Result<bool, RepositoryError> {
         Ok(sqlx::query("UPDATE cmdb_backup_plan SET deleted_at = now() WHERE id=$1 AND deleted_at IS NULL").bind(id).execute(&self.pool).await.repo()?.rows_affected() > 0)
     }

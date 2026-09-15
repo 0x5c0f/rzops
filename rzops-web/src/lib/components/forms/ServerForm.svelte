@@ -264,7 +264,7 @@
   async function syncIps(serverId: string) {
     for (const dbIp of initialIps) {
       if (dbIp.id && !ips.some(r => r.id === dbIp.id)) {
-        await serverIpsApi.delete(dbIp.id);
+        await serverIpsApi.unbind(dbIp.id);
       }
     }
     for (const row of ips) {
@@ -312,7 +312,7 @@
   async function syncDbInstances(serverId: string) {
     for (const db of initialDbInstances) {
       if (db.id && !dbInstances.some(r => r.id === db.id)) {
-        await databaseInstancesApi.delete(db.id);
+        await databaseInstancesApi.unbind(db.id);
       }
     }
     for (const row of dbInstances) {

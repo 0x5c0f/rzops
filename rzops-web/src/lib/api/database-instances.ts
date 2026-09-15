@@ -22,4 +22,6 @@ export const databaseInstancesApi = {
 
   delete: (id: string) =>
     api.delete<void>(`/api/v1/database-instances/${id}`),
+  unbind: (id: string) =>
+    api.post<unknown>(`/api/v1/database-instances/${id}/unbind`),
 };

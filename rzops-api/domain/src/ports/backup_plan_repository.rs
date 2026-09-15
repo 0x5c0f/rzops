@@ -19,5 +19,7 @@ pub trait BackupPlanRepository: Send + Sync {
     async fn count(&self, filter: BackupPlanFilter) -> Result<i64, crate::errors::RepositoryError>;
     async fn create(&self, item: &BackupPlan) -> Result<BackupPlan, crate::errors::RepositoryError>;
     async fn update(&self, id: Uuid, item: &BackupPlan) -> Result<Option<BackupPlan>, crate::errors::RepositoryError>;
+    /// 解除备份计划与目标的关联（target_type/target_id 置空），计划记录本身保留
+    async fn unbind(&self, id: Uuid) -> Result<Option<BackupPlan>, crate::errors::RepositoryError>;
     async fn delete(&self, id: Uuid) -> Result<bool, crate::errors::RepositoryError>;
 }

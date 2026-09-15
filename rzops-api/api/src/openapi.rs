@@ -54,6 +54,7 @@ use utoipa::OpenApi;
         crate::routes::server_ip_handlers::create_server_ip,
         crate::routes::server_ip_handlers::update_server_ip,
         crate::routes::server_ip_handlers::delete_server_ip,
+        crate::routes::server_ip_handlers::unbind_server_ip,
         // ServerPort
         crate::routes::server_port_handlers::get_server_port,
         crate::routes::server_port_handlers::list_server_ports,
@@ -78,6 +79,7 @@ use utoipa::OpenApi;
         crate::routes::database_instance_handlers::create_database_instance,
         crate::routes::database_instance_handlers::update_database_instance,
         crate::routes::database_instance_handlers::delete_database_instance,
+        crate::routes::database_instance_handlers::unbind_database_instance,
         // OpsSite
         crate::routes::ops_site_handlers::get_ops_site,
         crate::routes::ops_site_handlers::list_ops_sites,
@@ -90,12 +92,14 @@ use utoipa::OpenApi;
         crate::routes::backup_plan_handlers::create_backup_plan,
         crate::routes::backup_plan_handlers::update_backup_plan,
         crate::routes::backup_plan_handlers::delete_backup_plan,
+        crate::routes::backup_plan_handlers::unbind_backup_plan,
         // MonitorTarget
         crate::routes::monitor_target_handlers::get_monitor_target,
         crate::routes::monitor_target_handlers::list_monitor_targets,
         crate::routes::monitor_target_handlers::create_monitor_target,
         crate::routes::monitor_target_handlers::update_monitor_target,
         crate::routes::monitor_target_handlers::delete_monitor_target,
+        crate::routes::monitor_target_handlers::unbind_monitor_target,
         // Contract
         crate::routes::contract_handlers::get_contract,
         crate::routes::contract_handlers::list_contracts,

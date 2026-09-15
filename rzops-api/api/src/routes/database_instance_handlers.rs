@@ -82,6 +82,18 @@ pub async fn update_database_instance(auth: AuthUser, State(repo): State<Arc<dyn
         }
         Ok(None) => (StatusCode::NOT_FOUND, Json(ErrorResponse { error: "database instance not found".to_string() })).into_response(), Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: format!("failed to update database instance: {}", e) })).into_response() }
 }
+/// POST /database-instances/:id/unbind —— 解除数据库实例与服务器的绑定（server_id 置空），实例保留
+#[utoipa::path(post, path = "/api/v1/database-instances/{id}/unbind", params(("id" = uuid::Uuid, Path)), responses((status = 200, body = DatabaseInstanceResponse), (status = 404, body = ErrorResponse)), tag = "DatabaseInstance", security(("bearer_auth" = [])))]
+pub async fn unbind_database_instance(auth: AuthUser, State(repo): State<Arc<dyn DatabaseInstanceRepository>>, Extension(change_log): Extension<ChangeLogState>, Path(id): Path<Uuid>) -> impl IntoResponse {
+    let existing = match repo.find_by_id(id).await { Ok(Some(d)) => d, Ok(None) => return (StatusCode::NOT_FOUND, Json(ErrorResponse { error: "database instance not found".to_string() })).into_response(), Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: format!("database error: {}", e) })).into_response() };
+    let before_value = serde_json::to_value(to_response(&existing, None, None)).unwrap_or(serde_json::json!({}));
+    match repo.unbind(id).await {
+        Ok(Some(updated)) => {
+            record_change(&change_log, &auth, rzops_domain::enums::ChangeType::Update, "database_instance", Some(updated.id), before_value, serde_json::to_value(to_response(&updated, None, None)).unwrap_or(serde_json::json!({})), None).await;
+            (StatusCode::OK, Json(to_response(&updated, None, None))).into_response()
+        }
+        Ok(None) => (StatusCode::NOT_FOUND, Json(ErrorResponse { error: "database instance not found".to_string() })).into_response(), Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: format!("failed to unbind database instance: {}", e) })).into_response() }
+}
 #[utoipa::path(delete, path = "/api/v1/database-instances/{id}", params(("id" = uuid::Uuid, Path)), responses((status = 200), (status = 404, body = ErrorResponse)), tag = "DatabaseInstance", security(("bearer_auth" = [])))]
 pub async fn delete_database_instance(auth: AuthUser, State(repo): State<Arc<dyn DatabaseInstanceRepository>>, Extension(change_log): Extension<ChangeLogState>, Path(id): Path<Uuid>) -> impl IntoResponse {
     match repo.delete(id).await {

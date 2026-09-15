@@ -99,7 +99,8 @@ pub fn server_routes(repo: Arc<dyn server_repository::ServerRepository>) -> Rout
 }
 pub fn server_ip_routes(repo: Arc<dyn server_ip_repository::ServerIpRepository>, ns: Arc<dyn resource_name_service::ResourceNameService>) -> Router {
     Router::new().route("/", axum::routing::get(list_server_ips).post(create_server_ip))
-        .route("/{id}", axum::routing::get(get_server_ip).put(update_server_ip).delete(delete_server_ip)).with_state(repo).layer(axum::Extension(ns))
+        .route("/{id}", axum::routing::get(get_server_ip).put(update_server_ip).delete(delete_server_ip))
+        .route("/{id}/unbind", axum::routing::post(unbind_server_ip)).with_state(repo).layer(axum::Extension(ns))
 }
 pub fn server_port_routes(repo: Arc<dyn server_port_repository::ServerPortRepository>, tpl_repo: Arc<dyn server_port_template_repository::ServerPortTemplateRepository>) -> Router {
     // apply-template 需要同时访问端口与模板两个 repo，用闭包捕获绕开单一 state 类型限制
@@ -132,7 +133,8 @@ pub fn certificate_routes(repo: Arc<dyn certificate_repository::CertificateRepos
 }
 pub fn database_instance_routes(repo: Arc<dyn database_instance_repository::DatabaseInstanceRepository>, ns: Arc<dyn resource_name_service::ResourceNameService>) -> Router {
     Router::new().route("/", axum::routing::get(list_database_instances).post(create_database_instance))
-        .route("/{id}", axum::routing::get(get_database_instance).put(update_database_instance).delete(delete_database_instance)).with_state(repo).layer(axum::Extension(ns))
+        .route("/{id}", axum::routing::get(get_database_instance).put(update_database_instance).delete(delete_database_instance))
+        .route("/{id}/unbind", axum::routing::post(unbind_database_instance)).with_state(repo).layer(axum::Extension(ns))
 }
 pub fn ops_site_routes(repo: Arc<dyn ops_site_repository::OpsSiteRepository>) -> Router {
     Router::new().route("/", axum::routing::get(list_ops_sites).post(create_ops_site))
@@ -140,11 +142,13 @@ pub fn ops_site_routes(repo: Arc<dyn ops_site_repository::OpsSiteRepository>) ->
 }
 pub fn backup_plan_routes(repo: Arc<dyn backup_plan_repository::BackupPlanRepository>, ns: Arc<dyn resource_name_service::ResourceNameService>) -> Router {
     Router::new().route("/", axum::routing::get(list_backup_plans).post(create_backup_plan))
-        .route("/{id}", axum::routing::get(get_backup_plan).put(update_backup_plan).delete(delete_backup_plan)).with_state(repo).layer(axum::Extension(ns))
+        .route("/{id}", axum::routing::get(get_backup_plan).put(update_backup_plan).delete(delete_backup_plan))
+        .route("/{id}/unbind", axum::routing::post(unbind_backup_plan)).with_state(repo).layer(axum::Extension(ns))
 }
 pub fn monitor_target_routes(repo: Arc<dyn monitor_target_repository::MonitorTargetRepository>, ns: Arc<dyn resource_name_service::ResourceNameService>) -> Router {
     Router::new().route("/", axum::routing::get(list_monitor_targets).post(create_monitor_target))
-        .route("/{id}", axum::routing::get(get_monitor_target).put(update_monitor_target).delete(delete_monitor_target)).with_state(repo).layer(axum::Extension(ns))
+        .route("/{id}", axum::routing::get(get_monitor_target).put(update_monitor_target).delete(delete_monitor_target))
+        .route("/{id}/unbind", axum::routing::post(unbind_monitor_target)).with_state(repo).layer(axum::Extension(ns))
 }
 pub fn contract_routes(repo: Arc<dyn contract_repository::ContractRepository>) -> Router {
     Router::new().route("/", axum::routing::get(list_contracts).post(create_contract))

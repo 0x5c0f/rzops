@@ -155,6 +155,21 @@ impl ServerIpRepository for PgServerIpRepository {
         Ok(row.map(|r| row_to_server_ip(&r)))
     }
 
+    async fn unbind(&self, id: Uuid) -> Result<Option<ServerIP>, RepositoryError> {
+        let row = sqlx::query(
+            r#"UPDATE cmdb_server_ip SET
+                server_id = NULL, updated_at = now()
+               WHERE id = $1 AND deleted_at IS NULL
+               RETURNING id, server_id, ip_address, nic_name, ip_type, is_primary,
+                         isp_provider_id, description, status::text, created_at, updated_at"#,
+        )
+        .bind(id)
+        .fetch_optional(&self.pool)
+        .await
+        .repo()?;
+        Ok(row.map(|r| row_to_server_ip(&r)))
+    }
+
     async fn delete(&self, id: Uuid) -> Result<bool, RepositoryError> {
         let result = sqlx::query("UPDATE cmdb_server_ip SET deleted_at = now() WHERE id = $1 AND deleted_at IS NULL")
             .bind(id)

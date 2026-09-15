@@ -49,6 +49,18 @@ pub async fn update_backup_plan(auth: AuthUser, State(r): State<Arc<dyn BackupPl
         }
         Ok(None)=>(StatusCode::NOT_FOUND,Json(ErrorResponse{error:"not found".into()})).into_response(),Err(e)=>(StatusCode::INTERNAL_SERVER_ERROR,Json(ErrorResponse{error:e.to_string()})).into_response()}
 }
+/// POST /backup-plans/:id/unbind —— 解除备份计划与目标的关联（target 置空），计划保留
+#[utoipa::path(post, path = "/api/v1/backup-plans/{id}/unbind", params(("id" = uuid::Uuid, Path)), responses((status = 200, body = BackupPlanResponse), (status = 404, body = ErrorResponse)), tag = "BackupPlans", security(("bearer_auth" = [])))]
+pub async fn unbind_backup_plan(auth: AuthUser, State(r): State<Arc<dyn BackupPlanRepository>>, Extension(ns): Extension<Arc<dyn ResourceNameService>>, Extension(change_log): Extension<ChangeLogState>, Path(id): Path<Uuid>) -> impl IntoResponse {
+    let ex = match r.find_by_id(id).await { Ok(Some(e)) => e, Ok(None) => return (StatusCode::NOT_FOUND, Json(ErrorResponse { error: "not found".into() })).into_response(), Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: e.to_string() })).into_response() };
+    let before_value = serde_json::to_value(to_resp(&ns, &ex).await).unwrap_or(serde_json::json!({}));
+    match r.unbind(id).await {
+        Ok(Some(c)) => {
+            record_change(&change_log, &auth, rzops_domain::enums::ChangeType::Update, "backup_plan", Some(c.id), before_value, serde_json::to_value(to_resp(&ns, &c).await).unwrap_or(serde_json::json!({})), None).await;
+            (StatusCode::OK, Json(to_resp(&ns, &c).await)).into_response()
+        }
+        Ok(None) => (StatusCode::NOT_FOUND, Json(ErrorResponse { error: "not found".into() })).into_response(), Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: e.to_string() })).into_response() }
+}
 #[utoipa::path(delete, path = "/api/v1/backup-plans/{id}", params(("id" = uuid::Uuid, Path)), responses((status = 200), (status = 404, body = ErrorResponse)), tag = "BackupPlans", security(("bearer_auth" = [])))]
 pub async fn delete_backup_plan(auth: AuthUser, State(r): State<Arc<dyn BackupPlanRepository>>, Extension(change_log): Extension<ChangeLogState>, Path(id): Path<Uuid>) -> impl IntoResponse {
     match r.delete(id).await{

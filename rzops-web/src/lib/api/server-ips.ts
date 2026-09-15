@@ -22,4 +22,6 @@ export const serverIpsApi = {
 
   delete: (id: string) =>
     api.delete<void>(`/api/v1/server-ips/${id}`),
+  unbind: (id: string) =>
+    api.post<unknown>(`/api/v1/server-ips/${id}/unbind`),
 };

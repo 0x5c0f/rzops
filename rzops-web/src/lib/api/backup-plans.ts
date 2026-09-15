@@ -22,4 +22,6 @@ export const backupPlansApi = {
 
   delete: (id: string) =>
     api.delete<void>(`/api/v1/backup-plans/${id}`),
+  unbind: (id: string) =>
+    api.post<unknown>(`/api/v1/backup-plans/${id}/unbind`),
 };

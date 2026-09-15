@@ -22,5 +22,7 @@ pub trait ServerIpRepository: Send + Sync {
     async fn count(&self, filter: ServerIpFilter) -> Result<i64, crate::errors::RepositoryError>;
     async fn create(&self, ip: &ServerIP) -> Result<ServerIP, crate::errors::RepositoryError>;
     async fn update(&self, id: Uuid, ip: &ServerIP) -> Result<Option<ServerIP>, crate::errors::RepositoryError>;
+    /// 解除 IP 与服务器的绑定（server_id 置空），IP 记录本身保留
+    async fn unbind(&self, id: Uuid) -> Result<Option<ServerIP>, crate::errors::RepositoryError>;
     async fn delete(&self, id: Uuid) -> Result<bool, crate::errors::RepositoryError>;
 }

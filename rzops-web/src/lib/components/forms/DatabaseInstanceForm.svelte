@@ -121,7 +121,7 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
   async function syncBackupPlans(dbId: string) {
     for (const bp of initialBackupPlans) {
       if (bp.id && !backupPlans.some(r => r.id === bp.id)) {
-        await backupPlansApi.delete(bp.id);
+        await backupPlansApi.unbind(bp.id);
       }
     }
     for (const row of backupPlans) {
@@ -145,7 +145,7 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
   async function syncMonitorTargets(dbId: string) {
     for (const mt of initialMonitorTargets) {
       if (mt.id && !monitorTargets.some(r => r.id === mt.id)) {
-        await monitorTargetsApi.delete(mt.id);
+        await monitorTargetsApi.unbind(mt.id);
       }
     }
     for (const row of monitorTargets) {
