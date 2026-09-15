@@ -655,3 +655,10 @@ user ──< user_role >── role ──< role_permission >── 权限点
 - **需求补充**：原"IP 重复提醒"只覆盖"同 IP 未绑定服务器"记录；用户指出边界：同 IP 已绑定服务器 S，新增时**仍选服务器 S + 同 IP** 会形成"同一服务器绑定多条相同 IP"——当前检查拦不住。补充检查条件。
 - **实现**：`ServerIpForm` 命中条件扩展为 `同 IP && (未绑定服务器 || 绑定与本次相同的服务器)`；文案按命中类型区分（"X 条未绑定服务器的记录"、"Y 条绑定当前服务器的记录"）。绑定**其他**服务器的同 IP 仍不提醒（异地机房同网段合法）；软删记录仍天然排除；编辑页跳过。
 - **实测**：API 造"绑定服务器 S 的 IP 203.0.113.252" → 模拟前端过滤条件 hits=1、same_server=1（命中）；svelte-check 干净 + build 成功；测试数据已清理。bu 沙箱仍损坏，弹窗待人工复核。
+
+### 2026-09-15 补充：IP 重复提醒"不生效"排查与容器缓存踩坑
+- **现象**：用户在远程环境（拉取 main 后）连续新增同服务器同 IP 两条记录，无任何提醒。
+- **排查结论**：① 功能已推送（main 与 feature 均已到 4a43c12，main 已 fast-forward 合并）——用户拉取分支正确；② **真正根因是运行环境跑的是旧构建**：`docker compose build web` 命中构建缓存，ServerIpForm 改动未进镜像（容器内 chunks 无新文案）。
+- **验证方法（重要）**：SvelteKit 表单组件是**懒加载 chunk**，页面 HTML 不直接引用——检查容器是否含新逻辑要 `docker exec rzops-web-1 sh -c "grep -rl '文案' /usr/share/nginx/html/_app/immutable/"` 全量搜，**不要**只 grep 页面 HTML 引用的 js。
+- **修复**：`docker compose build --no-cache web && docker compose up -d web` 后，容器内 `DvebhqAm.js` 含「绑定当前服务器」「IP 重复提醒」，HTTP 可达确认。本机 8080 已可实测。
+- **踩坑**：`docker compose build`（不带 --no-cache）对前端静态构建**可能复用旧 COPY 层**，前端代码更新后务必验证容器内产物，必要时 --no-cache。
