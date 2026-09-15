@@ -46,6 +46,8 @@ import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
   };
   function targetHref(item: BackupPlanResponse): string | null {
     if (!item.target_type || !item.target_id) return null;
+    // 目标资源已删除（软删后 JOIN 不到名称）→ 不可点击
+    if (!item.target_name) return null;
     const prefix = targetRoute[item.target_type];
     return prefix ? `${prefix}${item.target_id}` : null;
   }
@@ -71,6 +73,8 @@ import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
     { key: 'target_name', label: '关联目标', link: targetHref, render: (v: unknown, item: BackupPlanResponse) => {
       const status = getTargetStatus(item);
       const resType = getTargetResourceType(item);
+      // 选了目标但目标已删除（软删后 JOIN 不到名称）
+      if (item.target_id && !item.target_name) return '目标已删除';
       const name = item.target_name || '-';
       if (status && resType) {
         return formatResourceWithStatus(name, status, resType);

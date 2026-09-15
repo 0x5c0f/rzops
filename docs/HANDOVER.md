@@ -613,6 +613,23 @@ user ──< user_role >── role ──< role_permission >── 权限点
 - **回归结果**：BUG-1~8 全部通过浏览器回归（详见 UI_TEST_REPORT §六）。**弹窗关闭已人工复核通过（2026-09-14）**：真实浏览器点"确认"弹窗正常关闭、选项回填、Esc 正常——bu 自动化下 Dialog 不关闭属**自动化工具兼容限制，非产品缺陷**。**踩坑：Dialog 开启/关闭类行为必须以真实浏览器人工复核为准，bu 自动化环境的 Dialog 状态不可作为判据（bits-ui Dialog + portal 在自动化环境关闭失效，但真实点击正常）。**
 - **存量待办**：`svelte-check` 全库仍有 72 errors + 2 warnings（历史遗留：servers/+page `is_database_server` 查询字段、users/+page asChild/email 校验、certificates 列表 `certificate_type`、backup-plans edit entityId、ServerPortTemplateForm spread 覆盖等，分布于旧文件，非本轮范围）——**建议下轮全面清理**。
 
+### 2026-09-15 第二轮体验优化（6 项 + 4 处关联修复）
+
+- **背景**：用户提出 6 个待优化点，要求"处理过程中注意关联性测试"。本轮全部改码完成、`svelte-check`（修改文件）无错误、`npm run build` 成功、web 容器已重建。**浏览器回归**：问题 6 已 bu 实测通过；问题 1-5 因 bu 沙箱 fetch 代理不稳定（本轮反复出现 `Failed to fetch`/`ERR_CONNECTION_REFUSED`，等待自愈亦无效）仅代码级验证——**bu 基础设施问题，非产品缺陷**，建议人工抽查 1-5。
+- **①供应商类型下拉回填布局（FormMultiSelect 组件级重构）**：原实现把已选标签渲染在 Trigger **上方独立 Badge 行**，选择回填后 Trigger 被"顶下去"整体下移。重构：已选标签改为 **Trigger 内部 `flex-wrap` 内联渲染**（Badge + 移除 X），`maxDisplay=2` 超出折叠 `+N`；移除 X 用 `<span role=button>` + `stopPropagation/preventDefault`（避免误触发下拉，Trigger 的 `[&_svg]:pointer-events-none` 会让 svg 不接事件，点击落在 span 上）；Trigger 传 `flex-wrap whitespace-normal` 覆盖 bits-ui 的 `whitespace-nowrap`。**注意：不要给内联标签加 `data-slot="select-value"`**——Trigger 基类 `*:data-[slot=select-value]:line-clamp-1` 会截断多标签。该组件被 ServerForm（角色标签）/DataCenterForm（线路类型）/ProviderForm（供应商类型）三处复用，一处修复全站受益。
+- **②域名必填**：注册日期/到期日期 validate 加 `required: true` + DateField `required`；顺带补注册商 FormSelect `required`（本就必填缺红*）。
+- **③服务器IP必填标识**：IP类型 FormSelect 补 `required`（validate 本就 required，缺红*）。
+- **④备份计划文案/标识**：调度计划 Label 补红*；validate 提示文案 label 由"执行计划"改"调度计划"（与字段名一致）；**移除 `target_type` 必填校验**（后端 `backup_plan.target_type` 为 Option 可空，卡片标注"（可选）"属实，前端强校验与之矛盾）。
+- **⑤监控目标校验评估**：后端 `monitor_target.target_type`/`target_id` 均为 `Option`（schema 仅 name NOT NULL，`chk_monitor_target_target_type` CHECK 允许 NULL）→ **取消前端 target_type 必填**（"该监控目标监控的具体对象（可选）"属实）；**监控类型保留必填并补红***。
+- **⑥服务器端口列表已删服务器**：`cmdb_server_port.server_id` NOT NULL（端口是服务器子资源），服务器软删后 JOIN 无 name → 列表显示"-"且 link 仍跳 `/servers/{id}`（404）。修复：`!server_name` 显示"服务器已删除"；link 在 `!server_name` 返回 `null`（不可点击）；getRowClass 加 `text-red-500` 分支（**与 server-ips 列表"已删除服务器"口径一致；用户原话"整体灰色"，实现为红色文字，交付时已说明差异**）。
+- **关联性检查额外修复（4 处）**：
+  1. `CertificateForm`：证书类型必填缺红* → 补 `required`；
+  2. `DatabaseInstanceForm`：label 曾写"数据库类型 *"（业务星号 + 组件 required 星号 = 双星）→ 改"数据库类型"+`required`；
+  3. `backup-plans/+page`：目标对象列目标已删除时（`target_id` 有值但 `target_name` 空）显示"目标已删除"、link 置 null（此前跳 404）；
+  4. `monitor-targets/+page`：同上。
+- **DateField 星号统一**：`{label}{required ? ' *' : ''}` 改为红色 `<span class="text-destructive">*</span>`（与全站其他控件统一）。
+- **踩坑**：① 表单必填标识检查**不要只扫 validate**——要逐个对照模板控件是否传 `required`（本轮 CertificateForm/ServerIpForm 都是"validate 有 required 但控件缺红*"）；② 标签里手动写 `*` + 组件 required 会**双星号**（DatabaseInstanceForm 实例）；③ bu 沙箱 fetch 代理时好时坏：登录表单 submit 被拦但 `bu.js` 内 fetch 正常时可 `localStorage` 注入 token 绕过；导航进 chrome-error 后需 `bu.resync()` + 关标签重开；**bu 不可用时后端逻辑一律用 WSL `curl` 验证**（本轮 provider API、端口创建/软删/聚合均 curl 验证 200 与 `server_name:null`）。
+
 ---
 
 *交接文档由 RzOps 开发全过程沉淀整理（2026-09-09，持续更新）。配合 [AGENTS.md](../AGENTS.md) 使用，AI 与人类开发者均可快速接手。*

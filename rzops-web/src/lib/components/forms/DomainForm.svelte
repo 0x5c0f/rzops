@@ -52,6 +52,8 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
     formError = validate([
       { value: form.domain_name, label: '域名', required: true, format: 'domain' },
       { value: form.provider_id, label: '注册商', required: true },
+      { value: form.registered_date, label: '注册日期', required: true },
+      { value: form.expiry_date, label: '到期日期', required: true },
       { value: form.renewal_amount, label: '续费金额', format: 'positiveNumber' },
       { value: form.platform_phone, label: '平台电话', maxLength: 30 },
       { value: form.domain_email, label: '域名邮箱', format: 'email' },
@@ -103,12 +105,14 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
         bind:value={form.provider_id}
         options={providerOptions}
         placeholder="选择注册商"
+        required
       />
 
       <DateField
         id="registered_date"
         label="注册日期"
         bind:value={form.registered_date}
+        required
       />
 
       <DateField
@@ -116,6 +120,7 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
         label="到期日期"
         bind:value={form.expiry_date}
         min={new Date().toISOString().slice(0, 10)}
+        required
       />
 
       <div class="space-y-2">

@@ -41,7 +41,7 @@
 
 <div class="space-y-2 {className ?? ''}">
   {#if label}
-    <Label for={id}>{label}{required ? ' *' : ''}</Label>
+    <Label for={id}>{label}{#if required}<span class="text-destructive">*</span>{/if}</Label>
   {/if}
   <div class="relative">
     <input

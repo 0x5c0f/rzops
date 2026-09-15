@@ -177,6 +177,7 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
         bind:value={form.certificate_type}
         options={$certificateTypeOptions}
         placeholder="选择证书类型"
+        required
       />
 
       <FormSelect

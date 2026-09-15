@@ -27,9 +27,9 @@ import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
     {
       key: 'server_name',
       label: '所属服务器',
-      link: (item: ServerPortResponse) => item.server_id ? `/servers/${item.server_id}` : null,
+      link: (item: ServerPortResponse) => (item.server_id && item.server_name ? `/servers/${item.server_id}` : null),
       render: (v: unknown, item: ServerPortResponse) => {
-        if (!item.server_name) return '-';
+        if (!item.server_name) return '服务器已删除';
         return formatResourceWithStatus(item.server_name, item.server_status ?? '', 'server');
       },
     },
@@ -44,7 +44,11 @@ import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
     if (!item.is_enabled) {
       return 'text-slate-400';
     }
-    // 端口本身正常，但所属服务器已退役/删除 → 标黄
+    // 所属服务器已删除 → 红（与 server-ips 列表一致）
+    if (item.server_id && !item.server_name) {
+      return 'text-red-500';
+    }
+    // 端口本身正常，但所属服务器已退役 → 黄
     if (item.server_status !== undefined && item.server_status !== null && isResourceOffline('server', item.server_status)) {
       return 'text-amber-600';
     }

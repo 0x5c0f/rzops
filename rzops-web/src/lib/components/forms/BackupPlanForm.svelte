@@ -86,8 +86,7 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
   async function handleSave() {
     formError = validate([
       { value: form.name, label: '备份计划名称', required: true, maxLength: 100 },
-      { value: form.target_type, label: '目标类型', required: true },
-      { value: form.schedule, label: '执行计划', required: true, maxLength: 100 },
+      { value: form.schedule, label: '调度计划', required: true, maxLength: 100 },
       { value: form.retention_days, label: '保留天数', format: 'positiveNumber' },
     ]);
     if (formError) return;
@@ -136,7 +135,7 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
       </div>
 
       <div class="space-y-2">
-        <Label for="schedule">调度计划</Label>
+        <Label for="schedule">调度计划 <span class="text-destructive">*</span></Label>
         <Input id="schedule" bind:value={form.schedule} placeholder="cron 表达式" />
       </div>
 

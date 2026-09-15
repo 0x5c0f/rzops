@@ -227,7 +227,7 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
       </div>
 
       <FormSelect
-        label="数据库类型 *"
+        label="数据库类型"
         bind:value={form.db_type}
         options={$databaseTypeOptions}
         placeholder="选择数据库类型"

@@ -196,3 +196,31 @@
 - ~~**端口新建服务器选择弹窗**~~ **✅ 已人工复核（2026-09-14）**：真实浏览器点击"确认"弹窗正常关闭、选择项正常回填，Esc 也可正常关闭——此前 bu 自动化环境下 Dialog 不关闭属**自动化工具兼容限制**，非产品缺陷。
 - 回收站已含 e2e-verify-instance（残留），人工复测可处理。
 
+---
+
+## §七 2026-09-15 第二轮体验优化回归（6 项 + 4 关联修复）
+
+### 回归环境
+
+- 容器重建：`docker compose build web` → `up -d`（web:8080 / api:8000 / db:5432 healthy）
+- `npm run build` 成功（adapter-static，仅 PLUGIN_TIMINGS info 非错误）；本次修改文件 `svelte-check` 无错误
+
+### 逐项结果
+
+| # | 优化点 | 结果 | 说明 |
+|---|---|---|---|
+| ① | 供应商类型下拉回填布局 | 🟡 代码级通过 | FormMultiSelect 重构：已选标签内联于 Trigger、`maxDisplay=2` 折叠 `+N`；bu 沙箱 fetch 代理本轮不稳定，编辑页未能稳定加载渲染，建议人工抽查 |
+| ② | 域名注册/到期日期必填 | 🟡 代码级通过 | validate required + DateField required + 注册商红*；bu 不稳定未渲染验证 |
+| ③ | 服务器IP IP类型红* | 🟡 代码级通过 | FormSelect required 补上 |
+| ④ | 备份计划调度计划红* + 文案 | 🟡 代码级通过 | label 由"执行计划"改"调度计划"、补红*；同时移除 target_type 必填（后端 Option 可空） |
+| ⑤ | 监控目标校验 | 🟡 代码级通过 | 目标类型取消必填（后端可空）；监控类型补红* |
+| ⑥ | 服务器端口列表已删服务器 | ✅ bu 实测通过 | 造数（服务器→端口→软删服务器）后：列表显示"服务器已删除"、服务器列无链接（不可点击）、行文字 `text-red-500`；WSL curl 验证 `server_name:null`；测试数据已清理（回收站 0 残留） |
+
+### 关联修复（代码级 + 部分实测）
+
+- CertificateForm 证书类型补红*；DatabaseInstanceForm 数据库类型双星号修复；backup-plans / monitor-targets 列表"目标已删除"（target_id 有值但 target_name 空 → 文案 + 链接置 null）——后者经 curl 聚合验证数据形态成立，bu 渲染未测。
+
+### 已知限制
+
+- **bu 沙箱 fetch 代理本轮极不稳定**（登录表单 submit 被拦 / 导航进 chrome-error / `ERR_CONNECTION_REFUSED`，等待自愈无效）——属自动化环境问题，非产品缺陷；后端逻辑全部改以 WSL curl 验证通过。**建议人工抽查 ①②③④⑤ 的界面表现**（红* 显示、必填提示文案、多选回填无位移）。
+

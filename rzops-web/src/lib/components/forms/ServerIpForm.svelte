@@ -133,6 +133,7 @@
         bind:value={form.ip_type}
         options={$ipTypeOptions}
         placeholder="选择类型"
+        required
       />
 
       <FormSelect

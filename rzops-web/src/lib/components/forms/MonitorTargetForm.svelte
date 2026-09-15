@@ -92,7 +92,6 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
   async function handleSave() {
     formError = validate([
       { value: form.name, label: '监控目标名称', required: true, maxLength: 100 },
-      { value: form.target_type, label: '目标类型', required: true },
       { value: form.monitor_type, label: '监控类型', required: true },
       { value: form.endpoint, label: '监控地址', maxLength: 500 },
       { value: form.interval_seconds, label: '间隔时间(秒)', format: 'positiveNumber' },
@@ -147,6 +146,7 @@ import AttachmentFormSection from '$lib/components/shared/AttachmentFormSection.
         bind:value={form.monitor_type}
         options={$monitorTypeOptions}
         placeholder="选择监控类型"
+        required
       />
 
       <FormSelect
