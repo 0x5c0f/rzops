@@ -85,14 +85,19 @@
     // 命中则提示确认（不拦截）；编辑自身记录跳过检查；绑定其他服务器的同 IP 不提醒（异地机房同网段合法）
     if (!editing && form.ip_address) {
       try {
-        const res = await api.get<{ data: { ip_address: string; server_id: string | null }[] }>('/server-ips', {
+        // _t 时间戳参数：防止浏览器对同 URL GET 的内存缓存导致检查结果过期
+        const res = await api.get<{ data: { ip_address: string; server_id: string | null }[] }>('/api/v1/server-ips', {
           q: form.ip_address,
           per_page: 100,
+          _t: Date.now(),
         });
         const hits = res.data.filter(
           item =>
             item.ip_address === form.ip_address &&
             (!item.server_id || (form.server_id && item.server_id === form.server_id)),
+        );
+        console.info(
+          `[dup-check] ip=${form.ip_address} server_id=${form.server_id ?? '(empty)'} hits=${hits.length}`,
         );
         if (hits.length > 0) {
           const unboundCount = hits.filter(i => !i.server_id).length;
