@@ -110,10 +110,10 @@ import { canUpdate, canDelete } from '$lib/utils/permissions';
                       </span>
                     </a>
                   {:else}
-                    <span class="text-muted-foreground italic">已删除</span>
+                    <span class="text-muted-foreground italic">服务器已删除</span>
                   {/if}
                 {:else}
-                  -
+                  未关联服务器
                 {/if}
               </dd>
             </div>

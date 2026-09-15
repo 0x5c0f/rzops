@@ -37,8 +37,8 @@ import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
   const columns = $derived([
     { key: 'ip_address', label: 'IP地址' , link: (item: ServerIpResponse) => `/server-ips/${item.id}`, lockVisible: true },
     { key: 'server_id', label: '服务器', render: (v: unknown, item: ServerIpResponse) => {
-      if (!item.server_id) return '-';
-      if (!item.server_name) return '已删除';
+      if (!item.server_id) return '未关联服务器';
+      if (!item.server_name) return '服务器已删除';
       return formatResourceWithStatus(item.server_name, item.server_status, 'server');
     }},
     { key: 'ip_type', label: '类型', hideBelow: 'md', valueMap: ipTypeMap },

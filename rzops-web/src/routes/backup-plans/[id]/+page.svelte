@@ -114,7 +114,7 @@ import { canUpdate, canDelete } from '$lib/utils/permissions';
                     {plan.target_name}
                   </a>
                 {:else}
-                  -
+                  未关联目标
                 {/if}
               </dd>
             </div>

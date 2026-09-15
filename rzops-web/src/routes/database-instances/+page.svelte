@@ -41,8 +41,8 @@ import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
     { key: 'db_type', label: '数据库类型', valueMap: dbTypeMap },
     { key: 'environment', label: '环境', hideBelow: 'lg', valueMap: environmentMap },
     { key: 'server_id', label: '服务器', render: (v: unknown, item: DatabaseInstanceResponse) => {
-      if (!item.server_id) return '-';
-      if (!item.server_name) return '已删除';
+      if (!item.server_id) return '未关联服务器';
+      if (!item.server_name) return '服务器已删除';
       return formatResourceWithStatus(item.server_name, item.server_status, 'server');
     }},
     { key: 'status', label: '状态', valueMap: dbStatusMap, statusBadge: (item: DatabaseInstanceResponse) => ({ status: item.status, color: getOptionColor($databaseStatusOptions, item.status), label: dbStatusMap[item.status] }) },

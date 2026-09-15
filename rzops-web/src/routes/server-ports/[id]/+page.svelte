@@ -109,7 +109,7 @@ import { canUpdate, canDelete } from '$lib/utils/permissions';
                   </span>
                 {/if}
               {:else}
-                -
+                服务器已删除
               {/if}
             </dd>
           </div>

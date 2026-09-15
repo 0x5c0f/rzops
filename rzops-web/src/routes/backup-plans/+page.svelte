@@ -75,7 +75,7 @@ import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
       const resType = getTargetResourceType(item);
       // 选了目标但目标已删除（软删后 JOIN 不到名称）
       if (item.target_id && !item.target_name) return '目标已删除';
-      const name = item.target_name || '-';
+      const name = item.target_name || '未关联目标';
       if (status && resType) {
         return formatResourceWithStatus(name, status, resType);
       }
