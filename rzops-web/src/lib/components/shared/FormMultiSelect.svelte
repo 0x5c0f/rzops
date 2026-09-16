@@ -49,23 +49,8 @@
     removeValue(v);
   }
 
-  function addValue(v: string) {
-    if (!currentValue.includes(v)) {
-      value = [...currentValue, v];
-    }
-  }
-
   function removeValue(v: string) {
     value = currentValue.filter(item => item !== v);
-  }
-
-  // 下拉列表中的项可点击切换：已选项点击即取消，未选项点击即添加
-  function toggleValue(v: string) {
-    if (currentValue.includes(v)) {
-      removeValue(v);
-    } else {
-      addValue(v);
-    }
   }
 
   // 前 maxDisplay 个已选项（解析 label），其余折叠为 +N
@@ -86,7 +71,12 @@
     {/if}
   </Label>
 
-  <Select.Root type="single" value="" onValueChange={(v) => { if (v) toggleValue(v); }} {disabled}>
+  <Select.Root
+    type="multiple"
+    value={currentValue}
+    onValueChange={(v) => { value = v; }}
+    {disabled}
+  >
     <Select.Trigger class="w-full flex-wrap whitespace-normal">
       {#if currentValue.length > 0}
         <span class="flex flex-wrap items-center gap-1">

@@ -417,7 +417,8 @@ erDiagram
 - **根因**：bits-ui `Select.Trigger` 在 **pointerdown 阶段**即打开浮层，popover 弹出覆盖原点击位置，吞掉后续 `click` 事件——Badge 上仅 `onclick` 的 `removeValue` 永远不会触发。
 - **修复**：Badge 移除按钮同时绑定 `onpointerdown`（`stopPropagation + preventDefault + removeValue`），pointerdown 阶段先于 trigger 拦截；保留 `onclick`/`onkeydown` 兜底。
 - **衍生坑（连续删除）**：仅绑 pointerdown + onclick 兜底后，**一次点击可能连续删除多个值**——pointerdown 移除当前 Badge 后 DOM 立即重排（下一个 Badge 左移到原位置），随后浏览器合成的 `click` 落在下一个"×"上又删一次（用户可见"过于灵敏"）。**修复**：pointerdown/keydown 移除时记录时间戳，`onclick` 在 350ms 内一律忽略（`REMOVE_SUPPRESS_MS`），`click` 仅作为 pointerdown 未触发的兜底。
-- **教训**：任何内嵌在 bits-ui Select.Trigger（button）内、需要独立点击的交互元素，都必须用 **pointerdown 阶段拦截**，不能只依赖 click；且 pointerdown 删元素导致 DOM 重排时，必须抑制紧随其后的合成 click（时间戳窗口），否则会误删相邻元素。测试需用真实鼠标事件（Playwright `page.mouse.click`）而非仅 `el.click()`——bits-ui 的浮层打开/选项选择同样只响应真实 pointer 事件，程序化 click 无效。
+- **衍生坑（单选语义与取消丢失，重要）**：曾用 `type="single" value=""` 模拟多选（onValueChange 里手动 toggle），导致两个现象——①空值时第一个选项点不中/选中态错乱；②**只选一个后，下拉再点该项无法取消**。根因：bits-ui Select 是**半受控**组件，点击后内部 state 记住上次值（`value` prop 恒定不更新时也不回同步），再次点击该选项走"取消"回调 `onValueChange("")`，被 `if (v)` 丢弃。**修复**：改为 **`type="multiple"`**，`value={currentValue}` 双向绑定、`onValueChange` 直接回传完整数组（bits-ui 原生支持"点击即切换"），`toggleValue` 自实现逻辑删除。下拉"已选（点击取消）"标记由 `currentValue` 渲染、与 bits-ui 选中态无关，不受影响。
+- **教训**：任何内嵌在 bits-ui Select.Trigger（button）内、需要独立点击的交互元素，都必须用 **pointerdown 阶段拦截**，不能只依赖 click；且 pointerdown 删元素导致 DOM 重排时，必须抑制紧随其后的合成 click（时间戳窗口），否则会误删相邻元素。**用 bits-ui 做"模拟多选"时，优先 `type="multiple"` 而非 `single` + 手动 toggle**——single 的取消回调传空字符串，极易被忽略。测试需用真实鼠标事件（Playwright `page.mouse.click`）而非仅 `el.click()`——bits-ui 的浮层打开/选项选择同样只响应真实 pointer 事件，程序化 click 无效。
 
 ---
 
