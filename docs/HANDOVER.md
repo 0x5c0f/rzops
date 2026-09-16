@@ -420,6 +420,23 @@ erDiagram
 - **衍生坑（单选语义与取消丢失，重要）**：曾用 `type="single" value=""` 模拟多选（onValueChange 里手动 toggle），导致两个现象——①空值时第一个选项点不中/选中态错乱；②**只选一个后，下拉再点该项无法取消**。根因：bits-ui Select 是**半受控**组件，点击后内部 state 记住上次值（`value` prop 恒定不更新时也不回同步），再次点击该选项走"取消"回调 `onValueChange("")`，被 `if (v)` 丢弃。**修复**：改为 **`type="multiple"`**，`value={currentValue}` 双向绑定、`onValueChange` 直接回传完整数组（bits-ui 原生支持"点击即切换"），`toggleValue` 自实现逻辑删除。下拉"已选（点击取消）"标记由 `currentValue` 渲染、与 bits-ui 选中态无关，不受影响。
 - **教训**：任何内嵌在 bits-ui Select.Trigger（button）内、需要独立点击的交互元素，都必须用 **pointerdown 阶段拦截**，不能只依赖 click；且 pointerdown 删元素导致 DOM 重排时，必须抑制紧随其后的合成 click（时间戳窗口），否则会误删相邻元素。**用 bits-ui 做"模拟多选"时，优先 `type="multiple"` 而非 `single` + 手动 toggle**——single 的取消回调传空字符串，极易被忽略。测试需用真实鼠标事件（Playwright `page.mouse.click`）而非仅 `el.click()`——bits-ui 的浮层打开/选项选择同样只响应真实 pointer 事件，程序化 click 无效。
 
+### 6.21 快速连续 F5 误退登（重要）
+
+- **现象**：快速连续按 F5（nginx 日志显示 `GET /api/v1/auth/me` 返回 **200**，token 仍有效），前端却跳回 `/login`。
+- **根因**：页面卸载会取消进行中的 fetch，浏览器抛 **`TypeError: Failed to fetch`**（不是 AbortError），原 catch 逻辑误判为认证失败 → 清会话跳登录。
+- **修复**（+layout.svelte onMount catch）：**仅明确的 `ApiError` 且 status 为 401/403 才清会话跳转**；`AbortError` / `TypeError`（卸载取消、瞬时网络故障）等一律保持登录态（只结束 loading）。
+- **设计原则**：认证检查的错误处理只对明确的 401/403 执行登出；网络中断/瞬时故障不应踢用户——宁可本轮不刷新用户信息，也不能误登出。
+- **验证**：Playwright 登录后以 100ms 间隔快速刷新 8 次，仍停留在 `/`，token 未清除。
+
+### 6.22 折叠态侧边菜单增强（点击即切换 + 浮层层级）
+
+- **需求**：菜单折叠后，点击菜单图标应直接弹出子菜单可切换页面，无需先展开（参考 Ant Design Pro 风格：hover 预览 + 点击固定弹出）。
+- **实现**：折叠态图标按钮 hover 预览 + 点击固定弹出子菜单浮层（fixed 定位挂在按钮右侧）；展开态保持原内联菜单。后续迭代：浮层增加**主/子菜单层级**（主菜单标题 + 缩进子项）；修 a11y 警告（hover 容器补 `role=group`）。
+- **两连坑**：
+  1. **部署后浏览器加载旧版资源**（功能"没生效"）→ 根因：nginx SPA fallback 对 `index.html` 有缓存（`expires` 等）导致加载旧版入口、资源 404。**修复**：nginx 对 `index.html` 返回 `no-cache` 头（`add_header Cache-Control "no-cache"`），带 hash 的静态资源仍可长缓存。
+  2. **浮层被遮挡不可见** → 根因：浮层挂在 nav overflow 容器内被裁剪/被 main 内容 z-index 覆盖。**修复**：浮层改用 `fixed` 定位挂在按钮右侧，脱离 nav overflow。
+- **验证**：折叠态点击"网络"图标 → 浮层显示"网络/域名/证书/服务器IP/服务器端口/端口模板"且主/子层级清晰；点击子菜单直接跳转。
+
 ---
 
 ## 7. 权限体系（RBAC）

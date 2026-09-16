@@ -60,14 +60,14 @@
 
 ### 🔴 高优先级
 
-#### BUG-1：多选下拉（FormMultiSelect）已选标签的"×"移除按钮点击无效【已修复】
+#### BUG-1：多选下拉（FormMultiSelect）交互三连问题【已修复】
 
 - **位置**：`rzops-web/src/lib/components/shared/FormMultiSelect.svelte`（所有使用该组件的多选下拉）
 - **影响范围**：供应商类型、服务器"角色标签"、服务器"Web服务器软件"、数据中心"线路类型"（4 处）
-- **现象**：已选值以 Badge 标签展示并带"×"移除按钮，但**真实鼠标点击"×"无效**（值不移除、需先打开下拉再点"已选（点击取消）"）；程序化 `el.click()` 却正常。
-- **根因**：bits-ui `Select.Trigger` 在 **pointerdown 阶段**即打开浮层（popover），浮层弹出覆盖原点击位置，吞掉了后续 `click` 事件，Badge 上 `onclick` 的 `removeValue` 不会触发。
-- **修复**：Badge 移除按钮增加 `onpointerdown` 处理（`stopPropagation + preventDefault + removeValue`），在 pointerdown 阶段拦截并移除值，同时保留 `onclick`/`onkeydown` 兜底。
-- **验证**：修复后点击"移除 域名"的"×" → 值从 `ISP 域名` 变为 `ISP`，下拉未误展开；已同步重建 8081（测试）与 8080（用户环境）。
+- **问题一（× 移除按钮点击无效）**：真实鼠标点击已选标签的"×"无效（需先打开下拉再点"已选（点击取消）"）；程序化 `el.click()` 却正常。**根因**：bits-ui `Select.Trigger` 在 **pointerdown 阶段**即打开浮层，浮层弹出覆盖原点击位置、吞掉后续 `click`，Badge 上 `onclick` 的 `removeValue` 不触发。**修复**：移除按钮增加 `onpointerdown`（`stopPropagation + preventDefault + removeValue`）。
+- **问题二（一次点击连续删除多个值）**：pointerdown 移除 Badge 后 DOM 立即重排，下一个"×"左移到原位置，浏览器合成的 `click` 落在其上又删一次（"过于灵敏"）。**修复**：pointerdown/keydown 移除时记录时间戳，`onclick` 在 350ms 内忽略（`REMOVE_SUPPRESS_MS`），`click` 仅作兜底。
+- **问题三（单选后下拉无法取消 / 空值首选项异常）**：曾用 `type="single" value=""` 模拟多选，bits-ui Select 是**半受控**组件（内部 state 记住上次值），再点已选项走取消回调 `onValueChange("")` 被 `if (v)` 丢弃；空值时选中态亦错乱。**修复**：改用 **`type="multiple"` + `value={currentValue}`**，`onValueChange` 直接回传完整数组，bits-ui 原生"点击即切换"。
+- **验证（全部真实鼠标）**：× 移除单删、3 值点第一个 × 只删一个、空值首选项添加、单选后下拉取消、多值增删——全部通过；已同步重建 8081（测试）与 8080（用户环境）。
 - **说明**：供应商类型**多选为产品设计**（用户确认），非缺陷；多选值详情页以逗号连接展示正常。
 
 ### 🟡 观察项（建议优化，非阻塞）
