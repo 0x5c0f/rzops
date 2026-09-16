@@ -719,3 +719,10 @@ user ──< user_role >── role ──< role_permission >── 权限点
 - 实现（rzops-web/src/lib/components/layout/Sidebar.svelte 折叠分支）：浮层内主菜单头改为 `flex items-center gap-2 border-b border-sidebar-border px-2 pb-2 pt-1`（分组图标 + 加粗名称 + 底部 1px 分隔线）；子菜单容器 `ml-3 ... border-l border-sidebar-border pl-2 pt-1`（左缩进 12px + 1px 前导线，与展开态子项风格一致）；当前选中子项左侧加 `absolute -left-[11px] ... rounded-full bg-sidebar-primary` 圆条指示器（与展开态高亮样式统一）。浮层宽度 min-w-44 → min-w-48。
 - 验证：DOM 断言 headerText=网络、headerHasBorder=true、子项 5 个均缩进；elementFromPoint 命中浮层自身（仍为 fixed z-[9999]）。MCP 截图工具与页面状态不同步的老问题依旧（每次调用重载页面上下文），以 DOM 断言为准。
 - 注：主菜单头不可点击（分组无独立页面），只做视觉层级。
+
+### 2026-09-16 Round 12: 快速 F5 误退登再修复（仅 401/403 才清会话）
+- **现象**：以极快频率按 F5 时自动退出登录。nginx 日志证据：`GET /api/v1/auth/me` 返回 **200**（token 有效）但随后前端跳 `/login`——**前端把非 401 的瞬时错误误判为认证失败**。
+- **根因**：Round 8 只在 catch 里处理了 `DOMException AbortError`；快速刷新时页面卸载会取消进行中的 fetch，浏览器抛 **`TypeError: Failed to fetch`**（不是 AbortError）→ 走 `auth.logout() + goto('/login')` → 误退登。
+- **修复**（rzops-web/src/routes/+layout.svelte onMount catch）：改为**只有明确 `ApiError` 且 status 为 401/403 才清会话跳登录**；`AbortError` / `TypeError`（页面卸载取消 / 网络瞬时失败）/ 其他非认证错误一律**保持登录态**（仅 `loading = false` 结束加载态）。需要 `import { ApiError } from '$lib/api/client'`。
+- **验证**：Playwright 登录后连续 8 次高速 reload（100ms 间隔）——最终仍在首页、`localStorage.token` 存在、未跳 `/login`。
+- **设计原则**：认证检查的错误处理应"只对明确的 401/403 采取踢出动作"，网络中断/瞬时故障不应影响会话；宁可本次不刷新用户信息，也不能误杀会话。

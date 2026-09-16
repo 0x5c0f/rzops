@@ -4,6 +4,7 @@
   import { onMount } from 'svelte';
   import { auth } from '$lib/stores/auth';
   import { authApi } from '$lib/api/auth';
+  import { ApiError } from '$lib/api/client';
   import { loadAllDicts } from '$lib/utils/enum-options';
   import { routeGuard } from '$lib/utils/route-guard';
   import Sidebar from '$lib/components/layout/Sidebar.svelte';
@@ -52,12 +53,17 @@
       loading = false;
       initialized = true;
     } catch (err) {
-      // 页面刷新/导航会中断 onMount 中未完成的请求（DOMException AbortError），
-      // 这不代表认证失败，跳过 logout 避免"连续 F5 后误退登"
-      if (err instanceof DOMException && err.name === 'AbortError') {
+      // 页面刷新/导航会中断 onMount 中未完成的请求（AbortError / TypeError: Failed to fetch），
+      // 网络瞬时故障也一样——这些都不代表认证失败，保持现状避免"快速 F5 后误退登"。
+      // 只有后端明确返回 401/403（token 真正失效）才清除会话并跳登录。
+      const isAbort = err instanceof DOMException && err.name === 'AbortError';
+      const isNetworkAbort = err instanceof TypeError; // Failed to fetch：页面卸载取消请求 / 网络瞬时失败
+      const isAuthError = err instanceof ApiError && (err.status === 401 || err.status === 403);
+      if (isAbort || isNetworkAbort || !isAuthError) {
+        loading = false; // 非认证错误：结束 loading，保持当前登录态
         return;
       }
-      // Token might be invalid, clear and redirect
+      // Token 确实失效，清除并重定向
       console.error('Auth check failed:', err);
       auth.logout();
       goto('/login');
