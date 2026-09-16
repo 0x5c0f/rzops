@@ -410,6 +410,14 @@ erDiagram
 
 - 临时开发脚本统一放 `seed/` 目录、`_` 前缀命名（如 `seed/_xxx.sh` / `seed/_xxx.py`），**用完即删、不提交**；Git 检出后在非 Linux 工具链可能出现 CRLF，脚本类文件用 `sed -i 's/\r$//'` 去除后再执行。
 
+### 6.20 bits-ui 多选 Select：Badge"×"移除按钮失效（重要坑）
+
+- **位置**：`FormMultiSelect.svelte`（供应商类型、服务器角色标签/Web服务器软件、数据中心线路类型共用）。
+- **现象**：已选值以 Badge + "×"展示，真实鼠标点击"×"**无反应**（值不移除）；程序化 `el.click()` 却正常；只能打开下拉点"已选（点击取消）"。
+- **根因**：bits-ui `Select.Trigger` 在 **pointerdown 阶段**即打开浮层，popover 弹出覆盖原点击位置，吞掉后续 `click` 事件——Badge 上仅 `onclick` 的 `removeValue` 永远不会触发。
+- **修复**：Badge 移除按钮同时绑定 `onpointerdown`（`stopPropagation + preventDefault + removeValue`），pointerdown 阶段先于 trigger 拦截；保留 `onclick`/`onkeydown` 兜底。
+- **教训**：任何内嵌在 bits-ui Select.Trigger（button）内、需要独立点击的交互元素，都必须用 **pointerdown 阶段拦截**，不能只依赖 click；测试需用真实鼠标事件（Playwright `page.mouse.click`）而非仅 `el.click()`。
+
 ---
 
 ## 7. 权限体系（RBAC）

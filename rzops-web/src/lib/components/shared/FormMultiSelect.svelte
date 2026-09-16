@@ -82,6 +82,13 @@
                   role="button"
                   tabindex="-1"
                   aria-label={`移除 ${item.label}`}
+                  onpointerdown={(e) => {
+                    // bits-ui Select.Trigger 在 pointerdown 阶段即打开浮层，
+                    // 若不在此拦截，popover 弹出会覆盖/吞掉后续 click，导致移除按钮失效。
+                    e.stopPropagation();
+                    e.preventDefault();
+                    removeValue(item.value);
+                  }}
                   onclick={(e) => {
                     e.stopPropagation();
                     e.preventDefault();
