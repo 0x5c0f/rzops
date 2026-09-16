@@ -416,7 +416,8 @@ erDiagram
 - **现象**：已选值以 Badge + "×"展示，真实鼠标点击"×"**无反应**（值不移除）；程序化 `el.click()` 却正常；只能打开下拉点"已选（点击取消）"。
 - **根因**：bits-ui `Select.Trigger` 在 **pointerdown 阶段**即打开浮层，popover 弹出覆盖原点击位置，吞掉后续 `click` 事件——Badge 上仅 `onclick` 的 `removeValue` 永远不会触发。
 - **修复**：Badge 移除按钮同时绑定 `onpointerdown`（`stopPropagation + preventDefault + removeValue`），pointerdown 阶段先于 trigger 拦截；保留 `onclick`/`onkeydown` 兜底。
-- **教训**：任何内嵌在 bits-ui Select.Trigger（button）内、需要独立点击的交互元素，都必须用 **pointerdown 阶段拦截**，不能只依赖 click；测试需用真实鼠标事件（Playwright `page.mouse.click`）而非仅 `el.click()`。
+- **衍生坑（连续删除）**：仅绑 pointerdown + onclick 兜底后，**一次点击可能连续删除多个值**——pointerdown 移除当前 Badge 后 DOM 立即重排（下一个 Badge 左移到原位置），随后浏览器合成的 `click` 落在下一个"×"上又删一次（用户可见"过于灵敏"）。**修复**：pointerdown/keydown 移除时记录时间戳，`onclick` 在 350ms 内一律忽略（`REMOVE_SUPPRESS_MS`），`click` 仅作为 pointerdown 未触发的兜底。
+- **教训**：任何内嵌在 bits-ui Select.Trigger（button）内、需要独立点击的交互元素，都必须用 **pointerdown 阶段拦截**，不能只依赖 click；且 pointerdown 删元素导致 DOM 重排时，必须抑制紧随其后的合成 click（时间戳窗口），否则会误删相邻元素。测试需用真实鼠标事件（Playwright `page.mouse.click`）而非仅 `el.click()`——bits-ui 的浮层打开/选项选择同样只响应真实 pointer 事件，程序化 click 无效。
 
 ---
 

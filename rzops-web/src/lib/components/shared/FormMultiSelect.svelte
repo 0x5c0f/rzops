@@ -33,6 +33,22 @@
 
   let currentValue = $derived(value ?? []);
 
+  // 上次由 pointerdown/keydown 主动移除的时间戳。
+  // pointerdown 移除后 DOM 会立即重排（Badge 左移），随后合成的 click 会落在
+  // 下一个"×"上，若不加抑制会导致一次点击连续删除多个值。
+  const REMOVE_SUPPRESS_MS = 350;
+  let lastBadgeRemoveTs = 0;
+
+  function badgeRemove(v: string) {
+    lastBadgeRemoveTs = Date.now();
+    removeValue(v);
+  }
+
+  function badgeClickRemove(v: string) {
+    if (Date.now() - lastBadgeRemoveTs < REMOVE_SUPPRESS_MS) return; // pointerdown 已处理，忽略合成 click
+    removeValue(v);
+  }
+
   function addValue(v: string) {
     if (!currentValue.includes(v)) {
       value = [...currentValue, v];
@@ -87,18 +103,18 @@
                     // 若不在此拦截，popover 弹出会覆盖/吞掉后续 click，导致移除按钮失效。
                     e.stopPropagation();
                     e.preventDefault();
-                    removeValue(item.value);
+                    badgeRemove(item.value);
                   }}
                   onclick={(e) => {
                     e.stopPropagation();
                     e.preventDefault();
-                    removeValue(item.value);
+                    badgeClickRemove(item.value);
                   }}
                   onkeydown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.stopPropagation();
                       e.preventDefault();
-                      removeValue(item.value);
+                      badgeRemove(item.value);
                     }
                   }}
                   class="ml-0.5 cursor-pointer rounded-full hover:bg-muted"
