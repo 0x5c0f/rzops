@@ -104,6 +104,21 @@
   // Sidebar collapsed state (persisted)
   let collapsed = $state(false);
   let groupsInitialized = $state(false);
+  // 折叠态浮层：click 固定的分组 + hover 预览的分组（两者并存，click 优先常驻）
+  let collapsedPopover = $state<string | null>(null);
+  let hoverGroup = $state<string | null>(null);
+
+  // 折叠态点击图标固定打开浮层后，点击页面其他区域自动关闭
+  $effect(() => {
+    if (!collapsedPopover) return;
+    const handler = () => { collapsedPopover = null; };
+    window.addEventListener('click', handler);
+    return () => window.removeEventListener('click', handler);
+  });
+
+  function isCollapsedGroupOpen(label: string): boolean {
+    return collapsedPopover === label || hoverGroup === label;
+  }
 
   onMount(() => {
     collapsed = localStorage.getItem('rzops-sidebar-collapsed') === '1';
@@ -217,20 +232,36 @@
       {@const GroupIcon = groupIcons[group.label]}
 
       {#if collapsed}
-        <!-- 折叠模式：图标按钮 + hover 浮出子菜单 -->
-        <div class="group relative">
+        <!-- 折叠模式：图标按钮，hover 预览 + 点击固定弹出子菜单（Ant Design Pro 风格） -->
+        <div
+          class="group relative"
+          onmouseenter={() => { hoverGroup = group.label; }}
+          onmouseleave={() => { hoverGroup = null; }}
+        >
           <button
             class={cn(
               'flex w-full items-center justify-center rounded-md px-2 py-1.5 transition-colors hover:bg-sidebar-accent',
-              hasActive ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'text-sidebar-foreground/95'
+              hasActive || isCollapsedGroupOpen(group.label) ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'text-sidebar-foreground/95'
             )}
             title={group.label}
+            onclick={(e) => {
+              e.stopPropagation();
+              collapsedPopover = collapsedPopover === group.label ? null : group.label;
+            }}
+            aria-expanded={isCollapsedGroupOpen(group.label)}
+            aria-haspopup="menu"
           >
             {#if GroupIcon}
               <GroupIcon class="h-4 w-4 shrink-0" />
             {/if}
           </button>
-          <div class="invisible absolute left-full top-0 z-50 ml-2 min-w-44 rounded-lg border border-sidebar-border bg-sidebar-background p-2 opacity-0 shadow-xl transition-all duration-150 group-hover:visible group-hover:opacity-100">
+          <div
+            class={cn(
+              'absolute left-full top-0 z-50 ml-2 min-w-44 rounded-lg border border-sidebar-border bg-sidebar-background p-2 shadow-xl transition-all duration-150',
+              isCollapsedGroupOpen(group.label) ? 'visible opacity-100' : 'invisible opacity-0'
+            )}
+            role="menu"
+          >
             <span class="block px-2 pb-1 pt-1 text-xs font-semibold tracking-wide text-sidebar-foreground/85">
               {group.label}
             </span>
@@ -238,6 +269,12 @@
               {#each group.items as item}
                 <a
                   href={item.href}
+                  onclick={(e) => {
+                    e.stopPropagation();
+                    collapsedPopover = null;
+                    hoverGroup = null;
+                    onMobileClose();
+                  }}
                   class={cn(
                     'block rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
                     isActive(item.href, $page.url.pathname)
