@@ -274,16 +274,21 @@
           </button>
           <div
             class={cn(
-              'fixed z-[9999] min-w-44 rounded-lg border border-sidebar-border bg-sidebar-background p-2 shadow-xl transition-all duration-150',
+              'fixed z-[9999] min-w-48 rounded-lg border border-sidebar-border bg-sidebar-background p-2 shadow-xl transition-all duration-150',
               isCollapsedGroupOpen(group.label) ? 'visible opacity-100' : 'invisible opacity-0'
             )}
             style={popoverAnchor ? `top:${popoverAnchor.top}px;left:${popoverAnchor.left}px;` : ''}
             role="menu"
           >
-            <span class="block px-2 pb-1 pt-1 text-xs font-semibold tracking-wide text-sidebar-foreground/85">
-              {group.label}
-            </span>
-            <div class="space-y-0.5">
+            <!-- 主菜单头部：图标 + 名称 + 分隔线，与子菜单形成层级 -->
+            <div class="flex items-center gap-2 border-b border-sidebar-border px-2 pb-2 pt-1">
+              {#if GroupIcon}
+                <GroupIcon class="h-4 w-4 shrink-0 text-sidebar-primary" />
+              {/if}
+              <span class="text-sm font-semibold text-sidebar-foreground">{group.label}</span>
+            </div>
+            <!-- 子菜单：缩进 + 左侧前导线，当前项带指示条 -->
+            <div class="ml-3 mt-1 space-y-0.5 border-l border-sidebar-border pl-2 pt-1">
               {#each group.items as item}
                 <a
                   href={item.href}
@@ -294,12 +299,15 @@
                     onMobileClose();
                   }}
                   class={cn(
-                    'block rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                    'relative block rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
                     isActive(item.href, $page.url.pathname)
                       ? 'bg-sidebar-accent font-medium text-sidebar-accent-foreground'
                       : 'text-sidebar-foreground/90'
                   )}
                 >
+                  {#if isActive(item.href, $page.url.pathname)}
+                    <span class="absolute -left-[11px] top-1/2 h-4 w-1 -translate-y-1/2 rounded-full bg-sidebar-primary"></span>
+                  {/if}
                   {item.label}
                 </a>
               {/each}

@@ -713,3 +713,9 @@ user ──< user_role >── role ──< role_permission >── 权限点
 - **根因 B（浮层被遮挡，重要）**：折叠态 aside 在 md 断点下是 `md:static`（**position: static 时 z-index 完全失效**），nav 有 `overflow-x-hidden`，浮层 `absolute left-full` 溢出 nav 宽度被**裁剪**，且 main 内容（DOM 顺序靠后）覆盖浮层——**DOM 中 computed visibility=visible，但 elementFromPoint(浮层中心) 命中的是 main 的"列设置"而非浮层 → 屏幕上看不见**。**修复**：折叠态浮层改 `fixed` 定位 + `z-[9999]`，锚点用按钮 `getBoundingClientRect()`（`top: r.top; left: r.left + r.width + 8`）存到 `popoverAnchor` state，onmouseenter/onclick 都刷新锚点；`$effect` 监听 window click + scroll(capture=true，捕获 nav 内部滚动) 关闭浮层。**验证**：`elementFromPoint` 命中浮层自身（inMenu=true），浮层 position=fixed、z-index=9999。
 - **MCP Playwright 截图坑**：`browser_take_screenshot` / `run_code_unsafe` 内 `page.screenshot()` 的截图与实际页面状态可能不同步（连接器每次调用重载/重置页面上下文，折叠状态丢失后截到展开态）——**DOM 级断言（evaluate + elementFromPoint）才是可靠验证**，截图仅作参考。
 - **打包"报错"澄清**：npm run build 与 docker compose build web 完整输出均无错误无警告（已核对 [PLUGIN_TIMINGS] 只是性能提示）；用户看到的控制台错误是根因 A 的旧资源 404 连锁反应。
+
+### 2026-09-16 Round 11: 折叠态浮层主/子菜单层级
+- 需求：折叠态点击分组图标弹出的浮层里，主菜单（如"网络"）与子菜单（域名/证书/服务器IP/...）原先平铺同一列、无层级感。
+- 实现（rzops-web/src/lib/components/layout/Sidebar.svelte 折叠分支）：浮层内主菜单头改为 `flex items-center gap-2 border-b border-sidebar-border px-2 pb-2 pt-1`（分组图标 + 加粗名称 + 底部 1px 分隔线）；子菜单容器 `ml-3 ... border-l border-sidebar-border pl-2 pt-1`（左缩进 12px + 1px 前导线，与展开态子项风格一致）；当前选中子项左侧加 `absolute -left-[11px] ... rounded-full bg-sidebar-primary` 圆条指示器（与展开态高亮样式统一）。浮层宽度 min-w-44 → min-w-48。
+- 验证：DOM 断言 headerText=网络、headerHasBorder=true、子项 5 个均缩进；elementFromPoint 命中浮层自身（仍为 fixed z-[9999]）。MCP 截图工具与页面状态不同步的老问题依旧（每次调用重载页面上下文），以 DOM 断言为准。
+- 注：主菜单头不可点击（分组无独立页面），只做视觉层级。
