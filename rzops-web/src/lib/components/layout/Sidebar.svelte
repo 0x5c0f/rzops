@@ -107,14 +107,26 @@
   // 折叠态浮层：click 固定的分组 + hover 预览的分组（两者并存，click 优先常驻）
   let collapsedPopover = $state<string | null>(null);
   let hoverGroup = $state<string | null>(null);
+  // 折叠态浮层 fixed 定位锚点（脱离 nav overflow 约束，避免被 main 内容覆盖/裁剪）
+  let popoverAnchor = $state<{ top: number; left: number } | null>(null);
 
-  // 折叠态点击图标固定打开浮层后，点击页面其他区域自动关闭
+  // 折叠态点击图标固定打开浮层后，点击页面其他区域或滚动（含侧边栏内部滚动）自动关闭
   $effect(() => {
     if (!collapsedPopover) return;
-    const handler = () => { collapsedPopover = null; };
-    window.addEventListener('click', handler);
-    return () => window.removeEventListener('click', handler);
+    const close = () => { collapsedPopover = null; };
+    const onScroll = () => { collapsedPopover = null; };
+    window.addEventListener('click', close);
+    window.addEventListener('scroll', onScroll, true); // capture：捕获 nav 内部滚动
+    return () => {
+      window.removeEventListener('click', close);
+      window.removeEventListener('scroll', onScroll, true);
+    };
   });
+
+  function setPopoverAnchor(el: HTMLElement) {
+    const r = el.getBoundingClientRect();
+    popoverAnchor = { top: r.top, left: r.left + r.width + 8 };
+  }
 
   function isCollapsedGroupOpen(label: string): boolean {
     return collapsedPopover === label || hoverGroup === label;
@@ -233,9 +245,13 @@
 
       {#if collapsed}
         <!-- 折叠模式：图标按钮，hover 预览 + 点击固定弹出子菜单（Ant Design Pro 风格） -->
+        <!-- 浮层用 fixed 定位并挂在按钮右侧，避免被 nav overflow / main 内容遮挡 -->
         <div
           class="group relative"
-          onmouseenter={() => { hoverGroup = group.label; }}
+          onmouseenter={(e) => {
+            hoverGroup = group.label;
+            setPopoverAnchor(e.currentTarget as HTMLElement);
+          }}
           onmouseleave={() => { hoverGroup = null; }}
         >
           <button
@@ -247,6 +263,7 @@
             onclick={(e) => {
               e.stopPropagation();
               collapsedPopover = collapsedPopover === group.label ? null : group.label;
+              setPopoverAnchor(e.currentTarget as HTMLElement);
             }}
             aria-expanded={isCollapsedGroupOpen(group.label)}
             aria-haspopup="menu"
@@ -257,9 +274,10 @@
           </button>
           <div
             class={cn(
-              'absolute left-full top-0 z-50 ml-2 min-w-44 rounded-lg border border-sidebar-border bg-sidebar-background p-2 shadow-xl transition-all duration-150',
+              'fixed z-[9999] min-w-44 rounded-lg border border-sidebar-border bg-sidebar-background p-2 shadow-xl transition-all duration-150',
               isCollapsedGroupOpen(group.label) ? 'visible opacity-100' : 'invisible opacity-0'
             )}
+            style={popoverAnchor ? `top:${popoverAnchor.top}px;left:${popoverAnchor.left}px;` : ''}
             role="menu"
           >
             <span class="block px-2 pb-1 pt-1 text-xs font-semibold tracking-wide text-sidebar-foreground/85">
