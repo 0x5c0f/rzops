@@ -18,6 +18,8 @@ pub struct CreateServerIpRequest {
 /// Request body for updating a server IP.
 #[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct UpdateServerIpRequest {
+    /// 关联服务器：传 uuid=改绑；不传=保持不变（清空绑定请使用 POST /server-ips/{id}/unbind）
+    pub server_id: Option<Uuid>,
     pub ip_address: Option<String>,
     pub nic_name: Option<String>,
     pub ip_type: Option<String>,

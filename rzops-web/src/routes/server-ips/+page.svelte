@@ -37,7 +37,7 @@ import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
 
   const columns = $derived([
     { key: 'ip_address', label: 'IP地址' , link: (item: ServerIpResponse) => `/server-ips/${item.id}`, lockVisible: true },
-    { key: 'server_id', label: '服务器', link: (item: ServerIpResponse) => (item.server_id ? `/servers/${item.server_id}` : null), render: (v: unknown, item: ServerIpResponse) => {
+    { key: 'server_id', label: '服务器', link: (item: ServerIpResponse) => (item.server_id ? `/servers/${item.server_id}` : null), cellClass: (item: ServerIpResponse) => (!item.server_id ? 'text-purple-600' : !item.server_name ? 'text-red-500' : isResourceOffline('server', item.server_status) ? 'text-amber-600' : ''), render: (v: unknown, item: ServerIpResponse) => {
       if (!item.server_id) return '未关联服务器';
       if (!item.server_name) return '服务器已删除';
       return formatResourceWithStatus(item.server_name, item.server_status, 'server');
@@ -49,11 +49,9 @@ import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
   ]);
 
   function getRowClass(item: ServerIpResponse): string {
+    // 行级颜色仅跟随主数据状态（启用/停用等）；关联状态用服务器列 cellClass 文本标色
     if (item.status !== 'enabled') {
       return 'text-slate-400';
-    }
-    if (!item.server_id) {
-      return 'text-sky-600'; // 未关联服务器（空闲可绑定）
     }
     if (item.server_id) {
       if (!item.server_name) {

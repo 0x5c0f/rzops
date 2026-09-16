@@ -177,7 +177,7 @@ pub async fn update_server_ip(
     let before_value = serde_json::to_value(to_response(&existing, None, None)).unwrap_or(serde_json::json!({}));
     let ip = ServerIP {
         id: existing.id,
-        server_id: existing.server_id,
+        server_id: body.server_id.or(existing.server_id),
         ip_address: body.ip_address.unwrap_or(existing.ip_address),
         nic_name: body.nic_name.or(existing.nic_name),
         ip_type: body.ip_type.unwrap_or(existing.ip_type),

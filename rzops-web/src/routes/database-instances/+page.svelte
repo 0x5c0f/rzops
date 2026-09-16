@@ -40,7 +40,7 @@ import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
     { key: 'name', label: '名称' , link: (item: DatabaseInstanceResponse) => `/database-instances/${item.id}`, lockVisible: true },
     { key: 'db_type', label: '数据库类型', valueMap: dbTypeMap },
     { key: 'environment', label: '环境', hideBelow: 'lg', valueMap: environmentMap },
-    { key: 'server_id', label: '服务器', render: (v: unknown, item: DatabaseInstanceResponse) => {
+    { key: 'server_id', label: '服务器', cellClass: (item: DatabaseInstanceResponse) => (!item.server_id ? 'text-purple-600' : !item.server_name ? 'text-red-500' : isResourceOffline('server', item.server_status) ? 'text-amber-600' : ''), render: (v: unknown, item: DatabaseInstanceResponse) => {
       if (!item.server_id) return '未关联服务器';
       if (!item.server_name) return '服务器已删除';
       return formatResourceWithStatus(item.server_name, item.server_status, 'server');
@@ -50,17 +50,9 @@ import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
   ]);
 
   function getRowClass(item: DatabaseInstanceResponse): string {
+    // 行级颜色仅跟随主数据状态；关联服务器状态用服务器列 cellClass 文本标色
     if (item.status && item.status !== 'active') {
       return 'text-slate-400';
-    }
-    if (!item.server_id) {
-      return 'text-amber-600'; // 未选择服务器
-    }
-    if (!item.server_name) {
-      return 'text-red-500'; // 关联服务器已删除
-    }
-    if (isResourceOffline('server', item.server_status)) {
-      return 'text-amber-600'; // 关联服务器已退役
     }
     return '';
   }

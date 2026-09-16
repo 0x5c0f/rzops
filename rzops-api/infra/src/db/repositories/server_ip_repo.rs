@@ -139,7 +139,7 @@ impl ServerIpRepository for PgServerIpRepository {
         let row = sqlx::query(
             r#"UPDATE cmdb_server_ip SET
                 ip_address = $2, nic_name = $3, ip_type = $4, is_primary = $5, isp_provider_id = $6,
-                description = $7, status = $8, updated_at = $9
+                description = $7, status = $8, updated_at = $9, server_id = $10
                WHERE id = $1
                RETURNING id, server_id, ip_address, nic_name, ip_type, is_primary,
                          isp_provider_id, description, status::text, created_at, updated_at"#,
@@ -153,6 +153,7 @@ impl ServerIpRepository for PgServerIpRepository {
         .bind(&ip.description)
         .bind(ip.status.clone())
         .bind(ip.updated_at)
+        .bind(ip.server_id)
         .fetch_optional(&self.pool)
         .await.repo()?;
         Ok(row.map(|r| row_to_server_ip(&r)))

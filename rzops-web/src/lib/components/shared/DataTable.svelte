@@ -27,6 +27,8 @@
     display?: (item: T) => string;
     /** Optional link href; when present the cell renders as a link (null = plain text) */
     link?: (item: T) => string | null;
+    /** 单元格级样式类（仅作用于该列单元格，不染整行）；返回空串时无样式 */
+    cellClass?: (item: T) => string | null;
     /** 状态徽章：根据 item 返回徽章标签与样式类；返回 null 时不渲染徽章 */
     badge?: (item: T) => { label: string; className: string } | null;
     /** 状态徽章（StatusBadge 组件）：根据 item 返回状态值或 {status, color, label}；返回空时不渲染徽章 */
@@ -300,7 +302,7 @@
               {/if}
               {#each visibleColumns as col}
                 <Table.Cell
-                  class={cn('truncate', col.class)}
+                  class={cn('truncate', col.class, col.cellClass?.(item) ?? '')}
                   onmouseenter={handleCellEnter}
                   onmousemove={handleCellMove}
                   onmouseleave={handleCellLeave}

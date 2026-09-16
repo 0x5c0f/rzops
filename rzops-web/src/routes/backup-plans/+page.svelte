@@ -11,7 +11,7 @@
   import Pagination from '$lib/components/shared/Pagination.svelte';
   import Breadcrumb from '$lib/components/layout/Breadcrumb.svelte';
   import { formatDate } from '$lib/utils/format';
-  import { formatResourceWithStatus, getResourceStatusClass } from '$lib/utils/resource-status';
+  import { formatResourceWithStatus, getResourceStatusClass, isResourceOffline } from '$lib/utils/resource-status';
   import { onMount } from 'svelte';
   import { commonStatusOptions, backupTargetTypeOptions, getOptionColor } from '$lib/utils/enum-options';
 import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
@@ -70,7 +70,14 @@ import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
   const columns = $derived([
     { key: 'name', label: '名称' , link: (item: BackupPlanResponse) => `/backup-plans/${item.id}`, lockVisible: true },
     { key: 'target_type', label: '目标类型', hideBelow: 'md', valueMap: targetTypeMap },
-    { key: 'target_name', label: '关联目标', link: targetHref, render: (v: unknown, item: BackupPlanResponse) => {
+    { key: 'target_name', label: '关联目标', link: targetHref, cellClass: (item: BackupPlanResponse) => {
+      if (!item.target_id) return 'text-purple-600';
+      if (!item.target_name) return 'text-red-500';
+      const st = getTargetStatus(item);
+      const rt = getTargetResourceType(item);
+      if (st && rt && isResourceOffline(rt, st)) return 'text-amber-600';
+      return '';
+    }, render: (v: unknown, item: BackupPlanResponse) => {
       const status = getTargetStatus(item);
       const resType = getTargetResourceType(item);
       // 选了目标但目标已删除（软删后 JOIN 不到名称）
@@ -125,10 +132,7 @@ import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
     if (item.status === 'disabled' || item.status === 'paused' || item.status === 'inactive') {
       return 'text-slate-400';
     }
-    if (!item.target_id) {
-      return 'text-sky-600'; // 未关联目标
-    }
-    return ''; // archived 已归档不标色，仅排末尾
+    return ''; // archived 已归档不标色，仅排末尾；未关联目标用目标列 cellClass 文本标色
   }
 
   function clearFilter(key: keyof ListBackupPlansQuery) {

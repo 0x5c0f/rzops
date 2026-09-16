@@ -31,6 +31,8 @@ export interface CreateServerIpRequest {
 }
 
 export interface UpdateServerIpRequest {
+  /** 传 uuid=改绑；不传=不变（清空绑定走 unbind） */
+  server_id?: string;
   ip_address?: string;
   nic_name?: string;
   ip_type?: string;

@@ -41,8 +41,17 @@
   async function handleUpdate(data: CreateServerIpRequest) {
     const id = $page.params.id;
     if (!id) return;
-    const { server_id: _serverId, ...rest } = data;
-    await serverIpsApi.update(id, rest);
+    // 服务器字段编辑时放开：uuid=改绑走 update；清空绑定走 unbind（后端 update 不区分 null/缺省）
+    const { server_id, ...rest } = data;
+    if (server_id === '' && serverIp?.server_id) {
+      await serverIpsApi.update(id, rest);
+      await serverIpsApi.unbind(id);
+    } else {
+      await serverIpsApi.update(id, {
+        ...rest,
+        server_id: server_id || undefined,
+      });
+    }
     goto(`/server-ips/${id}`);
   }
 </script>

@@ -158,9 +158,8 @@
         bind:value={form.server_id}
         searchFn={searchServerOptions}
         displayOptions={serverDisplayOptions}
-        placeholder={editing ? '' : '选择服务器（可留空，如未绑定的EIP）'}
+        placeholder="选择服务器（可留空）"
         searchPlaceholder="输入名称或 IP 搜索..."
-        disabled={editing}
       />
 
       <div class="space-y-2">
