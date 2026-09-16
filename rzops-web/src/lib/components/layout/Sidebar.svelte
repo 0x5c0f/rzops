@@ -247,6 +247,7 @@
         <!-- 折叠模式：图标按钮，hover 预览 + 点击固定弹出子菜单（Ant Design Pro 风格） -->
         <!-- 浮层用 fixed 定位并挂在按钮右侧，避免被 nav overflow / main 内容遮挡 -->
         <div
+          role="group"
           class="group relative"
           onmouseenter={(e) => {
             hoverGroup = group.label;
