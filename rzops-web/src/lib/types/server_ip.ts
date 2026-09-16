@@ -44,6 +44,8 @@ export interface ListServerIpsQuery {
   server_id?: string;
   status?: string;
   q?: string;
+  /** 关联状态：true=已关联服务器，false=未关联 */
+  server_bound?: boolean;
   page?: number;
   per_page?: number;
 }

@@ -31,12 +31,13 @@ import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
     if (query.status) count++;
     if (query.server_id) count++;
     if (query.ip_type) count++;
+    if (query.server_bound !== undefined) count++;
     return count;
   });
 
   const columns = $derived([
     { key: 'ip_address', label: 'IP地址' , link: (item: ServerIpResponse) => `/server-ips/${item.id}`, lockVisible: true },
-    { key: 'server_id', label: '服务器', render: (v: unknown, item: ServerIpResponse) => {
+    { key: 'server_id', label: '服务器', link: (item: ServerIpResponse) => (item.server_id ? `/servers/${item.server_id}` : null), render: (v: unknown, item: ServerIpResponse) => {
       if (!item.server_id) return '未关联服务器';
       if (!item.server_name) return '服务器已删除';
       return formatResourceWithStatus(item.server_name, item.server_status, 'server');
@@ -50,6 +51,9 @@ import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
   function getRowClass(item: ServerIpResponse): string {
     if (item.status !== 'enabled') {
       return 'text-slate-400';
+    }
+    if (!item.server_id) {
+      return 'text-sky-600'; // 未关联服务器（空闲可绑定）
     }
     if (item.server_id) {
       if (!item.server_name) {
@@ -202,6 +206,12 @@ import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
             <button class="ml-1 hover:text-destructive" onclick={() => clearFilter('ip_type')}>×</button>
           </span>
         {/if}
+        {#if query.server_bound !== undefined}
+          <span class="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-xs">
+            关联状态: {query.server_bound ? '已关联' : '未关联'}
+            <button class="ml-1 hover:text-destructive" onclick={() => clearFilter('server_bound')}>×</button>
+          </span>
+        {/if}
       </div>
     {/if}
 
@@ -251,6 +261,22 @@ import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
             searchPlaceholder="输入服务器名称搜索..."
             onValueChange={() => { query = { ...query, page: 1 }; loadData(); }}
           />
+        </div>
+        <div class="space-y-1">
+          <label for="f-4" class="text-xs font-medium text-muted-foreground">关联状态</label>
+          <select id="f-4"
+            class="w-full rounded-md border px-3 py-2 text-sm"
+            value={query.server_bound === undefined ? '' : String(query.server_bound)}
+            onchange={(e) => {
+              const val = (e.target as HTMLSelectElement).value;
+              query = { ...query, server_bound: val === '' ? undefined : val === 'true', page: 1 };
+              loadData();
+            }}
+          >
+            <option value="">全部</option>
+            <option value="true">已关联</option>
+            <option value="false">未关联</option>
+          </select>
         </div>
       </div>
     {/if}

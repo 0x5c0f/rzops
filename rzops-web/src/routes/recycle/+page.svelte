@@ -25,16 +25,6 @@
   let confirmOpen = $state(false);
   let purging = $state(false);
 
-  // 展开详情中隐藏的内部/元信息字段（ID 与删除时间已在列表列展示）
-  const HIDDEN_FIELDS = new Set(['id', 'deleted_at', 'created_at', 'updated_at']);
-
-  function formatSnapshotValue(v: unknown): string {
-    if (v === null || v === undefined) return '-';
-    if (typeof v === 'boolean') return v ? '是' : '否';
-    if (typeof v === 'object') return JSON.stringify(v);
-    return String(v);
-  }
-
   const columns = [
     {
       key: 'resource_type', label: '资源类型',
@@ -168,14 +158,7 @@
   <div class="space-y-2 px-2 py-3">
     <p class="text-xs font-medium text-muted-foreground">删除前数据快照（{resourceTypeLabels[item.resource_type] || item.resource_type}）</p>
     {#if item.data && Object.keys(item.data).length > 0}
-      <div class="grid gap-x-6 gap-y-1.5 sm:grid-cols-2 lg:grid-cols-3">
-        {#each Object.entries(item.data).filter(([k]) => !HIDDEN_FIELDS.has(k)) as [k, v]}
-          <div class="flex min-w-0 items-start gap-2 text-sm">
-            <span class="shrink-0 text-muted-foreground">{k}</span>
-            <span class="min-w-0 break-all text-foreground">{formatSnapshotValue(v)}</span>
-          </div>
-        {/each}
-      </div>
+      <pre class="max-h-80 overflow-auto whitespace-pre-wrap rounded-md bg-muted/50 p-3 font-mono text-xs leading-relaxed text-foreground">{JSON.stringify(item.data, null, 2)}</pre>
     {:else}
       <p class="text-sm text-muted-foreground">无可用数据快照</p>
     {/if}

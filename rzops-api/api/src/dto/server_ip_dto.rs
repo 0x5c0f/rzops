@@ -34,6 +34,7 @@ pub struct ListServerIpsQuery {
     pub status: Option<String>,
     pub ip_type: Option<String>,
     pub q: Option<String>,
+    pub server_bound: Option<bool>,
     pub page: Option<i64>,
     pub per_page: Option<i64>,
 }

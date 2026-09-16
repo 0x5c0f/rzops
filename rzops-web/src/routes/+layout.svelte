@@ -52,6 +52,11 @@
       loading = false;
       initialized = true;
     } catch (err) {
+      // 页面刷新/导航会中断 onMount 中未完成的请求（DOMException AbortError），
+      // 这不代表认证失败，跳过 logout 避免"连续 F5 后误退登"
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        return;
+      }
       // Token might be invalid, clear and redirect
       console.error('Auth check failed:', err);
       auth.logout();

@@ -125,6 +125,9 @@ import { canCreate, canUpdate, canDelete } from '$lib/utils/permissions';
     if (item.status === 'disabled' || item.status === 'paused' || item.status === 'inactive') {
       return 'text-slate-400';
     }
+    if (!item.target_id) {
+      return 'text-sky-600'; // 未关联目标
+    }
     return ''; // archived 已归档不标色，仅排末尾
   }
 

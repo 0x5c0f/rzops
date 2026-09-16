@@ -90,6 +90,7 @@ pub async fn list_server_ips(
         status: query.status,
         ip_type: query.ip_type,
         q: query.q,
+        server_bound: query.server_bound,
         limit: Some(per_page),
         offset: Some(offset),
     };

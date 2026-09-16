@@ -684,3 +684,13 @@ user ──< user_role >── role ──< role_permission >── 权限点
 - **测试结果**：后端 curl 端到端全绿（登录→造 4 条绑定数据→逐个 unbind HTTP 200→GET 验证 server_id/target_id 为 null 且记录仍在）；`cargo check` / `cargo build --release --target x86_64-unknown-linux-musl`（1m44s）无警告；`npm run build` 无警告；容器 `--no-cache` 重建后 grep 确认 `.unbind(` 调用与 4 个 API 路径已入 chunk（ServerForm 的 sync 变为 `some(t=>t.id===e.id)&&await R.unbind(e.id)` 形式）。
 - **坑（提交管理）**：`git add -A` 会把工作目录里的 `tmp_*.sh` 临时脚本一并提交——临时脚本应放子目录或用 `git status --short` 检查后再 add；误提交后用 `git rm <file>` 清理并单独 commit。
 - **bu 沙箱状态**：登录点击仍无网络请求（fetch 代理失效），UI 自动化不可用；本轮前端验证依赖"后端 curl 端到端 + 前端构建 + 容器产物 grep + 用户人工复核"。
+
+### 2026-09-16 Round 8: F5 误退登修复 + IP 未关联状态颜色/筛选 + 服务器列跳转 + 回收站 JSON 视图
+- **问题 1（F5 误退登）根因与修复**：`+layout.svelte` onMount 里 `authApi.me()` 请求在用户按 F5 刷新时被浏览器中断（`DOMException: AbortError`），catch 误判为认证失败 → `auth.logout()` 清 token → 新页面加载无 token → 跳登录。**修复**：catch 中先判断 `err instanceof DOMException && err.name === 'AbortError'` 则直接 return（不 logout 不跳转）。client.ts 的 401 处理只在响应 401 时清 token，abort 不触发，无需改。
+- **问题 2（未关联状态）**：
+  - 颜色：server-ips 列表 `getRowClass` 增加"未关联服务器"分支 → `text-sky-600`（蓝色，区别于停用灰 text-slate-400、删除红 text-red-500、退役橙 text-amber-600）；backup-plans / monitor-targets 同步补"未关联目标" → `text-sky-600`；database-instances 已有"未选择服务器" amber 保持。
+  - 筛选：后端 `ServerIpFilter` + `ListServerIpsQuery` dto 增加 `server_bound: Option<bool>`，repo find_all **与 count** 都加 `AND server_id IS (NOT) NULL` 条件（**坑：首轮只改了 find_all，count 漏改导致筛选后总数恒为全部**）；前端高级筛选加"关联状态"下拉（全部/已关联/未关联）+ 已选条件徽章。curl 验证：已关联 count=2、未关联 count=5、合计 7。
+- **问题 3（服务器列跳转）**：server-ips 列表服务器列加 `link: (item) => item.server_id ? `/servers/${item.server_id}` : null`（DataTable 的 link 属性支持 per-item，返回 null 时纯文本，未关联/已删除不可点）。
+- **问题 4（回收站详情 JSON）**：展开详情由键值对 grid 改为格式化 JSON 视图（`<pre>` + `JSON.stringify(item.data, null, 2)` + 浅色背景 + 最大高度滚动），删除不再使用的 HIDDEN_FIELDS / formatSnapshotValue。
+- **测试**：cargo check / npm run build 无警告；容器 --no-cache 重建后 grep 确认 server_bound、text-sky-600、服务器跳转链接、JSON.stringify 快照、AbortError 均已入产物；后端 curl 验证 server_bound=true/false 的 data 与 count 均正确。
+- **bu 沙箱仍不可用**（登录点击无网络请求），前端交互验证依赖容器产物 grep + 后端 curl + 用户人工复核。
